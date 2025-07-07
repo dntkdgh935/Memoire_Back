@@ -1,37 +1,97 @@
-HELP.md
-.gradle
+
+# ----------------------------------------
+# ⚙️ 공통 (Global ignores)
+# ----------------------------------------
+
+# 모든 .env 파일 무시
+**/.env
+.env
+
+# 운영체제별 생성 파일
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+logs/
+*.log*
+
+# 임시 파일 및 스왑 파일
+*.swp
+*.swo
+
+# ----------------------------------------
+# 🚀 빌드 도구 및 IDE 관련
+# ----------------------------------------
+
+# 빌드 결과물 및 캐시 (Gradle 등 공통)
 build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
 out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+.gradle/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# IntelliJ IDEA 설정 파일
+.idea/
+*.iml
 
-### VS Code ###
+# Eclipse/STS 설정 파일
+.classpath
+.project
+.settings/
+bin/ # 이클립스/STS의 기본 컴파일 출력 디렉토리
+
+# VS Code 설정 파일
 .vscode/
+
+# 컴파일된 클래스 및 패키지 산출물
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Node.js 모듈 및 관련 파일 (React)
+node_modules/
+npm-debug.log
+yarn.lock
+package-lock.json # npm 사용 시 추가
+
+# Python 컴파일/캐시 파일 (FastAPI)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.joblib
+
+# Python 가상 환경 디렉토리 (FastAPI)
+venv/
+env/
+
+# QueryDSL 자동 생성 코드 (Spring Boot)
+src/main/generated/
+
+# Spring 설정 파일
+# 일반적으로 application.properties/yml은 Git에 포함합니다.
+# 민감한 정보가 있는 경우에만 아래처럼 로컬 전용 파일을 무시하거나, 환경변수를 사용하세요.
+application-local.properties
+application-local.yml
+# application.properties # 공통 설정 파일을 무시하고 싶다면 주석 해제
+# application.yml # 공통 설정 파일을 무시하고 싶다면 주석 해제
+
+# ----------------------------------------
+# 📂 특정 경로 예외 처리
+# ----------------------------------------
+
+# React 빌드 결과물 (Spring Boot의 static 디렉토리에 복사될 경우)
+# 이 경우, static 디렉토리 내의 모든 것을 무시하되, assets 폴더만 예외적으로 포함
+src/main/resources/static/
+!src/main/resources/static/assets/
+
+# 업로드 샘플 파일 (예시)
+# 이 경로는 프로젝트 구조에 따라 정확히 지정해야 합니다.
+# 예를 들어, Spring Boot 프로젝트 내부에 있다면 src/main/webapp/resources/uploads/
+# 아니면 단순히 uploads/ 등으로 명시할 수도 있습니다.
+src/main/webapp/resources/uploads/
