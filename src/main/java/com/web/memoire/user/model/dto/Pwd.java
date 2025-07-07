@@ -1,0 +1,33 @@
+package com.web.memoire.user.model.dto;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class Pwd {
+    @NotNull
+    private String userid;
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+    private Date chPwd;
+    private String prevPwd;
+    @NotNull
+    private String currPwd;
+
+    public Pwd toEntity() {
+             return Pwd.builder()
+                 .userid(this.userid)
+                 .chPwd(this.chPwd)
+                 .prevPwd(this.prevPwd)
+                 .currPwd(this.currPwd)
+                 .build();
+         }
+}
