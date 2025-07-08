@@ -22,5 +22,14 @@ public class LibraryService {
                 .map(TagEntity::toDto)
                 .toList();
     }
+    // ✅ 상위 5개 태그 가져오기
+    public List<Tag> getTopTags() {
+        List<TagEntity> tagEntities = libTagRepository.findTop5TagsByRownum();
+        return tagEntities.stream()
+                .map(TagEntity::toDto)
+                .toList();
+    }
+
+
 }
 

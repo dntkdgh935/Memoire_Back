@@ -20,11 +20,11 @@ public class LibraryController {
     private LibraryService libraryService;
 
 
-    @GetMapping("/tags")
-    public ResponseEntity<?> getAllTags() {
+    @GetMapping("/top5tags")
+    public ResponseEntity<?> getTopTags() {
         log.info("LibraryController.getAllTags...");
         try {
-            return ResponseEntity.ok(libraryService.getAllTags());
+            return ResponseEntity.ok(libraryService.getTopTags());
         } catch (Exception e) {
             log.error("Error while fetching tags", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("태그 조회 실패");
