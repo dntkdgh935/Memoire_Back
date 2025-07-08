@@ -104,7 +104,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                 "refreshToken",refreshToken,
                 "userId",userId,
                 "name", user.getName(),
-                "role",user.getRole().equals("ADMIN") ? "ADMIN" : "USER"
+                "role",user.getRole().equals("ADMIN") ? "ADMIN" : "USER",
+                "autoLoginFlag",user.getAutoLoginFlag().equals("Y") ? "Y" : "N"
         );
         response.setContentType("application/json; charset=utf-8");
         new ObjectMapper().writeValue(response.getWriter(), responseBody);
@@ -127,6 +128,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         response.getWriter().write(String.format("{\"error\":\"%s\"}",errorMessage));
     }
+    //변경적용
 
 
 }
