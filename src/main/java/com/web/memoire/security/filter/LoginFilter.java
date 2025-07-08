@@ -128,7 +128,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         response.getWriter().write(String.format("{\"error\":\"%s\"}",errorMessage));
     }
-    //변경적용용
+    //변경적용
 
 
 }
