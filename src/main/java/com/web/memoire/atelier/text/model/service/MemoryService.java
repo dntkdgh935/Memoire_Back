@@ -1,15 +1,16 @@
 package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.atelier.text.jpa.entity.MemoryEntity;
-import com.web.memoire.atelier.text.model.dto.Memory;
 
 import java.util.List;
 
 public interface MemoryService {
 
-    void saveMemory(MemoryEntity entity);
+    MemoryEntity saveMemory(MemoryEntity memory);
 
-    List<Memory> getMemoriesByUser(String userId);
+    List<MemoryEntity> findByCollectionId(String collectionId);
 
-    List<Memory> getMemoriesByCollection(String collectionId);
+    List<MemoryEntity> findByUserId(String userId);
+
+    MemoryEntity findById(Long memoryId);
 }
