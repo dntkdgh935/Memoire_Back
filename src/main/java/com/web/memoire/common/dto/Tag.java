@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Component
+//@Component
 public class Tag {
 
     @NotNull

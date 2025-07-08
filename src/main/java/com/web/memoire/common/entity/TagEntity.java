@@ -19,17 +19,17 @@ public class TagEntity {
     @Column(name = "TAGID", nullable = false)
     private int tagid;
 
-    @Column(name = "TAGNAME", nullable = false)
+    @Column(name = "TAG_NAME", nullable = false)
     private String tagName;
 
-    @Column(name = "SEARCHCOUNT", nullable = false, columnDefinition = "number default 0")
+    @Column(name = "SEARCH_COUNT", nullable = false, columnDefinition = "number default 0")
     private int searchCount;
 
-    @Column(name = "LIKECOUNT", nullable = false, columnDefinition = "number default 0")
+    @Column(name = "LIKE_COUNT", nullable = false, columnDefinition = "number default 0")
     private int likeCount;
 
     @Lob
-    @Column(name = "TAGEMBEDDING")
+    @Column(name = "TAG_EMBEDDING", columnDefinition = "CLOB")
     private String tagEmbedding;
 
     public Tag toDto() {
