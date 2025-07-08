@@ -1,7 +1,7 @@
 package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.atelier.text.exception.TextGenerationException;
-import com.web.memoire.atelier.text.jpa.entity.MemoryEntity;
+import com.web.memoire.atelier.text.jpa.entity.AtelierMemoryEntity;
 import com.web.memoire.atelier.text.jpa.repository.MemoryRepository;
 import com.web.memoire.atelier.text.model.dto.TextGenerationRequest;
 import com.web.memoire.atelier.text.model.dto.TextResultDto;
@@ -25,7 +25,7 @@ public class TextToTextServiceImpl implements TextToTextService {
 
             // 2. 저장 옵션 true일 때 MemoryEntity로 변환 후 저장
             if (request.isSaveToMemory()) {
-                MemoryEntity memory = MemoryEntity.builder()
+                AtelierMemoryEntity memory = AtelierMemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getContent())
                         .collectionId(resultDto.getCollectionId())
