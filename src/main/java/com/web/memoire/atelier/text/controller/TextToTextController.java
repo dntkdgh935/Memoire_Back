@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/atelier")
-public class TextController {
+public class TextToTextController {
 
     @PostMapping("/generate-text")
     public ResponseEntity<TextResultDto> generateText(@RequestBody TextGenerationRequest request) {
