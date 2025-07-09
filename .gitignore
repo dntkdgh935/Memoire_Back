@@ -3,6 +3,8 @@
 # ⚙️ 공통 (Global ignores)
 # ----------------------------------------
 
+src/main/generated/
+
 # 모든 .env 파일 무시
 **/.env
 .env
