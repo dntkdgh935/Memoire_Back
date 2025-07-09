@@ -22,7 +22,8 @@ public class JWTFilter extends OncePerRequestFilter {
         return url.equals("/")
                 || url.equals("/login")
                 || url.equals("/js/**")
-                || url.equals("/sign");
+                || url.equals("/sign")
+                || url.startsWith("/api/"); // ✅ 여기에 추가
     }
 
     @Override

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder  // ✅ builder() 사용 가능하게 추가
-public class MemoryEntity {
+public class AtelierMemoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

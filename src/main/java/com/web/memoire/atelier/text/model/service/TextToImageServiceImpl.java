@@ -1,7 +1,7 @@
 package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.atelier.text.exception.ImageGenerationException;
-import com.web.memoire.atelier.text.jpa.entity.MemoryEntity;
+import com.web.memoire.atelier.text.jpa.entity.AtelierMemoryEntity;
 import com.web.memoire.atelier.text.jpa.repository.MemoryRepository;
 import com.web.memoire.atelier.text.model.dto.ImagePromptRequest;
 import com.web.memoire.atelier.text.model.dto.ImageResultDto;
@@ -23,7 +23,7 @@ public class TextToImageServiceImpl implements TextToImageService {
             ImageResultDto resultDto = pythonApiService.callDalle(request);
 
             if (request.isSaveToMemory()) {
-                MemoryEntity memory = MemoryEntity.builder()
+                AtelierMemoryEntity memory = AtelierMemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getPrompt())
                         .collectionId(resultDto.getCollectionId())
