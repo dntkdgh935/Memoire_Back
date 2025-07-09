@@ -16,6 +16,8 @@ public class CollView {
 
     private String authorid;
 
+    private String authorname;
+
     private String collectionTitle;
 
     private int readCount;

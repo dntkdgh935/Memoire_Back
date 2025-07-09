@@ -10,8 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
-
-
+import java.util.Optional;
 
 
 @Slf4j
@@ -53,18 +52,24 @@ public class LibraryService {
             String thumbType = memory != null ? memory.getMemoryType() : null;
             String textContent = memory!=null? memory.getContent():null;
 
-            // ✅ 좋아요, 북마크 엔티티 가져오기
-            LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
-            BookmarkEntity bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
-
-            // ✅ 작성자 프로필 이미지 가져오기
+            //✅ Author 정보 가져오기
+            Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
+            String authorName = author.isPresent() ? author.get().getName() : null;
+            // 작성자 프로필 이미지 가져오기
             String authorProfileImage = libUserRepository.findByUserId(collection.getAuthorid())
                     .map(UserEntity::getProfileImagePath)
                     .orElse("/default_profile.jpg");
 
+            // ✅ 좋아요, 북마크 엔티티 가져오기
+            LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
+            BookmarkEntity bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
+
+
+
             return CollView.builder()
                     .collectionid(collection.getId())
                     .authorid(collection.getAuthorid())
+                    .authorname(authorName)
                     .collectionTitle(collection.getCollectionTitle())
                     .readCount(collection.getReadCount())
                     .visibility(collection.getVisibility())
