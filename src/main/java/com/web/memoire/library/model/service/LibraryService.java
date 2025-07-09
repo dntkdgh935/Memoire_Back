@@ -51,6 +51,7 @@ public class LibraryService {
             MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
             String thumbnailPath = memory != null ? memory.getFilepath() : null;
             String thumbType = memory != null ? memory.getMemoryType() : null;
+            String textContent = memory!=null? memory.getContent():null;
 
             // ✅ 좋아요, 북마크 엔티티 가져오기
             LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
@@ -70,7 +71,7 @@ public class LibraryService {
                     .createdDate(collection.getCreatedDate())
                     .titleEmbedding(collection.getTitleEmbedding())
                     .thumbnailPath(thumbnailPath)
-                    .textContent("대표 이미지 설명 또는 메모리 내용") // 필요 시 추출
+                    .textContent(textContent) // 필요 시 추출
                     .userlike(like != null)
                     .userbookmark(bookmark != null)
                     .authorProfileImage(authorProfileImage)
