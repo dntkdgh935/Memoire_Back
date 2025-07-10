@@ -56,4 +56,7 @@ public class CollectionEntity {
                 .build();
     }
 
+    public String getId() {
+        return collectionid;
+    }
 }

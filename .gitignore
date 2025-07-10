@@ -3,6 +3,8 @@
 # ⚙️ 공통 (Global ignores)
 # ----------------------------------------
 
+src/main/generated/*
+
 # 모든 .env 파일 무시
 **/.env
 .env
@@ -28,6 +30,7 @@ logs/
 build/
 out/
 .gradle/
+build.gradle
 
 # IntelliJ IDEA 설정 파일
 .idea/
@@ -78,7 +81,7 @@ src/main/generated/
 # 민감한 정보가 있는 경우에만 아래처럼 로컬 전용 파일을 무시하거나, 환경변수를 사용하세요.
 application-local.properties
 application-local.yml
-# application.properties # 공통 설정 파일을 무시하고 싶다면 주석 해제
+src/main/resources/application.properties # 공통 설정 파일을 무시하고 싶다면 주석 해제
 # application.yml # 공통 설정 파일을 무시하고 싶다면 주석 해제
 
 # ----------------------------------------
@@ -95,3 +98,4 @@ src/main/resources/static/
 # 예를 들어, Spring Boot 프로젝트 내부에 있다면 src/main/webapp/resources/uploads/
 # 아니면 단순히 uploads/ 등으로 명시할 수도 있습니다.
 src/main/webapp/resources/uploads/
+src/main/resources/application.properties
