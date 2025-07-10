@@ -39,6 +39,7 @@ public class JWTUtil {
 
         return Jwts.builder()
                 .setSubject(user.getUserId()) // 토큰의 주체 (여기서는 사용자 ID)
+                .claim("userid", user.getUserId())
                 .claim("category", category) // 토큰의 카테고리 (access/refresh)
                 .claim("name", user.getName()) // 사용자 이름
                 .claim("role", user.getRole() != null && user.getRole().equals("ADMIN") ? "ADMIN" : "USER") // 사용자 권한

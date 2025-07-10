@@ -15,4 +15,9 @@ public interface ArchiveMemoryRepository extends JpaRepository<MemoryEntity, Int
     @Query(value = "SELECT m FROM MemoryEntity m JOIN CollectionEntity c ON m.collectionid = c.collectionid WHERE m.collectionid = :collectionid AND c.authorid = :userid")
     List<MemoryEntity> findAllUserMemories(@Param("userid") String userid, @Param("collectionid") String collectionid);
 
+    // 유저가 작성한 메모리 총 개수 조회
+    @Query(value = "SELECT count(m) FROM MemoryEntity m JOIN CollectionEntity c ON m.collectionid = c.collectionid WHERE c.authorid = :userid")
+    int countAllMemoriesByUserId(@Param("userid") String userid);
+
+
 }
