@@ -3,16 +3,15 @@ package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.common.entity.MemoryEntity;
 
-
 import java.util.List;
 
 public interface MemoryService {
 
-    AtelierMemoryEntity saveMemory(AtelierMemoryEntity memory);
+    MemoryEntity saveMemory(MemoryEntity memory);
 
-    List<AtelierMemoryEntity> findByCollectionId(String collectionId);
+    List<MemoryEntity> findByCollectionid(String collectionid);
 
-    List<AtelierMemoryEntity> findByUserId(String userId);
+    List<MemoryEntity> findByUserId(String userId);
 
-    AtelierMemoryEntity findById(Long memoryId);
+    MemoryEntity findById(Long memoryId);
 }

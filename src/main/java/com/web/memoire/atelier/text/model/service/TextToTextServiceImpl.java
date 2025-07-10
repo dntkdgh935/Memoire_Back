@@ -1,12 +1,10 @@
 package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.atelier.text.exception.TextGenerationException;
-
-import com.web.memoire.common.entity.MemoryEntity;
-
 import com.web.memoire.atelier.text.jpa.repository.MemoryRepository;
 import com.web.memoire.atelier.text.model.dto.TextGenerationRequest;
 import com.web.memoire.atelier.text.model.dto.TextResultDto;
+import com.web.memoire.common.entity.MemoryEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +25,7 @@ public class TextToTextServiceImpl implements TextToTextService {
 
             // 2. 저장 옵션 true일 때 MemoryEntity로 변환 후 저장
             if (request.isSaveToMemory()) {
-                AtelierMemoryEntity memory = AtelierMemoryEntity.builder()
+                MemoryEntity memory = MemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getContent())
                         .collectionid(resultDto.getCollectionId())
