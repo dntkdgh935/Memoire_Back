@@ -31,7 +31,7 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
     public Optional<UserEntity> findByUserId(String UserId) {
         UserEntity result= queryFactory
                 .selectFrom(userEntity)
-                .where(userEntity.loginId.eq(UserId))
+                .where(userEntity.userId.eq(UserId))
                 .fetchOne();
         return Optional.ofNullable(result);
     }
