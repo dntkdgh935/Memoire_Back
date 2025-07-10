@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +35,7 @@ public class LibraryService {
                 .map(TagEntity::toDto)
                 .toList();
     }
+
     // ✅ 상위 5개 태그 가져오기
     public List<Tag> getTopTags() {
         List<TagEntity> tagEntities = libTagRepository.findTop5TagsByRownum();
@@ -50,7 +53,7 @@ public class LibraryService {
             MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
             String thumbnailPath = memory != null ? memory.getFilepath() : null;
             String thumbType = memory != null ? memory.getMemoryType() : null;
-            String textContent = memory!=null? memory.getContent():null;
+            String textContent = memory != null ? memory.getContent() : null;
 
             //✅ Author 정보 가져오기
             Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
@@ -63,7 +66,6 @@ public class LibraryService {
             // ✅ 좋아요, 북마크 엔티티 가져오기
             LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
             BookmarkEntity bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
-
 
 
             return CollView.builder()
@@ -83,6 +85,40 @@ public class LibraryService {
                     .thumbType(thumbType)
                     .build();
         }).toList();
+    }
+
+    @Transactional
+    public void addLike(String userid, String collectionId) {
+        LikeEntity like = LikeEntity.builder()
+                .userid(userid)
+                .collectionid(collectionId)
+                .build(); // likedDate는 자동으로 저장됨
+
+        libLikeRepository.save(like);
+    }
+    @Transactional
+    public void removeLike(String userid, String collectionId) {
+        libLikeRepository.deleteByUseridAndCollectionid(userid, collectionId);
+    }
+
+    @Transactional
+    public void addBM(String userid, String collectionId) {
+        BookmarkEntity BM = BookmarkEntity.builder()
+                .userid(userid)
+                .collectionid(collectionId)
+                .build();
+        libBookmarkRepository.save(BM);
+    }
+    @Transactional
+    public void removeBM(String userid, String collectionId) {
+        libBookmarkRepository.deleteByUseridAndCollectionid(userid, collectionId );
+    }
+
+    public int countLikesByCollectionId(String collectionId){
+        return libLikeRepository.countLikeEntitiesByCollectionid(collectionId);
+    }
+    public int countBookmarksByCollectionId(String collectionId){
+        return libBookmarkRepository.countBookmarkEntitiesByCollectionid(collectionId);
     }
 
 }
