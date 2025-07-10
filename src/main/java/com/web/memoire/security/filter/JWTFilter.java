@@ -34,7 +34,7 @@ public class JWTFilter extends OncePerRequestFilter {
             "/", "/login", "/reissue", "/user/signup", "/user/idcheck", "/favicon.ico", "/manifest.json" // /user/idcheck 추가
     );
     private static final List<String> PERMIT_ALL_PATHS_START_WITH = Arrays.asList(
-            "/js/", "/css/", "/public/", "/api/" // /js/** -> /js/ 로 변경, /api/ 추가
+            "/js/", "/css/", "/public/", "/api/", "/upload_files/" // /js/** -> /js/ 로 변경, /api/ 추가
     );
 
 
