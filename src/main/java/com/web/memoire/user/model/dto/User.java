@@ -1,6 +1,7 @@
 package com.web.memoire.user.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.web.memoire.user.jpa.entity.UserEntity;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,8 +35,8 @@ public class User {
     private String statusMessage;
     private String faceLoginUse;
 
-    public User toEntity() {
-            return User.builder()
+    public UserEntity toEntity() {
+            return UserEntity.builder()
                  .userId(userId)
                  .name(name)
                  .birthday(birthday)

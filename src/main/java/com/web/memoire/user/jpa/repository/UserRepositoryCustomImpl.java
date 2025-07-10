@@ -18,11 +18,12 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
     private final EntityManager entityManager;
 
     @Override
-    public UserEntity findByUserid(String userId) {
+    public Optional<UserEntity> findByLoginId(String loginId) {
 
-        return queryFactory
+        UserEntity result= queryFactory
                 .selectFrom(userEntity)
-                .where(userEntity.userId.eq(userId))
+                .where(userEntity.loginId.eq(loginId))
                 .fetchOne();
+        return Optional.ofNullable(result);
     }
 }

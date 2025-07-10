@@ -17,7 +17,6 @@ import java.util.GregorianCalendar;
 @Entity
 public class UserEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="USERID", length = 50)
     private String userId;
 
@@ -39,7 +38,7 @@ public class UserEntity {
     @Column(name="AUTO_LOGIN_TOKEN", length = 255)
     private String autoLoginToken;
 
-    @Column(name="REGISTRATION_DATE")
+    @Column(name="REGISTRATION_DATE", nullable = false)
     private Date registrationDate;
 
     @Column(name="LOGINID", nullable = false, unique = true, length = 50)
@@ -54,7 +53,7 @@ public class UserEntity {
     @Column(name="PROFILE_IMAGE_PATH", length = 200)
     private String profileImagePath;
 
-    @Column(name="SANCTION_COUNT")
+    @Column(name="SANCTION_COUNT", nullable = false)
     private Integer sanctionCount;
 
     @Column(name="STATUS_MESSAGE", length = 200)
@@ -66,7 +65,15 @@ public class UserEntity {
     @PrePersist
     public void prePersist() {
         registrationDate = new GregorianCalendar().getGregorianChange();
-
+        if (autoLoginFlag == null) {
+            autoLoginFlag = "N"; // Default 값 설정
+        }
+        if (sanctionCount == null) {
+            sanctionCount = 0; // Default 값 설정
+        }
+        if (faceLoginUse == null) {
+            faceLoginUse = "N"; // Default 값 설정
+        }
     }
 
     public User toDto() {

@@ -62,7 +62,7 @@ public class ReIssueController {
             if (!isAccessTokenExpired && isRefreshTokenExpired) {
                 // 로그인 연장을 요청하였다면
                 if ("true".equalsIgnoreCase(extendLogin)) {
-                    String userId = jwtUtil.getUseridFromToken(accessToken);
+                    String userId = jwtUtil.getUsername(accessToken);
                     // db 에서 회원정보 조회해 옴
                     User user = userService.selectUser(userId);
 
@@ -81,7 +81,7 @@ public class ReIssueController {
 
             // 둘 다 만료(true) 된 경우 (로그인 세션 종료함)  --------------------------------------
             if(isRefreshTokenExpired && isAccessTokenExpired) {
-                String userId = jwtUtil.getUseridFromToken(accessToken);
+                String userId = jwtUtil.getUsername(accessToken);
                 // userId, refreshToken 으로 id 조회해 옴
                 String id = tokenService.selectId(userId, refreshToken);
                 // 리프레시토큰 저장 테이블에서 토큰 삭제함
@@ -94,7 +94,7 @@ public class ReIssueController {
             // access 만료, refresh 유효
             if (isAccessTokenExpired && !isRefreshTokenExpired) {
                 // 리프레시 토큰에서 userId 추출
-                String userId = jwtUtil.getUseridFromToken(refreshToken);
+                String userId = jwtUtil.getUsername(refreshToken);
                 User user = userService.selectUser(userId);
 
                 // 새로운 accessToken 발급함
