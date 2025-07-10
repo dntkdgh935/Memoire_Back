@@ -134,7 +134,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         // Refresh Token 저장
         // Token 엔티티 생성 시 UUID를 ID로 사용
-        tokenService.saveRefreshToken(new Token(UUID.randomUUID().toString(), refreshToken));
+        tokenService.saveRefreshToken(new Token(user.getUserId(), refreshToken));
 
         // 응답 본문에 토큰 및 사용자 정보 전송 (JSON 형식)
         Map<String, Object> responseBody = new HashMap<>(); // Map.of는 불변 Map을 생성하므로, 가변 Map인 HashMap 사용
