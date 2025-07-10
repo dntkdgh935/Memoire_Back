@@ -26,4 +26,13 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
                 .fetchOne();
         return Optional.ofNullable(result);
     }
+
+    @Override
+    public Optional<UserEntity> findByUserId(String UserId) {
+        UserEntity result= queryFactory
+                .selectFrom(userEntity)
+                .where(userEntity.loginId.eq(UserId))
+                .fetchOne();
+        return Optional.ofNullable(result);
+    }
 }

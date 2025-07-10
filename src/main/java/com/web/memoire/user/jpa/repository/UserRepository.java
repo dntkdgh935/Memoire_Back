@@ -12,5 +12,6 @@ public interface UserRepository
 
     Optional<UserEntity> findByLoginId(String loginId);
     boolean existsByLoginId(String loginId);
+    Optional<UserEntity> findByUserId(String UserId);
 
 }
