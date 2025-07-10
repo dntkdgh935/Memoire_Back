@@ -30,7 +30,7 @@ public class TextToTextServiceImpl implements TextToTextService {
                         .content(resultDto.getContent())
                         .collectionid(resultDto.getCollectionId())
                         .memoryType("text")
-                        .createdDate(LocalDateTime.now())
+                        .createdDate(java.sql.Timestamp.valueOf(LocalDateTime.now()))
                         .memoryOrder(resultDto.getMemoryOrder())
                         .build();
 

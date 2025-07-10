@@ -30,7 +30,7 @@ public class TextToImageServiceImpl implements TextToImageService {
                         .filename(resultDto.getFilename())
                         .filepath(resultDto.getFilepath())
                         .memoryType("image")
-                        .createdDate(LocalDateTime.now())
+                        .createdDate(java.sql.Timestamp.valueOf(LocalDateTime.now()))
                         .memoryOrder(resultDto.getMemoryOrder())
                         .build();
 
