@@ -31,4 +31,15 @@ public class LibraryController {
         }
     }
 
+    //임시로 user001의 정보 리턴
+    @GetMapping("/discover/all")
+    public ResponseEntity<?> getAllColls() {
+        log.info("LibraryController.getAllColls...");
+        try {
+            return ResponseEntity.ok(libraryService.getAllPublicCollectionView("user001"));
+        } catch (Exception e) {
+            log.error("Error while fetching colls", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+        }
+    }
 }

@@ -1,7 +1,9 @@
 package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.atelier.text.exception.ImageGenerationException;
-import com.web.memoire.atelier.text.jpa.entity.AtelierMemoryEntity;
+
+import com.web.memoire.common.entity.MemoryEntity;
+
 import com.web.memoire.atelier.text.jpa.repository.MemoryRepository;
 import com.web.memoire.atelier.text.model.dto.ImagePromptRequest;
 import com.web.memoire.atelier.text.model.dto.ImageResultDto;
@@ -26,11 +28,11 @@ public class TextToImageServiceImpl implements TextToImageService {
                 AtelierMemoryEntity memory = AtelierMemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getPrompt())
-                        .collectionId(resultDto.getCollectionId())
+                        .collectionid(resultDto.getCollectionId())
                         .filename(resultDto.getFilename())
                         .filepath(resultDto.getFilepath())
                         .memoryType("image")
-                        .createdDate(LocalDateTime.now())
+                        .createdDate(java.sql.Timestamp.valueOf(LocalDateTime.now()))
                         .memoryOrder(resultDto.getMemoryOrder())
                         .build();
 

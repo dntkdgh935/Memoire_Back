@@ -92,7 +92,9 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
+
                                 "/css/**", "/js/**").permitAll()
+
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck").permitAll()

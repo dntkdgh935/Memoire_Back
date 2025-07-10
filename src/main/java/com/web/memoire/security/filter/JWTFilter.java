@@ -37,6 +37,7 @@ public class JWTFilter extends OncePerRequestFilter {
             "/js/", "/css/", "/public/", "/api/" // /js/** -> /js/ 로 변경, /api/ 추가
     );
 
+
     private boolean isExcludedUrl(String url) {
         // 정확히 일치하는 경로 확인
         if (PERMIT_ALL_PATHS_EXACT.contains(url)) {
@@ -53,6 +54,7 @@ public class JWTFilter extends OncePerRequestFilter {
             return true;
         }
         return false;
+
     }
 
     @Override
