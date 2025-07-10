@@ -1,6 +1,8 @@
 package com.web.memoire.atelier.text.model.service;
 
-import com.web.memoire.atelier.text.jpa.entity.AtelierMemoryEntity;
+
+import com.web.memoire.common.entity.MemoryEntity;
+
 
 import java.util.List;
 
