@@ -1,7 +1,7 @@
 package com.web.memoire.atelier.text.model.service;
 
 import com.web.memoire.atelier.text.exception.TextGenerationException;
-import com.web.memoire.atelier.text.jpa.entity.MemoryEntity;
+import com.web.memoire.common.entity.MemoryEntity;
 import com.web.memoire.atelier.text.jpa.repository.MemoryRepository;
 import com.web.memoire.atelier.text.model.dto.TextGenerationRequest;
 import com.web.memoire.atelier.text.model.dto.TextResultDto;
@@ -28,7 +28,7 @@ public class TextToTextServiceImpl implements TextToTextService {
                 MemoryEntity memory = MemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getContent())
-                        .collectionId(resultDto.getCollectionId())
+                        .collectionid(resultDto.getCollectionId())
                         .memoryType("text")
                         .createdDate(LocalDateTime.now())
                         .memoryOrder(resultDto.getMemoryOrder())

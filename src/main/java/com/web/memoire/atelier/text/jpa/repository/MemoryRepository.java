@@ -1,6 +1,6 @@
 package com.web.memoire.atelier.text.jpa.repository;
 
-import com.web.memoire.atelier.text.jpa.entity.MemoryEntity;
+import com.web.memoire.common.entity.MemoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
