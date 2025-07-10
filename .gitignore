@@ -98,3 +98,4 @@ src/main/resources/static/
 # 예를 들어, Spring Boot 프로젝트 내부에 있다면 src/main/webapp/resources/uploads/
 # 아니면 단순히 uploads/ 등으로 명시할 수도 있습니다.
 src/main/webapp/resources/uploads/
+src/main/resources/application.properties

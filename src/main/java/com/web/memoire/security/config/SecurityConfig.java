@@ -95,7 +95,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .authorizeHttpRequests(auth -> auth
                         // 정적 리소스 및 인증(/auth/**) 관련 요청은 인가에서 제외하기 위한 url 지정 (무조건 통과됨)
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
-                                "/css/**", "/js/**").permitAll()
+                                "/css/**", "/js/**", "/upload_files/**").permitAll()
                         // .png 파일은 인증없이 접근 허용함
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/*.png").permitAll()

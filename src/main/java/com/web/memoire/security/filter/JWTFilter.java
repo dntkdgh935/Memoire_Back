@@ -23,6 +23,7 @@ public class JWTFilter extends OncePerRequestFilter {
                 || url.equals("/login")
                 || url.equals("/js/**")
                 || url.equals("/sign")
+                || url.startsWith("/upload_files/")     // ✅ 이미지 경로 예외처리
                 || url.startsWith("/api/"); // ✅ 여기에 추가
     }
 
