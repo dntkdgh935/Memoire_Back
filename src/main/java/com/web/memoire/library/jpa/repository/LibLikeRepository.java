@@ -6,4 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LibLikeRepository extends JpaRepository<LikeEntity, LikeId> {
     LikeEntity findByUseridAndCollectionid(String userId, String collectionId);
+
+    void deleteByUseridAndCollectionid(String userid, String collectionId);
+
+    int countLikeEntitiesByCollectionid(String collectionId);
 }

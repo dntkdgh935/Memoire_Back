@@ -24,7 +24,7 @@ public class CollView {
 
     private int visibility;
 
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy.MM.dd")
     private Date createdDate;
 
     private String titleEmbedding;
@@ -42,5 +42,9 @@ public class CollView {
     private String authorProfileImage;
 
     private String thumbType;
+
+    private int likeCount;
+
+    private int bookmarkCount;
 
 }

@@ -26,4 +26,7 @@ public interface LibBookmarkRepository extends JpaRepository<BookmarkEntity, Boo
     @Query(value = "SELECT b from BookmarkEntity b where b.collectionid = :collectionid")
     List<BookmarkEntity> findAllCollectionBookmarks(@Param("collectionid") String collectionid);
 
+    void deleteByUseridAndCollectionid(String userid, String collectionId);
+
+    int countBookmarkEntitiesByCollectionid(String collectionId);
 }

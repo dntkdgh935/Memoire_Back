@@ -96,7 +96,9 @@ public class SecurityConfig implements WebMvcConfigurer {
                                 "/css/**", "/js/**").permitAll()
 
                         .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/upload_files/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
+                        .requestMatchers("/*.jpg").permitAll()
                         .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck").permitAll()
                         .requestMatchers("/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
