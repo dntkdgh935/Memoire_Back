@@ -15,4 +15,8 @@ public interface ArchiveCollectionRepository extends JpaRepository<CollectionEnt
     @Query(value = "SELECT c FROM CollectionEntity c where c.authorid = :userid")
     List<CollectionEntity> findAllUserCollections(@Param("userid") String userid);
 
+    // 유저의 컬렉션 총 개수 조회
+    @Query(value = "SELECT count(c) FROM CollectionEntity c where c.authorid = :userid")
+    int countAllCollectionsByUserId(@Param("userid") String userid);
+
 }

@@ -60,6 +60,10 @@ public class ArchiveService {
         return list;
     }
 
+    public int countAllCollectionsByUserId(String userid) {
+        return archiveCollectionRepository.countAllCollectionsByUserId(userid);
+    }
+
     // ArchiveCollectionTagRepository
 
     // ArchiveLikeRepository
@@ -95,6 +99,10 @@ public class ArchiveService {
         return list;
     }
 
+    public int countAllMemoriesByUserId(String userid) {
+        return archiveMemoryRepository.countAllMemoriesByUserId(userid);
+    }
+
     // ArchiveRelationshipRepository
     public ArrayList<Relationship> findAllUserFollowing(String userid) {
         List<RelationshipEntity> entityList = archiveRelationshipRepository.findAllUserFollowing(userid);
@@ -105,6 +113,10 @@ public class ArchiveService {
         return list;
     }
 
+    public int countUserFollowing(String userid) {
+        return archiveRelationshipRepository.countAllFollowingByUserId(userid);
+    }
+
     public ArrayList<Relationship> findAllUserFollower(String userid) {
         List<RelationshipEntity> entityList = archiveRelationshipRepository.findAllUserFollower(userid);
         ArrayList<Relationship> list = new ArrayList<>();
@@ -112,6 +124,10 @@ public class ArchiveService {
             list.add(entity.toDto());
         }
         return list;
+    }
+
+    public int countUserFollower(String userid) {
+        return archiveRelationshipRepository.countAllFollowerByUserId(userid);
     }
 
     public ArrayList<Relationship> findAllUserRequestFollowing(String userid) {
