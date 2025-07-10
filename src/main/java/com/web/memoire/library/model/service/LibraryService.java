@@ -67,6 +67,10 @@ public class LibraryService {
             LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
             BookmarkEntity bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
 
+            //collection의 총 좋아요 수/ 총 북마크 수 가져오기
+            int likeCount = countLikesByCollectionId(collection.getId());
+            int bookmarkCount = countBookmarksByCollectionId(collection.getId());
+            log.info("✅북마크 수: " + bookmarkCount);
 
             return CollView.builder()
                     .collectionid(collection.getId())
@@ -83,6 +87,8 @@ public class LibraryService {
                     .userbookmark(bookmark != null)
                     .authorProfileImage(authorProfileImage)
                     .thumbType(thumbType)
+                    .likeCount(likeCount)
+                    .bookmarkCount(bookmarkCount)
                     .build();
         }).toList();
     }

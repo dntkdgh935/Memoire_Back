@@ -43,4 +43,8 @@ public class CollView {
 
     private String thumbType;
 
+    private int likeCount;
+
+    private int bookmarkCount;
+
 }
