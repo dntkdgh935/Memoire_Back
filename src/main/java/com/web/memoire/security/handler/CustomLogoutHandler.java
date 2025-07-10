@@ -26,7 +26,7 @@ public class CustomLogoutHandler implements LogoutHandler {
             String accessToken = authorization.substring("Bearer ".length()).trim();
 
             try{
-                String userId = jwtUtil.getUseridFromToken(accessToken);
+                String userId = jwtUtil.getUsername(accessToken);
                 if (userId != null) {
                     String Token = tokenService.selectToken(userId);
 

@@ -17,9 +17,9 @@ import lombok.NoArgsConstructor;
 @Table(name="TB_TOKEN")
 public class Token {
     @Id
-    @Column(name="userid", length=50, nullable = false)
+    @Column(name="USERID", length=50, nullable = false)
     private String userId;
-    @Column(name="tokenid", nullable = false, length=512, unique=true)
+    @Column(name="TOKENID", nullable = false, length=512)
     private String tokenId;
 
 }

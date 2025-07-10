@@ -81,7 +81,7 @@ src/main/generated/
 # 민감한 정보가 있는 경우에만 아래처럼 로컬 전용 파일을 무시하거나, 환경변수를 사용하세요.
 application-local.properties
 application-local.yml
-src/main/resources/application.properties # 공통 설정 파일을 무시하고 싶다면 주석 해제
+application.properties # 공통 설정 파일을 무시하고 싶다면 주석 해제
 # application.yml # 공통 설정 파일을 무시하고 싶다면 주석 해제
 
 # ----------------------------------------
