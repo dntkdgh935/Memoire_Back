@@ -3,18 +3,26 @@ package com.web.memoire.archive.model.service;
 import com.web.memoire.archive.jpa.repository.*;
 import com.web.memoire.common.dto.*;
 import com.web.memoire.common.entity.*;
+import com.web.memoire.user.jpa.entity.UserEntity;
+import com.web.memoire.user.jpa.repository.UserRepository;
+import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArchiveService {
+
+    @Autowired
+    private final UserRepository userRepository;
 
     @Autowired
     private final ArchiveBookmarkRepository archiveBookmarkRepository;
@@ -26,6 +34,28 @@ public class ArchiveService {
     private final ArchiveMemoryRepository archiveMemoryRepository;
     @Autowired
     private final ArchiveRelationshipRepository archiveRelationshipRepository;
+
+    // UserRepository
+    public User findUserById(String userid) {
+        return userRepository.findById(userid)
+                .map(UserEntity::toDto)
+                .orElseThrow(() -> {
+                    log.warn("사용자 조회 실패: userid '{}' 에 해당하는 사용자를 찾을 수 없습니다.", userid);
+                    // 적절한 예외를 던집니다. 예를 들어, NoSuchElementException 또는 Custom Exception
+                    return new NoSuchElementException("사용자를 찾을 수 없습니다.");
+                });
+    }
+
+    @Transactional
+    public int updateStatusMessage(String userid, String statusMessage) {
+        User user = findUserById(userid);
+        if (user == null) {
+            return 0;
+        }
+        user.setStatusMessage(statusMessage);
+        UserEntity updatedEntity = userRepository.save(user.toEntity());
+        return updatedEntity != null ? 1 : 0;
+    }
 
     // ArchiveBookmarkRepository
     public ArrayList<Bookmark> findAllUserBookmarks(String userid) {
