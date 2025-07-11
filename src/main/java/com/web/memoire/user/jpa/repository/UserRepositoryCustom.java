@@ -8,6 +8,6 @@ import java.util.Optional;
 public interface UserRepositoryCustom {
     Optional<UserEntity> findByLoginId(String loginId);
 
-    Optional<UserEntity> findByUserId(String UserId);
+    Optional<UserEntity> findByUserId(String userId);
 
 }
