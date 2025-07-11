@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
@@ -64,7 +65,9 @@ public class UserEntity {
 
     @PrePersist
     public void prePersist() {
-        registrationDate = new GregorianCalendar().getGregorianChange();
+        if (registrationDate == null) {
+            registrationDate = new Date(); // 현재 시간으로 설정
+        }
         if (autoLoginFlag == null) {
             autoLoginFlag = "N"; // Default 값 설정
         }
