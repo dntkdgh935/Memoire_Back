@@ -8,6 +8,7 @@ import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.UserRepository; // UserRepository 임포트
 import com.web.memoire.user.model.dto.User;
 
+import com.web.memoire.user.model.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,13 +33,15 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final JWTUtil jwtUtil;
     private final UserRepository userRepository; // UserRepository 주입
     private final TokenService tokenService;
+    private final UserService userService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, UserRepository userRepository, TokenService tokenService) {
+    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, UserRepository userRepository, TokenService tokenService, UserService userService) {
         super(authenticationManager);
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository; // UserRepository 초기화
         this.tokenService = tokenService;
+        this.userService = userService;
     }
 
     @Override
@@ -60,6 +63,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                 log.warn("UUID 기반 로그인 시도 - loginId '{}' 에 해당하는 사용자를 찾을 수 없습니다.", loginId);
                 throw new RuntimeException("사용자를 찾을 수 없습니다.");
             }
+            request.setAttribute("autoLoginFlagFromRequest", "N");
             // AuthenticationManager에는 userId를 전달하여 CustomUserDetailsService가 userId로 조회하도록 함
             return this.getAuthenticationManager().authenticate(new UsernamePasswordAuthenticationToken(userOptional.get().getUserId(), password));
         }
@@ -85,7 +89,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
             throw new RuntimeException("아이디 또는 비밀번호가 전송되지 않았습니다.");
         }
 
-        // --- 핵심 변경 부분 ---
+        request.setAttribute("autoLoginFlagFromRequest", autoLoginFlag);
+
         // 1. loginId로 UserEntity를 조회하여 userId를 얻습니다.
         UserEntity userToAuthenticate = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> {
@@ -115,6 +120,13 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
                 });
 
         log.info("DB에서 userId '{}' 에 해당하는 사용자 {} (loginId: {}) 를 성공적으로 찾았습니다.", userId, user.getName(), user.getLoginId());
+
+        // Request 속성에서 autoLoginFlag 가져오기
+        String receivedAutoLoginFlag = (String) request.getAttribute("autoLoginFlagFromRequest");
+        log.info("successfulAuthentication - 클라이언트로부터 받은 autoLoginFlag: {}", receivedAutoLoginFlag);
+
+        // UserService를 호출하여 autoLoginFlag 업데이트 <-- 이 부분 추가!
+        userService.updateUserAutoLoginFlag(userId, receivedAutoLoginFlag);
 
 
         if(user.getRole().equals("BAD")){

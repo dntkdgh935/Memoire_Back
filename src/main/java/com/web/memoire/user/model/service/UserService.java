@@ -43,4 +43,19 @@ public class UserService {
         }
         userRepository.save(user.toEntity());
     }
+    @Transactional
+    public void updateUserAutoLoginFlag(String userId, String autoLoginFlag) {
+        // userId로 사용자 조회
+        UserEntity userEntity = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("자동 로그인 설정 변경 대상 사용자를 찾을 수 없습니다: " + userId));
+
+        // autoLoginFlag 업데이트
+        if (userEntity.getAutoLoginFlag() == null || !userEntity.getAutoLoginFlag().equals(autoLoginFlag)) {
+            userEntity.setAutoLoginFlag(autoLoginFlag);
+            userRepository.save(userEntity); // 변경사항 저장
+            log.info("사용자 {} (userId: {})의 autoLoginFlag가 {}로 업데이트되었습니다.", userEntity.getLoginId(), userId, autoLoginFlag);
+        } else {
+            log.debug("사용자 {} (userId: {})의 autoLoginFlag가 이미 {}이므로 업데이트하지 않습니다.", userEntity.getLoginId(), userId, autoLoginFlag);
+        }
+    }
 }

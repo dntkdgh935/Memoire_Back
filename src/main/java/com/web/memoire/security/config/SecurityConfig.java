@@ -7,6 +7,7 @@ import com.web.memoire.security.jwt.JWTUtil;
 import com.web.memoire.security.jwt.model.service.TokenService;
 import com.web.memoire.security.model.service.CustomUserDetailsService;
 import com.web.memoire.user.jpa.repository.UserRepository;
+import com.web.memoire.user.model.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -82,9 +83,9 @@ public class SecurityConfig implements WebMvcConfigurer {
             // JWTFilter와 LoginFilter에 필요한 의존성들을 Bean 메서드의 인자로 주입받습니다.
             JWTUtil jwtUtil, // JWTFilter와 LoginFilter에 필요
             UserRepository userRepository, // LoginFilter에 필요
-            TokenService tokenService // LoginFilter에 필요
+            TokenService tokenService, // LoginFilter에 필요
             // CustomUserDetailsService는 이미 SecurityConfig의 생성자에서 주입받아 필드로 가지고 있으므로, 직접 사용 가능
-    ) throws Exception {
+            UserService userService) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
@@ -107,7 +108,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 // JWTFilter 생성자 인자에 userDetailsService 추가 (수정)
                 .addFilterBefore(new JWTFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class)
                 // LoginFilter 생성자 인자는 이미 올바르게 설정되어 있습니다. (확인)
-                .addFilterAt(new LoginFilter(authenticationManager, jwtUtil, userRepository, tokenService),
+                .addFilterAt(new LoginFilter(authenticationManager, jwtUtil, userRepository, tokenService, userService),
                         UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutUrl("/logout")
