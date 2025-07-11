@@ -1,5 +1,6 @@
 package com.web.memoire.common.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.web.memoire.common.dto.Collection;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -33,6 +34,7 @@ public class CollectionEntity {
     @Column(name = "VISIBILITY", nullable = false, columnDefinition = "number default 1")
     private int visibility;
 
+    @JsonFormat(pattern = "yyyy.MM.dd")
     @Column(name = "CREATED_DATE", nullable = false, columnDefinition = "date default sysdate")
     private Date createdDate;
 

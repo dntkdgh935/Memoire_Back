@@ -1,6 +1,8 @@
 package com.web.memoire.library.controller;
 
 
+
+import com.web.memoire.library.jpa.repository.LibMemoryRepository;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ public class LibraryController {
     private String tempLoginUserId="c5950e60-6872-4510-9823-2a887e957079";
 
 
+    //ArhciveMain.js용=========================================================
     @GetMapping("/top5tags")
     public ResponseEntity<?> getTopTags() {
         log.info("LibraryController.getAllTags...");
@@ -35,7 +38,8 @@ public class LibraryController {
         }
     }
 
-    //임시로 user001의 정보 리턴
+
+    //tempUser에게 모든 public collection 리턴
     @GetMapping("/discover/all")
     public ResponseEntity<?> getAllColls() {
         log.info("LibraryController.getAllColls...");
@@ -44,14 +48,27 @@ public class LibraryController {
         log.info("\uD83C\uDFF0 현재 로그인 유저: "+auth.toString());
 
         try {
-            return ResponseEntity.ok(libraryService.getAllPublicCollectionView("user01"));//(userid));//("user001"));
+            return ResponseEntity.ok(libraryService.getAllPublicCollectionView(tempLoginUserId));//(userid));//("user001"));
         } catch (Exception e) {
             log.error("Error while fetching colls", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
         }
     }
 
-    @PostMapping("/likecoll")
+    // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
+    // 컬렉션 아이디로 컬렉션 정보 가져옴
+    @GetMapping("/collection/{collectionId}")
+    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId) {
+        log.info("LibraryController.getCollectionDetail...");
+        try {
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, tempLoginUserId));
+        } catch (Exception e) {
+            log.error("Error while fetching collection detail", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
+        }
+    }
+
+    @PostMapping("/togglelike")
     public ResponseEntity<?> toggleLikeColl(
             @RequestParam("collectionId") String collectionId,
             @RequestParam("isLiked") boolean isLiked
@@ -72,12 +89,12 @@ public class LibraryController {
         }
     }
 
-    @PostMapping("/bmcoll")
+    @PostMapping("/togglebm")
     public ResponseEntity<?> toggleBMColl(
             @RequestParam("collectionId") String collectionId,
             @RequestParam("isBookmarked") boolean isBookmarked
     ) {
-        log.info("북마크 요청 - user: {}, collection: {}, isBookmarked: {}", tempLoginUserId, collectionId, isBookmarked);
+        log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", tempLoginUserId, collectionId, isBookmarked);
 
         try {
             if (isBookmarked) {
@@ -118,6 +135,22 @@ public class LibraryController {
             log.error("북마크 수 조회 실패", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("북마크 수 조회 실패");
         }
+    }
+
+
+
+    // collectionid에 해당하는 모든 메모리 조회
+    @GetMapping("/collection/memories/{collectionid}")
+    public ResponseEntity<?> getMemoriesByCollectionId(@PathVariable String collectionid) {
+        log.info("LibraryController.getMemoriesByCollectionId...");
+
+        try {
+            return ResponseEntity.ok(libraryService.findByCollectionid(collectionid));
+        } catch (Exception e) {
+            log.error("Error while fetching memories", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 조회 실패");
+        }
+
     }
 
 }

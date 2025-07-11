@@ -127,5 +127,58 @@ public class LibraryService {
         return libBookmarkRepository.countBookmarkEntitiesByCollectionid(collectionId);
     }
 
+    public CollView getCollectionDetail(String collectionId, String userId) {
+//        return libCollectionRepository.findById(collectionId)
+//                .orElseThrow(() -> new RuntimeException("Collection not found"));
+        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+        //✅ memory_order = 1인 MemoryEntity 가져오기
+        MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
+        String thumbnailPath = memory != null ? memory.getFilepath() : null;
+        String thumbType = memory != null ? memory.getMemoryType() : null;
+        String textContent = memory != null ? memory.getContent() : null;
+
+        //✅ Author 정보 가져오기
+        Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
+        String authorName = author.isPresent() ? author.get().getName() : null;
+        // 작성자 프로필 이미지 가져오기
+        String authorProfileImage = libUserRepository.findByUserId(collection.getAuthorid())
+                .map(UserEntity::getProfileImagePath)
+                .orElse("/default_profile.jpg");
+
+        //✅ 로그인 유저의 좋아요, 북마크 여부 가져오기
+        LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
+        BookmarkEntity bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
+
+        //collection의 총 좋아요 수/ 총 북마크 수 가져오기
+        int likeCount = countLikesByCollectionId(collection.getId());
+        int bookmarkCount = countBookmarksByCollectionId(collection.getId());
+        log.info("✅북마크 수: " + bookmarkCount);
+
+        return CollView.builder()
+                .collectionid(collection.getId())
+                .authorid(collection.getAuthorid())
+                .authorname(authorName)
+                .collectionTitle(collection.getCollectionTitle())
+                .readCount(collection.getReadCount())
+                .visibility(collection.getVisibility())
+                .createdDate(collection.getCreatedDate())
+                .titleEmbedding(collection.getTitleEmbedding())
+                .thumbnailPath(thumbnailPath)
+                .textContent(textContent) // 필요 시 추출
+                .userlike(like != null)
+                .userbookmark(bookmark != null)
+                .authorProfileImage(authorProfileImage)
+                .thumbType(thumbType)
+                .likeCount(likeCount)
+                .bookmarkCount(bookmarkCount)
+                .build();
+    }
+
+
+
+    public Object findByCollectionid(String collectionid) {
+        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionid);
+        return collection;
+    }
 }
 
