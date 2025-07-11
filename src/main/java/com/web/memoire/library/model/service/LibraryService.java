@@ -133,6 +133,8 @@ public class LibraryService {
     }
 
 
-
+    public Object findByCollectionid(String collectionid) {
+        return libMemoryRepository.findByCollectionid(collectionid);
+    }
 }
 

@@ -1,6 +1,8 @@
 package com.web.memoire.library.controller;
 
 
+
+import com.web.memoire.library.jpa.repository.LibMemoryRepository;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,8 +123,7 @@ public class LibraryController {
     }
 
     // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
-    ///api/library/collection/{collectionId}
-    //해당 컬렉션의 모든 칼럼  collection id 에 연결된 memory list 포함해 리턴
+    // 컬렉션 아이디로 컬렉션 정보 가져옴
     @GetMapping("/collection/{collectionId}")
     public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId) {
         log.info("LibraryController.getCollectionDetail...");
@@ -133,4 +134,18 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
         }
     }
+    // collectionid에 해당하는 모든 메모리 조회
+    @GetMapping("/collection/memories/{collectionid}")
+    public ResponseEntity<?> getMemoriesByCollectionId(@PathVariable String collectionid) {
+        log.info("LibraryController.getMemoriesByCollectionId...");
+
+        try {
+            return ResponseEntity.ok(libraryService.findByCollectionid(collectionid));
+        } catch (Exception e) {
+            log.error("Error while fetching memories", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 조회 실패");
+        }
+
+    }
+
 }
