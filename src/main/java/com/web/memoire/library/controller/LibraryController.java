@@ -37,7 +37,9 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("태그 조회 실패");
         }
     }
-    //임시로 user001의 정보 리턴
+
+
+    //tempUser에게 모든 public collection 리턴
     @GetMapping("/discover/all")
     public ResponseEntity<?> getAllColls() {
         log.info("LibraryController.getAllColls...");
@@ -50,6 +52,19 @@ public class LibraryController {
         } catch (Exception e) {
             log.error("Error while fetching colls", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+        }
+    }
+
+    // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
+    // 컬렉션 아이디로 컬렉션 정보 가져옴
+    @GetMapping("/collection/{collectionId}")
+    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId) {
+        log.info("LibraryController.getCollectionDetail...");
+        try {
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, tempLoginUserId));
+        } catch (Exception e) {
+            log.error("Error while fetching collection detail", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
         }
     }
 
@@ -122,18 +137,8 @@ public class LibraryController {
         }
     }
 
-    // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
-    // 컬렉션 아이디로 컬렉션 정보 가져옴
-    @GetMapping("/collection/{collectionId}")
-    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId) {
-        log.info("LibraryController.getCollectionDetail...");
-        try {
-            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId));
-        } catch (Exception e) {
-            log.error("Error while fetching collection detail", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
-        }
-    }
+
+
     // collectionid에 해당하는 모든 메모리 조회
     @GetMapping("/collection/memories/{collectionid}")
     public ResponseEntity<?> getMemoriesByCollectionId(@PathVariable String collectionid) {
