@@ -28,10 +28,10 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
     }
 
     @Override
-    public Optional<UserEntity> findByUserId(String UserId) {
+    public Optional<UserEntity> findByUserId(String userId) {
         UserEntity result= queryFactory
                 .selectFrom(userEntity)
-                .where(userEntity.loginId.eq(UserId))
+                .where(userEntity.userId.eq(userId))
                 .fetchOne();
         return Optional.ofNullable(result);
     }
