@@ -7,6 +7,7 @@ import com.web.memoire.security.jwt.model.service.TokenService;
 import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.UserRepository; // UserRepository 임포트
 import com.web.memoire.user.model.dto.User;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +24,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional; // Optional 임포트 추가
+
 
 @Slf4j
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
