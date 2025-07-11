@@ -24,6 +24,7 @@ public class LibraryController {
     private String tempLoginUserId="c5950e60-6872-4510-9823-2a887e957079";
 
 
+    //ArhciveMain.js용=========================================================
     @GetMapping("/top5tags")
     public ResponseEntity<?> getTopTags() {
         log.info("LibraryController.getAllTags...");
@@ -34,7 +35,6 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("태그 조회 실패");
         }
     }
-
     //임시로 user001의 정보 리턴
     @GetMapping("/discover/all")
     public ResponseEntity<?> getAllColls() {
@@ -120,4 +120,17 @@ public class LibraryController {
         }
     }
 
+    // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
+    ///api/library/collection/{collectionId}
+    //해당 컬렉션의 모든 칼럼  collection id 에 연결된 memory list 포함해 리턴
+    @GetMapping("/collection/{collectionId}")
+    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId) {
+        log.info("LibraryController.getCollectionDetail...");
+        try {
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId));
+        } catch (Exception e) {
+            log.error("Error while fetching collection detail", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
+        }
+    }
 }

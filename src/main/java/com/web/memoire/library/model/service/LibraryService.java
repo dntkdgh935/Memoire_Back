@@ -127,5 +127,12 @@ public class LibraryService {
         return libBookmarkRepository.countBookmarkEntitiesByCollectionid(collectionId);
     }
 
+    public CollectionEntity getCollectionDetail(String collectionId){
+        return libCollectionRepository.findById(collectionId)
+                .orElseThrow(() -> new RuntimeException("Collection not found"));
+    }
+
+
+
 }
 
