@@ -44,14 +44,14 @@ public class LibraryController {
         log.info("\uD83C\uDFF0 현재 로그인 유저: "+auth.toString());
 
         try {
-            return ResponseEntity.ok(libraryService.getAllPublicCollectionView("user01"));//(userid));//("user001"));
+            return ResponseEntity.ok(libraryService.getAllPublicCollectionView(tempLoginUserId));//(userid));//("user001"));
         } catch (Exception e) {
             log.error("Error while fetching colls", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
         }
     }
 
-    @PostMapping("/likecoll")
+    @PostMapping("/togglelike")
     public ResponseEntity<?> toggleLikeColl(
             @RequestParam("collectionId") String collectionId,
             @RequestParam("isLiked") boolean isLiked
@@ -72,12 +72,12 @@ public class LibraryController {
         }
     }
 
-    @PostMapping("/bmcoll")
+    @PostMapping("/togglebm")
     public ResponseEntity<?> toggleBMColl(
             @RequestParam("collectionId") String collectionId,
             @RequestParam("isBookmarked") boolean isBookmarked
     ) {
-        log.info("북마크 요청 - user: {}, collection: {}, isBookmarked: {}", tempLoginUserId, collectionId, isBookmarked);
+        log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", tempLoginUserId, collectionId, isBookmarked);
 
         try {
             if (isBookmarked) {
