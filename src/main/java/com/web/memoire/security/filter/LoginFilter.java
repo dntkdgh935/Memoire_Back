@@ -125,7 +125,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String receivedAutoLoginFlag = (String) request.getAttribute("autoLoginFlagFromRequest");
         log.info("successfulAuthentication - 클라이언트로부터 받은 autoLoginFlag: {}", receivedAutoLoginFlag);
 
-        // UserService를 호출하여 autoLoginFlag 업데이트 <-- 이 부분 추가!
+        // UserService를 호출하여 autoLoginFlag 업데이트
         userService.updateUserAutoLoginFlag(userId, receivedAutoLoginFlag);
 
 

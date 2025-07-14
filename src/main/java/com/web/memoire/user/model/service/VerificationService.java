@@ -2,14 +2,14 @@
 package com.web.memoire.user.model.service;
 
 import com.web.memoire.user.jpa.entity.PhoneVerificationEntity;
-import com.web.memoire.user.jpa.repository.PhoneVerificationRepository; // 새로 추가될 Repository
-import com.web.memoire.user.util.CodeGenerator; // 새로 추가될 유틸리티 클래스
+import com.web.memoire.user.jpa.repository.PhoneVerificationRepository;
+import com.web.memoire.user.util.CodeGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date; // Date 타입 사용
+import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
@@ -17,7 +17,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class VerificationService {
 
-    // UserRepository 대신 PhoneVerificationRepository를 주입받습니다.
     private final PhoneVerificationRepository phoneVerificationRepository;
     private final ImapVerificationService imapVerificationService; // IMAP 서비스 주입
 
@@ -28,22 +27,18 @@ public class VerificationService {
      */
     @Transactional
     public String generateVerificationCode(String phoneNumber) {
-        String code = CodeGenerator.generateRandomCode(4); // 4자리 난수 코드 생성
-        // 현재 시간 + 5분 후를 만료 시간으로 설정 (Node.js의 10분에서 5분으로 조정)
+        String code = CodeGenerator.generateRandomCode(4);
         Date expirationTime = new Date(System.currentTimeMillis() + 5 * 60 * 1000);
 
-        // 전화번호를 @Id로 사용하므로, findById로 기존 엔티티를 찾거나 새로 생성
         Optional<PhoneVerificationEntity> existingVerification = phoneVerificationRepository.findById(phoneNumber);
         PhoneVerificationEntity verificationEntity;
 
         if (existingVerification.isPresent()) {
-            // 기존 코드가 있다면 업데이트 (status 필드가 없으므로, 그냥 덮어씌움)
             verificationEntity = existingVerification.get();
             verificationEntity.setVerificationCode(code);
             verificationEntity.setExpirationTimestamp(expirationTime);
             log.info("[Code Updated] Phone: {}, New Code: {}", phoneNumber, code);
         } else {
-            // 새로운 코드라면 생성
             verificationEntity = PhoneVerificationEntity.builder()
                     .phone(phoneNumber)
                     .verificationCode(code)
@@ -52,7 +47,7 @@ public class VerificationService {
             log.info("[Code Generated] Phone: {}, Code: {}", phoneNumber, code);
         }
 
-        phoneVerificationRepository.save(verificationEntity); // DB에 저장 또는 업데이트
+        phoneVerificationRepository.save(verificationEntity);
         return code;
     }
 
@@ -69,7 +64,7 @@ public class VerificationService {
         // 1. DB에서 유효하고 만료되지 않은 코드 확인
         Optional<PhoneVerificationEntity> verificationOpt = phoneVerificationRepository
                 .findByPhoneAndVerificationCodeAndExpirationTimestampAfter(
-                        phoneNumber, code, new Date() // 현재 시간보다 만료 시간이 미래여야 함
+                        phoneNumber, code, new Date()
                 );
 
         if (verificationOpt.isEmpty()) {
@@ -80,24 +75,31 @@ public class VerificationService {
         PhoneVerificationEntity foundVerification = verificationOpt.get();
 
         // 2. IMAP을 통한 실제 이메일 인증 시도
-        String verifiedPhoneNumberFromEmail;
+        // IMAP 서비스에서 이미 전화번호 일치 여부를 검증하므로, 여기서는 반환 값 확인만 합니다.
+        String imapVerificationResult;
         try {
-            verifiedPhoneNumberFromEmail = imapVerificationService.verifyCodeViaEmail(code);
+            // ✅ 변경: phoneNumber를 두 번째 인자로 전달
+            imapVerificationResult = imapVerificationService.verifyCodeViaEmail(code, phoneNumber);
         } catch (Exception e) {
             log.error("[IMAP Verification Failed] Phone: {}, Code: {}, IMAP Error: {}", phoneNumber, code, e.getMessage());
             // IMAP 오류는 재시도 가능한 상황일 수 있으므로, RuntimeException으로 변환하여 Controller로 전달
             throw new RuntimeException("IMAP verification failed: " + e.getMessage());
         }
 
-        // 3. 이메일에서 추출된 번호와 사용자 입력 번호 일치 여부 확인
-        if (!phoneNumber.equals(verifiedPhoneNumberFromEmail)) {
-            log.warn("[Verification Failed] Phone number mismatch. User provided: {}, Email From: {}", phoneNumber, verifiedPhoneNumberFromEmail);
+        // 3. IMAP 인증 결과 확인
+        // imapVerificationService.verifyCodeViaEmail()은 성공 시 "success"를 반환하고,
+        // 실패 시 예외를 던지므로, 여기서는 예외가 발생하지 않았다면 성공으로 간주하고,
+        // 추가적으로 반환 값이 "success"인지 확인하여 명확성을 높입니다.
+        if (!"success".equals(imapVerificationResult)) {
+            // 이 경우는 imapVerificationService 내부에서 예외를 던지지 않았지만,
+            // "success"가 아닌 다른 값을 반환했을 때 (예상치 못한 상황)
+            log.warn("[Verification Failed] IMAP verification returned unexpected result: {}", imapVerificationResult);
             return false;
         }
 
         // 4. 모든 검증 성공 시, DB에서 해당 인증 코드 엔티티를 삭제하여 재사용 방지
         phoneVerificationRepository.delete(foundVerification);
-        log.info("[Verification Success] Verified Phone: {}, Code: {}", verifiedPhoneNumberFromEmail, code);
+        log.info("[Verification Success] Verified Phone: {}, Code: {}", phoneNumber, code); // imap에서 추출된 번호 대신 사용자가 입력한 번호 로깅
         return true;
     }
 }

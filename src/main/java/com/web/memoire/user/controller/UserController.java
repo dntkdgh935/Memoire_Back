@@ -1,26 +1,50 @@
 package com.web.memoire.user.controller;
 
+import com.web.memoire.security.jwt.JWTUtil;
+import com.web.memoire.security.jwt.jpa.entity.Token; // Token 엔티티가 아닌, DTO나 서비스에서 사용하는 Token 클래스라면 경로가 다를 수 있습니다.
+// JWTUtil에서 사용하는 Token 클래스의 정확한 경로를 확인해주세요.
+// 보통 com.web.memoire.security.jwt.model.dto.Token 이나 이런 식입니다.
+import com.web.memoire.security.jwt.model.service.TokenService;
+import com.web.memoire.user.jpa.entity.UserEntity; // ✅ UserEntity 임포트
+import com.web.memoire.user.jpa.repository.UserRepository; // ✅ UserRepository 임포트
 import com.web.memoire.user.model.dto.User;
 import com.web.memoire.user.model.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 @CrossOrigin
+@RequestMapping("/user")
 public class UserController {
     private final UserService userService;
+    private final UserRepository userRepository; // ✅ UserRepository 주입 추가
 
     private final BCryptPasswordEncoder bcryptPasswordEncoder;
+    private final ClientRegistrationRepository clientRegistrationRepository;
+    private final JWTUtil jwtUtil;
+    private final TokenService tokenService;
 
-    @PostMapping(value = "/user/idcheck")
+
+    @PostMapping(value = "/idcheck")
     public ResponseEntity<String>dupCheckId(@RequestParam("loginId") String loginId) {
         log.info("/user/idcheck : " + loginId);
 
@@ -28,7 +52,7 @@ public class UserController {
         return ResponseEntity.ok(exists ? "duplicated" : "ok");
     }
 
-    @PostMapping("user/signup")
+    @PostMapping("/signup")
     public ResponseEntity userInsertMethod(
             @RequestBody User user){
         log.info("/user/signup : " + user);
@@ -56,5 +80,126 @@ public class UserController {
         }
 
     }
+    @PostMapping("/social")
+    public ResponseEntity<Map<String, String>> getSocialAuthorizationUrl(
+            @RequestBody Map<String, String> requestBody,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        String socialType = requestBody.get("socialType");
+        if (socialType == null || socialType.isEmpty()) {
+            log.warn("Invalid request: socialType is missing.");
+            return ResponseEntity.badRequest().body(Map.of("error", "소셜 타입이 필요합니다."));
+        }
 
+        log.info("Requested socialType: {}", socialType);
+
+        try {
+            ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(socialType);
+
+            if (clientRegistration == null) {
+                log.error("ClientRegistration not found for socialType: {}", socialType);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "지원하지 않는 소셜 로그인 타입입니다."));
+            }
+
+            String authorizationRequestUri = "/oauth2/authorization/" + socialType;
+
+            Map<String, String> responseMap = new HashMap<>();
+            responseMap.put("authorizationUrl", authorizationRequestUri);
+
+            log.info("Generated authorization URL for {}: {}", socialType, authorizationRequestUri);
+            return ResponseEntity.ok(responseMap);
+
+        } catch (Exception e) {
+            log.error("Error generating social login URL for {}: {}", socialType, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "소셜 로그인 URL 생성 중 오류가 발생했습니다."));
+        }
+    }
+
+
+    @PostMapping("/social/complete-signup")
+    public ResponseEntity<?> completeSocialSignUp(@RequestBody SocialSignUpRequest request, HttpServletResponse response) {
+        log.info("Completing social signup for userId: {}", request.getUserId());
+        log.info("Received data: {}", request);
+
+        try {
+            // 1. 해당 userId의 UserEntity 조회
+            UserEntity userEntity = userRepository.findByUserId(request.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+            // 2. 받은 정보로 UserEntity 업데이트
+            userEntity.setName(request.getName());
+            userEntity.setNickname(request.getNickname());
+            userEntity.setPhone(request.getPhone());
+
+            // 생년월일 String -> Date 변환
+            if (request.getBirthday() != null && !request.getBirthday().isEmpty()) {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    userEntity.setBirthday(sdf.parse(request.getBirthday()));
+                } catch (ParseException e) {
+                    log.error("Failed to parse birthday: {}", request.getBirthday(), e);
+                    return ResponseEntity.badRequest().body(Map.of("message", "잘못된 생년월일 형식입니다. YYYY-MM-DD 형식으로 입력해주세요."));
+                }
+            }
+
+            // (선택 사항) loginId 업데이트
+            // userEntity.setLoginId(request.getLoginId()); // 필요하다면 이 라인의 주석을 해제하세요.
+
+            // 3. 업데이트된 UserEntity 저장
+            userRepository.save(userEntity); // ✅ 직접 userRepository.save 호출
+            log.info("UserEntity updated successfully for userId: {}", userEntity.getUserId());
+
+            // 4. JWT 토큰 발급을 위해 UserEntity를 User DTO로 변환
+            User userDto = userEntity.toDto(); // UserEntity에 toDto() 메서드가 구현되어 있어야 합니다.
+
+            // 5. 역할 기반 권한 확인
+            if(userDto.getRole().equals("BAD")){
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error","불량유저로 등록되었습니다. 관리자에게 문의 하세요"));
+            }
+            if(userDto.getRole().equals("EXIT")){
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error","탈퇴유저로 등록되었습니다. 관리자에게 문의 하세요."));
+            }
+
+            String accessToken = jwtUtil.generateToken(userDto, "access");
+            String refreshToken = jwtUtil.generateToken(userDto, "refresh");
+
+            // Assuming `Token` is `com.web.memoire.security.jwt.jpa.entity.Token`
+            tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken));
+            log.info("Tokens generated and refresh token saved for userId: {}", userDto.getUserId());
+
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("accessToken", accessToken);
+            responseBody.put("refreshToken", refreshToken);
+            responseBody.put("userId", userDto.getUserId());
+            responseBody.put("name", userDto.getName());
+            responseBody.put("role", userDto.getRole());
+            responseBody.put("autoLoginFlag", userDto.getAutoLoginFlag());
+            responseBody.put("nickname", userDto.getNickname());
+
+            return ResponseEntity.ok(responseBody);
+
+        } catch (IllegalArgumentException e) {
+            log.error("Complete social signup failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("An unexpected error occurred during social signup completion: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "회원가입 완료 중 서버 오류가 발생했습니다."));
+        }
+    }
+
+    @Getter
+    @Setter
+    public static class SocialSignUpRequest {
+        private String userId;
+        private String socialType;
+        private String socialId;
+        private String name;
+        private String nickname;
+        private String phone;
+        private String birthday;
+        private String loginId;
+    }
 }
