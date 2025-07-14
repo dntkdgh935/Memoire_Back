@@ -14,4 +14,6 @@ public interface LibMemoryRepository extends JpaRepository<MemoryEntity, Integer
     MemoryEntity findByCollectionidAndMemoryOrder(String collectionId, int memoryOrder);
 
     List<MemoryEntity> findByCollectionid(String collectionid);
+
+    MemoryEntity findByMemoryid(int i);
 }
