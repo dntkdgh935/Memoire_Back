@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*") // 개발용: 실제 서비스에서는 특정 도메인으로 제한
+@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/verification")
 public class VerificationController {
 

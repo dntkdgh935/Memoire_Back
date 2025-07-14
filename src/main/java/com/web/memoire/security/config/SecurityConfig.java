@@ -6,6 +6,9 @@ import com.web.memoire.security.handler.CustomLogoutHandler;
 import com.web.memoire.security.jwt.JWTUtil;
 import com.web.memoire.security.jwt.model.service.TokenService;
 import com.web.memoire.security.model.service.CustomUserDetailsService;
+import com.web.memoire.security.handler.CustomAuthenticationSuccessHandler; // ✅ 추가
+import com.web.memoire.security.oauth2.CustomOAuth2UserService; // ✅ 추가
+import com.web.memoire.user.jpa.repository.SocialUserRepository;
 import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,12 +36,14 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final JWTUtil jwtUtil;
     private final UserRepository userRepository;
     private final TokenService tokenService;
+    private final UserService userService; // ✅ UserService 주입 추가
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService, JWTUtil jwtUtil, UserRepository userRepository, TokenService tokenService) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService, JWTUtil jwtUtil, UserRepository userRepository, TokenService tokenService, UserService userService) { // ✅ 생성자 인자에 UserService 추가
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
+        this.userService = userService; // ✅ UserService 초기화
     }
 
     @Bean
@@ -51,7 +56,6 @@ public class SecurityConfig implements WebMvcConfigurer {
         return new BCryptPasswordEncoder();
     }
 
-    // 인증 (Authentication) 관리자를 스프링부트 컨테이너에 Bean 으로 등록해야 함
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration) throws Exception {
@@ -65,6 +69,19 @@ public class SecurityConfig implements WebMvcConfigurer {
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
         return daoAuthenticationProvider;
     }
+
+    // ✅ CustomOAuth2UserService 빈 등록
+    @Bean
+    public CustomOAuth2UserService customOAuth2UserService(UserRepository userRepository, SocialUserRepository socialUserRepository) {
+        return new CustomOAuth2UserService(userRepository, socialUserRepository);
+    }
+
+    // ✅ CustomAuthenticationSuccessHandler 빈 등록
+    @Bean
+    public CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler(JWTUtil jwtUtil, TokenService tokenService, UserRepository userRepository) {
+        return new CustomAuthenticationSuccessHandler(jwtUtil, tokenService, userRepository);
+    }
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -80,12 +97,13 @@ public class SecurityConfig implements WebMvcConfigurer {
             HttpSecurity http,
             AuthenticationManager authenticationManager,
             CustomLogoutHandler customLogoutHandler,
-            // JWTFilter와 LoginFilter에 필요한 의존성들을 Bean 메서드의 인자로 주입받습니다.
-            JWTUtil jwtUtil, // JWTFilter와 LoginFilter에 필요
-            UserRepository userRepository, // LoginFilter에 필요
-            TokenService tokenService, // LoginFilter에 필요
-            // CustomUserDetailsService는 이미 SecurityConfig의 생성자에서 주입받아 필드로 가지고 있으므로, 직접 사용 가능
-            UserService userService) throws Exception {
+            JWTUtil jwtUtil,
+            UserRepository userRepository,
+            TokenService tokenService,
+            UserService userService, // LoginFilter에 전달하기 위함
+            CustomOAuth2UserService customOAuth2UserService, // ✅ 추가
+            CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler // ✅ 추가
+    ) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
@@ -93,14 +111,12 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
-
                                 "/css/**", "/js/**").permitAll()
-
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/upload_files/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/*.jpg").permitAll()
-                        .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck").permitAll()
+                        .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social", "/user/socialSignUp").permitAll() // ✅ /user/social, /user/socialSignUp 추가
                         .requestMatchers("/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
@@ -120,6 +136,25 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
+                )
+                // ✅ OAuth2 로그인 설정 추가
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .baseUri("/oauth2/authorization") // 클라이언트가 소셜 로그인 시작 시 요청할 기본 URI
+                        )
+                        .redirectionEndpoint(endpoint -> endpoint
+                                .baseUri("/login/oauth2/code/*") // IdP로부터 인가 코드를 받는 콜백 URI
+                        )
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService) // ✅ CustomOAuth2UserService 등록
+                        )
+                        .successHandler(customAuthenticationSuccessHandler) // ✅ CustomAuthenticationSuccessHandler 등록
+                        .failureHandler((request, response, exception) -> { // ✅ 실패 핸들러 추가
+                            log.error("OAuth2 Login Failed: {}", exception.getMessage(), exception);
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json; charset=utf-8");
+                            response.getWriter().write("{\"error\":\"소셜 로그인 실패: " + exception.getMessage() + "\"}");
+                        })
                 );
 
         return http.build();
