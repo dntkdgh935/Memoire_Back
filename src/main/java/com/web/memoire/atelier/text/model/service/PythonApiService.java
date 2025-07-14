@@ -16,10 +16,11 @@ public class PythonApiService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${python.text-url}")   // 예: http://localhost:8000/gpt
+    @Value("${python.text-url}")
     private String textApiUrl;
 
-    @Value("${python.image-url}")  // 예: http://localhost:8000/dalle
+    // 수정된 URL: FastAPI에 매핑된 정확한 엔드포인트
+    @Value("${python.image-url}")
     private String imageApiUrl;
 
     public TextResultDto callGpt(TextGenerationRequest request) {
@@ -44,8 +45,9 @@ public class PythonApiService {
 
         HttpEntity<ImagePromptRequest> entity = new HttpEntity<>(request, headers);
 
+        // 👇 여기 경로가 정확해야 합니다.
         ResponseEntity<ImageResultDto> response = restTemplate.exchange(
-                imageApiUrl,
+                imageApiUrl, // application.yml 또는 properties에서 정확히 설정해야 함
                 HttpMethod.POST,
                 entity,
                 ImageResultDto.class
