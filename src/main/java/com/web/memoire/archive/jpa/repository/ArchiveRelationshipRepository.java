@@ -39,4 +39,12 @@ public interface ArchiveRelationshipRepository extends JpaRepository<Relationshi
     // 유저가 차단한 유저들 조회
     @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.userid = :userid AND r.status = '2'")
     List<RelationshipEntity> findAllUserBlock(@Param("userid") String userid);
+
+    // userid와 targetid와의 관계
+    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.userid = :userid AND r.targetid = :targetid")
+    RelationshipEntity findRelationshipById(@Param("userid") String userid, @Param("targetid") String targetid);
+
+    // targetid와 userid와의 관계
+    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.targetid = :userid AND r.userid = :targetid")
+    RelationshipEntity findRelationshipByTargetId(@Param("userid") String userid, @Param("targetid") String targetid);
 }

@@ -1,6 +1,8 @@
 package com.web.memoire.archive.controller;
 
 import com.web.memoire.archive.model.service.ArchiveService;
+import com.web.memoire.common.dto.Bookmark;
+import com.web.memoire.common.dto.CollView;
 import com.web.memoire.common.dto.Relationship;
 import com.web.memoire.user.model.dto.User;
 import lombok.extern.slf4j.Slf4j;
@@ -108,6 +110,50 @@ public class ArchiveController {
         } catch (Exception e) {
             log.error("error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/numCollections 에러");
+        }
+    }
+
+    @GetMapping("/bookmarkCollections")
+    public ResponseEntity<?> getBookmarkCollections(@RequestParam String userid) {
+        log.info("ArchiveController.getBookmarkCollections...");
+
+        try {
+            ArrayList<Bookmark> b = archiveService.findAllUserBookmarks(userid);
+            ArrayList<CollView> c = new ArrayList<>();
+            // check bookmark validity
+            for (Bookmark bm : b) {
+                CollView coll = archiveService.findCollViewByCollectionId(userid, bm.getCollectionid());
+                // owner
+                if (userid.equals(coll.getAuthorid())) {
+                    c.add(coll);
+                }
+                // public
+                else if (coll.getVisibility() == 1) {
+                    // ok
+                    c.add(coll);
+                }
+                // follower
+                else if (coll.getVisibility() == 2) {
+                    if (archiveService.findRelationshipById(userid, coll.getAuthorid()) == null) {
+                        // do not add
+                    }
+                    else if (archiveService.findRelationshipById(userid, coll.getAuthorid()).getStatus().equals("1") && !archiveService.findRelationshipByUserIdAndTargetId(userid, coll.getAuthorid()).getStatus().equals("2")) {
+                        // ok
+                        c.add(coll);
+                    }
+                    else {
+                        // do not add
+                    }
+                }
+                // private
+                else if (coll.getVisibility() == 3) {
+                    // do not add
+                }
+            }
+            return ResponseEntity.ok(c);
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/bookmarkCollections 에러");
         }
     }
 

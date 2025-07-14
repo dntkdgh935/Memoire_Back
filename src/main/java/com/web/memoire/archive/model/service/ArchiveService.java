@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -23,6 +24,9 @@ public class ArchiveService {
 
     @Autowired
     private final UserRepository userRepository;
+
+//    @Autowired
+//    private final
 
     @Autowired
     private final ArchiveBookmarkRepository archiveBookmarkRepository;
@@ -81,17 +85,22 @@ public class ArchiveService {
     }
 
     // ArchiveCollectionRepository
-    public ArrayList<Collection> findAllUserCollections(String userid) {
+    public List<CollView> findAllUserCollections(String userid) {
         List<CollectionEntity> entityList = archiveCollectionRepository.findAllUserCollections(userid);
-        ArrayList<Collection> list = new ArrayList<>();
-        for (CollectionEntity entity : entityList) {
-            list.add(entity.toDto());
-        }
-        return list;
+        return collectionArrayToCollViewArray(userid, (ArrayList<CollectionEntity>) entityList);
     }
 
     public int countAllCollectionsByUserId(String userid) {
         return archiveCollectionRepository.countAllCollectionsByUserId(userid);
+    }
+
+    public Collection findCollectionById(String collectionid) {
+        return archiveCollectionRepository.findCollectionById(collectionid).toDto();
+    }
+
+    public CollView findCollViewByCollectionId(String userid, String collectionid) {
+        CollectionEntity coll = archiveCollectionRepository.findCollectionById(collectionid);
+        return collectionToCollView(userid, coll.getCollectionid());
     }
 
     // ArchiveCollectionTagRepository
@@ -187,9 +196,109 @@ public class ArchiveService {
         return list;
     }
 
+    public Relationship findRelationshipById(String userid, String targetid) {
+        return archiveRelationshipRepository.findRelationshipById(userid, targetid).toDto();
+    }
+
+    public Relationship findRelationshipByUserIdAndTargetId(String userid, String targetid) {
+        return archiveRelationshipRepository.findRelationshipByTargetId(userid, targetid).toDto();
+    }
+
     // ArchiveReportRepository
 
     // ArchiveTagRepository
+
+    // 기타 메소드
+    private List<CollView> collectionArrayToCollViewArray(String userid, ArrayList<CollectionEntity> collection) {
+        return collection.stream().map(c -> {
+            // ✅ memory_order = 1인 MemoryEntity 가져오기
+            MemoryEntity memory = archiveMemoryRepository.findFirstMemoryByCollectionId(c.getCollectionid());
+            String thumbnailPath = memory != null ? memory.getFilepath() : null;
+            String thumbType = memory != null ? memory.getMemoryType() : null;
+            String textContent = memory != null ? memory.getContent() : null;
+
+            //✅ Author 정보 가져오기
+            Optional<UserEntity> author = userRepository.findByUserId(c.getAuthorid());
+            String authorName = author.isPresent() ? author.get().getName() : null;
+            // 작성자 프로필 이미지 가져오기
+            String authorProfileImage = userRepository.findByUserId(c.getAuthorid())
+                    .map(UserEntity::getProfileImagePath)
+                    .orElse("/default_profile.jpg");
+
+            // ✅ 좋아요, 북마크 엔티티 가져오기
+            LikeEntity like = archiveLikeRepository.findLikeById(userid, c.getCollectionid());
+            BookmarkEntity bookmark = archiveBookmarkRepository.findBookmarkById(userid, c.getCollectionid());
+
+            //collection의 총 좋아요 수/ 총 북마크 수 가져오기
+            int likeCount = archiveLikeRepository.countCollectionLikes(c.getCollectionid());
+            int bookmarkCount = archiveBookmarkRepository.countCollectionBookmarks(c.getCollectionid());
+            log.info("✅북마크 수: " + bookmarkCount);
+
+            return CollView.builder()
+                    .collectionid(c.getCollectionid())
+                    .authorid(c.getAuthorid())
+                    .authorname(authorName)
+                    .collectionTitle(c.getCollectionTitle())
+                    .readCount(c.getReadCount())
+                    .visibility(c.getVisibility())
+                    .createdDate(c.getCreatedDate())
+                    .titleEmbedding(c.getTitleEmbedding())
+                    .thumbnailPath(thumbnailPath)
+                    .textContent(textContent) // 필요 시 추출
+                    .userlike(like != null)
+                    .userbookmark(bookmark != null)
+                    .authorProfileImage(authorProfileImage)
+                    .thumbType(thumbType)
+                    .likeCount(likeCount)
+                    .bookmarkCount(bookmarkCount)
+                    .build();
+        }).toList();
+    }
+
+    private CollView collectionToCollView(String userid, String collectionid) {
+        CollectionEntity collection = archiveCollectionRepository.findCollectionById(collectionid);
+        //✅ memory_order = 1인 MemoryEntity 가져오기
+        MemoryEntity memory = archiveMemoryRepository.findFirstMemoryByCollectionId(collection.getCollectionid());
+        String thumbnailPath = memory != null ? memory.getFilepath() : null;
+        String thumbType = memory != null ? memory.getMemoryType() : null;
+        String textContent = memory != null ? memory.getContent() : null;
+
+        //✅ Author 정보 가져오기
+        Optional<UserEntity> author = userRepository.findByUserId(collection.getAuthorid());
+        String authorName = author.isPresent() ? author.get().getName() : null;
+        // 작성자 프로필 이미지 가져오기
+        String authorProfileImage = userRepository.findByUserId(collection.getAuthorid())
+                .map(UserEntity::getProfileImagePath)
+                .orElse("/default_profile.jpg");
+
+        //✅ 로그인 유저의 좋아요, 북마크 여부 가져오기
+        LikeEntity like = archiveLikeRepository.findLikeById(userid, collection.getCollectionid());
+        BookmarkEntity bookmark = archiveBookmarkRepository.findBookmarkById(userid, collection.getCollectionid());
+
+        //collection의 총 좋아요 수/ 총 북마크 수 가져오기
+        int likeCount = archiveLikeRepository.countCollectionLikes(collection.getCollectionid());
+        int bookmarkCount = archiveBookmarkRepository.countCollectionBookmarks(collection.getCollectionid());
+        log.info("✅북마크 수: " + bookmarkCount);
+
+        return CollView.builder()
+                .collectionid(collection.getCollectionid())
+                .authorid(collection.getAuthorid())
+                .authorname(authorName)
+                .collectionTitle(collection.getCollectionTitle())
+                .readCount(collection.getReadCount())
+                .visibility(collection.getVisibility())
+                .createdDate(collection.getCreatedDate())
+                .titleEmbedding(collection.getTitleEmbedding())
+                .thumbnailPath(thumbnailPath)
+                .textContent(textContent) // 필요 시 추출
+                .userlike(like != null)
+                .userbookmark(bookmark != null)
+                .authorProfileImage(authorProfileImage)
+                .thumbType(thumbType)
+                .likeCount(likeCount)
+                .bookmarkCount(bookmarkCount)
+                .build();
+    }
 
 
 }

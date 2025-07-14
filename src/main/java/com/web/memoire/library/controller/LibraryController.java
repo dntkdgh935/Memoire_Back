@@ -1,7 +1,6 @@
 package com.web.memoire.library.controller;
 
 
-
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -22,7 +19,7 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
-    private String tempLoginUserId="c5950e60-6872-4510-9823-2a887e957079";
+    private String tempLoginUserId="bc2b3a47-c06d-4693-8e47-7e8422458919";
 
 
     //ArhciveMain.js용=========================================================
