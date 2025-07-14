@@ -183,5 +183,12 @@ public class LibraryService {
         List <MemoryEntity> memories =  libMemoryRepository.findByCollectionid(collectionid);
         return memories;
     }
+
+    public Object getMemoryDetail(int memoryid) {
+        MemoryEntity entity = libMemoryRepository.findByMemoryid(memoryid);
+        log.info(entity.toString());
+        return entity.toDto();
+    }
+
 }
 

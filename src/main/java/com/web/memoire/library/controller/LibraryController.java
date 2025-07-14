@@ -152,15 +152,17 @@ public class LibraryController {
     }
 
     // memoryId에 해당하는 메모리 정보 조회
-    @GetMapping("/memory/{memoryid}")
-    public ResponseEntity<?> getMemoryInfoByMemoryId(@PathVariable String memoryid) {
-        log.info("LibraryController.getMemoryInfoByMemoryId...");
+    @GetMapping("/memory/{memoryId}")
+    public ResponseEntity<?> getMemoryDetail(@PathVariable int memoryId) {
+        log.info("LibraryController.getMemoryDetail... memoryId: {}", memoryId);
 
         try {
-            return ResponseEntity.ok(libraryService.getMemoriesByCollectionId(memoryid));
+            return ResponseEntity.ok(libraryService.getMemoryDetail(memoryId)); // 서비스 호출
         } catch (Exception e) {
-            log.error("Error while fetching memory details", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 상세내용 조회 실패");
+            log.error("Error while fetching memory detail", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 상세 조회 실패");
         }
     }
+
+
 }
