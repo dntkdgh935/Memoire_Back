@@ -19,7 +19,7 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
-    private String tempLoginUserId="bc2b3a47-c06d-4693-8e47-7e8422458919";
+    private String tempLoginUserId="ee418479-6ac2-43f1-96e0-e5413f4926cb";
 
 
     //ArhciveMain.js용=========================================================
