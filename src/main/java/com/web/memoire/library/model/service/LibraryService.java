@@ -128,9 +128,8 @@ public class LibraryService {
     }
 
     public CollView getCollectionDetail(String collectionId, String userId) {
-//        return libCollectionRepository.findById(collectionId)
-//                .orElseThrow(() -> new RuntimeException("Collection not found"));
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+
         //✅ memory_order = 1인 MemoryEntity 가져오기
         MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
         String thumbnailPath = memory != null ? memory.getFilepath() : null;
@@ -179,6 +178,10 @@ public class LibraryService {
     public Object findByCollectionid(String collectionid) {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionid);
         return collection;
+    }
+    public Object getMemoriesByCollectionId(String collectionid) {
+        List <MemoryEntity> memories =  libMemoryRepository.findByCollectionid(collectionid);
+        return memories;
     }
 }
 

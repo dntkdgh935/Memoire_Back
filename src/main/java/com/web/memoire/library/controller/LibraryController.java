@@ -2,7 +2,6 @@ package com.web.memoire.library.controller;
 
 
 
-import com.web.memoire.library.jpa.repository.LibMemoryRepository;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,12 +144,23 @@ public class LibraryController {
         log.info("LibraryController.getMemoriesByCollectionId...");
 
         try {
-            return ResponseEntity.ok(libraryService.findByCollectionid(collectionid));
+            return ResponseEntity.ok(libraryService.getMemoriesByCollectionId(collectionid));
         } catch (Exception e) {
             log.error("Error while fetching memories", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 조회 실패");
         }
-
     }
 
+    // memoryId에 해당하는 메모리 정보 조회
+    @GetMapping("/memory/{memoryid}")
+    public ResponseEntity<?> getMemoryInfoByMemoryId(@PathVariable String memoryid) {
+        log.info("LibraryController.getMemoryInfoByMemoryId...");
+
+        try {
+            return ResponseEntity.ok(libraryService.getMemoriesByCollectionId(memoryid));
+        } catch (Exception e) {
+            log.error("Error while fetching memory details", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 상세내용 조회 실패");
+        }
+    }
 }
