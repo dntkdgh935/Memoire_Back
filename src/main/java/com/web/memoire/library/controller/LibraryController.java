@@ -2,7 +2,6 @@ package com.web.memoire.library.controller;
 
 
 
-import com.web.memoire.library.jpa.repository.LibMemoryRepository;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,12 +144,43 @@ public class LibraryController {
         log.info("LibraryController.getMemoriesByCollectionId...");
 
         try {
-            return ResponseEntity.ok(libraryService.findByCollectionid(collectionid));
+            return ResponseEntity.ok(libraryService.getMemoriesByCollectionId(collectionid));
         } catch (Exception e) {
             log.error("Error while fetching memories", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 조회 실패");
         }
-
     }
+
+    // memoryId에 해당하는 메모리 정보 조회
+    @GetMapping("/memory/{memoryId}")
+    public ResponseEntity<?> getMemoryDetail(@PathVariable int memoryId) {
+        log.info("LibraryController.getMemoryDetail... memoryId: {}", memoryId);
+
+        try {
+            return ResponseEntity.ok(libraryService.getMemoryDetail(memoryId)); // 서비스 호출
+        } catch (Exception e) {
+            log.error("Error while fetching memory detail", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("메모리 상세 조회 실패");
+        }
+    }
+
+    @PostMapping("/toggleFollow")
+    public ResponseEntity<?> toggleFollowRequest(
+            @RequestParam("userid") String userid,
+            @RequestParam("targetid") String targetid
+    ) {
+        log.info("🔁 팔로우 토글 요청 - user: {}, target: {}", userid, targetid);
+
+        try {
+            libraryService.toggleFollowRequest(userid, targetid);
+            return ResponseEntity.ok("팔로우 상태 토글 완료");
+        } catch (Exception e) {
+            log.error("팔로우 상태 토글 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로우 상태 토글 실패");
+        }
+    }
+
+
+
 
 }

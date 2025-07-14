@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,7 @@ public class LibraryService {
     private final LibBookmarkRepository libBookmarkRepository;
     private final LibLikeRepository libLikeRepository;
     private final LibUserRepository libUserRepository;
+    private final LibRelationshipRepository libRelationshipRepository;
 
 
     // ✅ 모든 태그 가져오기
@@ -98,6 +100,7 @@ public class LibraryService {
         LikeEntity like = LikeEntity.builder()
                 .userid(userid)
                 .collectionid(collectionId)
+                .likedDate(new Date())
                 .build(); // likedDate는 자동으로 저장됨
 
         libLikeRepository.save(like);
@@ -128,9 +131,8 @@ public class LibraryService {
     }
 
     public CollView getCollectionDetail(String collectionId, String userId) {
-//        return libCollectionRepository.findById(collectionId)
-//                .orElseThrow(() -> new RuntimeException("Collection not found"));
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+
         //✅ memory_order = 1인 MemoryEntity 가져오기
         MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
         String thumbnailPath = memory != null ? memory.getFilepath() : null;
@@ -179,6 +181,54 @@ public class LibraryService {
     public Object findByCollectionid(String collectionid) {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionid);
         return collection;
+    }
+    public Object getMemoriesByCollectionId(String collectionid) {
+        List <MemoryEntity> memories =  libMemoryRepository.findByCollectionid(collectionid);
+        return memories;
+    }
+
+    public Object getMemoryDetail(int memoryid) {
+        MemoryEntity entity = libMemoryRepository.findByMemoryid(memoryid);
+        log.info(entity.toString());
+        return entity.toDto();
+    }
+//    //TB_RELATIONSHIP : userid, targetid간의 관계를 확인하는 요청
+//    public Object getRelationshipInfo(String userid, String targetid) {
+//        RelationshipId id = new RelationshipId(userid, targetid);
+//        Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+//        return optional.toDto();
+//    }
+
+
+    // TB_RELATIONSHIP : 팔로우 버튼 클릭 --> 요청(0) --> 승인시 팔로우(1)
+    // 차단: 2
+    @Transactional
+    public void toggleFollowRequest(String userid, String targetid) {
+        RelationshipId id = new RelationshipId(userid, targetid);
+
+        Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+        log.info("✅ toggleFollowRequest: " + optional.isPresent());
+
+        if (optional.isEmpty()) {
+            // 관계 없음 → 요청 상태로 새로 추가
+            RelationshipEntity newRelation = RelationshipEntity.builder()
+                    .userid(userid)
+                    .targetid(targetid)
+                    .status("0") // 요청 상태
+                    .followDate(new Date())
+                    .build();
+            libRelationshipRepository.save(newRelation);
+
+        } else {
+            RelationshipEntity relation = optional.get();
+            String status = relation.getStatus();
+
+            // 요청 상태이거나, 이미 팔로우 상태에서 클릭할 경우
+            if ("1".equals(status) || "0".equals(status)) {
+                // 팔로우 상태 → 삭제
+                libRelationshipRepository.delete(relation);
+            }
+        }
     }
 }
 
