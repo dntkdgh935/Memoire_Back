@@ -192,17 +192,16 @@ public class LibraryService {
         log.info(entity.toString());
         return entity.toDto();
     }
-
-//    @Transactional
-//    public void addFollow(String userid, String targetid) {
-//        libRelationshipRepository.insertFollow(userid, targetid);
-//    }
-//
-//    @Transactional
-//    public void removeFollow(String userid, String targetid) {
-//        libRelationshipRepository.removeFollow(userid, targetid);
+//    //TB_RELATIONSHIP : userid, targetid간의 관계를 확인하는 요청
+//    public Object getRelationshipInfo(String userid, String targetid) {
+//        RelationshipId id = new RelationshipId(userid, targetid);
+//        Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+//        return optional.toDto();
 //    }
 
+
+    // TB_RELATIONSHIP : 팔로우 버튼 클릭 --> 요청(0) --> 승인시 팔로우(1)
+    // 차단: 2
     @Transactional
     public void toggleFollowRequest(String userid, String targetid) {
         RelationshipId id = new RelationshipId(userid, targetid);
@@ -229,10 +228,6 @@ public class LibraryService {
                 // 팔로우 상태 → 삭제
                 libRelationshipRepository.delete(relation);
             }
-//            else {
-//                // 요청 상태("0") → 유지 (변경 없음)
-//                log.info("이미 요청 상태입니다. 변경 없음.");
-//            }
         }
     }
 }
