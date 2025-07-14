@@ -230,5 +230,19 @@ public class LibraryService {
             }
         }
     }
+
+    public Object getRelationshipStatus(String userid, String targetid) {
+        RelationshipId id = new RelationshipId(userid, targetid);
+        Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+
+        // Optional이 비어있지 않은 경우
+        if (optional.isPresent()) {
+            return optional.get().getStatus();
+        }
+        else{
+            return "3"; // no relationship
+        }
+
+    }
 }
 

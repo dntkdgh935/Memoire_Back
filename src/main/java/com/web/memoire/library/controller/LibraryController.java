@@ -177,6 +177,18 @@ public class LibraryController {
         }
     }
 
+    @GetMapping("/getRelationshipStatus")
+    public ResponseEntity<?> getRelationshipStatus(String userid, String targetid) {
+        log.info("🔁 관계 확인 요청 : userid: {}, target: {}", userid, targetid);
+
+        try{
+            return ResponseEntity.ok(libraryService.getRelationshipStatus(userid, targetid));
+
+        }catch(Exception e){
+            log.error("관계 확인 실패");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("관계 확인 실패");
+        }
+    }
 
 
 
