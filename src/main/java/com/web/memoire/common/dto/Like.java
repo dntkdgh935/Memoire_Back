@@ -26,7 +26,7 @@ public class Like {
     private String userid;
 
     @NotNull
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy.MM.dd")
     private Date likedDate;
 
     public LikeEntity toEntity() {

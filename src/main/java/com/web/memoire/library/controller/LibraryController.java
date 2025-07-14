@@ -164,5 +164,23 @@ public class LibraryController {
         }
     }
 
+    @PostMapping("/toggleFollow")
+    public ResponseEntity<?> toggleFollowRequest(
+            @RequestParam("userid") String userid,
+            @RequestParam("targetid") String targetid
+    ) {
+        log.info("🔁 팔로우 토글 요청 - user: {}, target: {}", userid, targetid);
+
+        try {
+            libraryService.toggleFollowRequest(userid, targetid);
+            return ResponseEntity.ok("팔로우 상태 토글 완료");
+        } catch (Exception e) {
+            log.error("팔로우 상태 토글 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로우 상태 토글 실패");
+        }
+    }
+
+
+
 
 }

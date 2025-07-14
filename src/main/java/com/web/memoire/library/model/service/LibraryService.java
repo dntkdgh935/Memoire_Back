@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,7 @@ public class LibraryService {
     private final LibBookmarkRepository libBookmarkRepository;
     private final LibLikeRepository libLikeRepository;
     private final LibUserRepository libUserRepository;
+    private final LibRelationshipRepository libRelationshipRepository;
 
 
     // ✅ 모든 태그 가져오기
@@ -98,6 +100,7 @@ public class LibraryService {
         LikeEntity like = LikeEntity.builder()
                 .userid(userid)
                 .collectionid(collectionId)
+                .likedDate(new Date())
                 .build(); // likedDate는 자동으로 저장됨
 
         libLikeRepository.save(like);
@@ -190,5 +193,47 @@ public class LibraryService {
         return entity.toDto();
     }
 
+//    @Transactional
+//    public void addFollow(String userid, String targetid) {
+//        libRelationshipRepository.insertFollow(userid, targetid);
+//    }
+//
+//    @Transactional
+//    public void removeFollow(String userid, String targetid) {
+//        libRelationshipRepository.removeFollow(userid, targetid);
+//    }
+
+    @Transactional
+    public void toggleFollowRequest(String userid, String targetid) {
+        RelationshipId id = new RelationshipId(userid, targetid);
+
+        Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+        log.info("✅ toggleFollowRequest: " + optional.isPresent());
+
+        if (optional.isEmpty()) {
+            // 관계 없음 → 요청 상태로 새로 추가
+            RelationshipEntity newRelation = RelationshipEntity.builder()
+                    .userid(userid)
+                    .targetid(targetid)
+                    .status("0") // 요청 상태
+                    .followDate(new Date())
+                    .build();
+            libRelationshipRepository.save(newRelation);
+
+        } else {
+            RelationshipEntity relation = optional.get();
+            String status = relation.getStatus();
+
+            // 요청 상태이거나, 이미 팔로우 상태에서 클릭할 경우
+            if ("1".equals(status) || "0".equals(status)) {
+                // 팔로우 상태 → 삭제
+                libRelationshipRepository.delete(relation);
+            }
+//            else {
+//                // 요청 상태("0") → 유지 (변경 없음)
+//                log.info("이미 요청 상태입니다. 변경 없음.");
+//            }
+        }
+    }
 }
 
