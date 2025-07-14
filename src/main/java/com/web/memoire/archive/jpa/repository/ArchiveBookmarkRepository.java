@@ -24,4 +24,7 @@ public interface ArchiveBookmarkRepository extends JpaRepository<BookmarkEntity,
     @Query(value = "SELECT b from BookmarkEntity b where b.collectionid = :collectionid")
     List<BookmarkEntity> findAllCollectionBookmarks(@Param("collectionid") String collectionid);
 
+    // userid와 collectionid로 북마크 조회
+    @Query(value = "SELECT b FROM BookmarkEntity b WHERE b.userid = :userid AND b.collectionid = :collectionid")
+    BookmarkEntity findBookmarkById(@Param("userid") String userid, @Param("collectionid") String collectionid);
 }
