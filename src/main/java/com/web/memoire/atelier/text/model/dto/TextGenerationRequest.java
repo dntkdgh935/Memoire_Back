@@ -8,28 +8,29 @@ import lombok.Setter;
 @Setter
 public class TextGenerationRequest {
 
-    // 🔸 프론트에서 받는 값
-    private String content;         // 사용자 입력 원문
-    private String style;           // 변환 스타일
-    private String option;          // 부가 옵션
-
-    // 🔸 저장 옵션
-    private String title;           // 결과물 제목
+    private String content;
+    private String style;
+    private String option;
+    private String title;
 
     @JsonProperty("collectionId")
-    private String collectionId;    // 저장할 컬렉션 ID
+    private String collectionId;
 
     @JsonProperty("saveToMemory")
-    private boolean saveToMemory;   // 저장 여부 플래그
-
-    // 🔸 FastAPI에 보낼 추가 필드
+    private boolean saveToMemory;
 
     @JsonProperty("inputText")
-    private String inputText;       // GPT에 보낼 원문
+    private String inputText;
 
     @JsonProperty("memoryType")
-    private String memoryType;      // 메모리 유형 (text)
+    private String memoryType;
 
     @JsonProperty("memoryOrder")
-    private Integer memoryOrder;    // 순서
+    private Integer memoryOrder;
+
+    @JsonProperty("memoryId")
+    private Long memoryId;
+
+    @JsonProperty("userId")
+    private String userId;
 }

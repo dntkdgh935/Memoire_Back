@@ -110,6 +110,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/atelier/**").permitAll() // ✅ 아뜰리에꺼! 요거만 하나 추가!
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
                                 "/css/**", "/js/**").permitAll()
                         .requestMatchers("/api/**").permitAll()

@@ -49,6 +49,10 @@ public class JWTFilter extends OncePerRequestFilter {
                 return true;
             }
         }
+
+        // ✅ 재열
+        if (url.startsWith("/atelier/")) return true;
+
         // .png, .jpg 파일과 같은 확장자 처리 (기존 로직 유지)
         if (url.endsWith(".png") || url.endsWith(".jpg")) { // .jpg도 추가
             return true;
