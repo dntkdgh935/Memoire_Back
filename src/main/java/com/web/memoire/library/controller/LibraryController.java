@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+
 @Slf4j
 @RestController
 @RequestMapping("/api/library")
@@ -19,8 +20,11 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
+    //TODO: tempLoginUserId 모두 대체하기
     private String tempLoginUserId="ee418479-6ac2-43f1-96e0-e5413f4926cb";
 
+    //TODO: WebClient 추가하기(추천용)
+//    private final WebClient webClient;
 
     //ArhciveMain.js용=========================================================
     @GetMapping("/top5tags")
@@ -35,19 +39,59 @@ public class LibraryController {
     }
 
 
-    //tempUser에게 모든 public collection 리턴
-    @GetMapping("/discover/all")
+    // 비로그인시 전체 public collection 리턴
+    // TODO:
+    @GetMapping("/discover/{selectedTag}")
     public ResponseEntity<?> getAllColls() {
         log.info("LibraryController.getAllColls...");
+        log.info("비로그인 유저 전체 컬렉션 조회");
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userid = auth.getName();
-        log.info("\uD83C\uDFF0 현재 로그인 유저: "+auth.toString());
 
         try {
-            return ResponseEntity.ok(libraryService.getAllPublicCollectionView(tempLoginUserId));//(userid));//("user001"));
+            return ResponseEntity.ok(libraryService.getAllPublicCollectionView());//(userid));//("user001"));
         } catch (Exception e) {
             log.error("Error while fetching colls", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+        }
+    }
+
+    // 로그인 유저에게 selectedTag(전체, 팔로잉, 기타)에 대한 추천 진행
+    @GetMapping("/discover/{selectedTag}/{userid}")
+    public ResponseEntity<?> getRecColls4LoginUser(@PathVariable String selectedTag, @PathVariable String userid) {
+        log.info("LibraryController.getAllColls...4 로그인 유저!!");
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        log.info("\uD83C\uDFF0 현재 로그인 유저: "+auth.toString());
+
+        if (selectedTag.equals("전체")) {
+            try {
+                return ResponseEntity.ok(libraryService.getAllColls4LoginUser(userid));
+            } catch (Exception e) {
+                log.error("Error while fetching colls", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+            }
+        }
+        else if (selectedTag.equals("팔로잉")) {
+            try{
+                return ResponseEntity.ok(libraryService.getFollowingColls4LoginUser(userid));
+            }catch (Exception e) {
+                log.error("Error while fetching 팔로잉 중인 colls", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
+            }
+        }
+        // 기타 태그 선택시
+        else if (selectedTag.length()>0 &&(selectedTag instanceof String))
+        {
+            try{
+//                return ResponseEntity.ok(libraryService.getTopicColls4LoginUser(userid, selectedTag));
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("미개발 단계");
+            }catch (Exception e) {
+                log.error("Error while fetching 팔로잉 중인 colls", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
+            }
+        }
+        // 태그가 없거나 옵션에 없는 경우(오류)
+        else{
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("태그 선택 오류");
         }
     }
 
@@ -190,7 +234,35 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("관계 확인 실패");
         }
     }
+    // TODO: Natural Recommendation
+    // FastAPI로 GET 요청 보내기
+    /*@GetMapping("/get-recommendations/{userId}")
+    public ResponseEntity<?> getRecommendations(@PathVariable String userId) {
+        log.info("LibraryController.getRecommendations... for userId: {}", userId);
 
+        try {
+            // FastAPI로 추천 요청 보내기
+            String url = "/recommendations/" + userId;
+
+            // WebClient를 사용하여 FastAPI 서버에 GET 요청 보내기
+            WebClient webClient = webClientBuilder.baseUrl("http://localhost:8000").build();
+
+            // FastAPI 서버에서 추천 점수 받기
+            String recommendations = webClient.get()  // GET 요청으로 변경
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();  // 동기식 호출
+
+            log.info("Received recommendations from FastAPI: {}", recommendations);
+
+            return ResponseEntity.ok(recommendations); // 추천 결과 반환
+        } catch (Exception e) {
+            log.error("Error while fetching recommendations", e);
+            return ResponseEntity.status(500).body("추천 요청 실패");
+        }
+    }
+*/
 
 
 }
