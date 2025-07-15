@@ -19,8 +19,10 @@ import java.util.Date;
 public class CollectionEntity {
 
     @Id
-    @Column(name = "COLLECTIONID", length = 50, nullable = false)
-    private String collectionid;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "collection_seq")
+    @SequenceGenerator(name = "collection_seq", sequenceName = "SEQ_TB_COLLECTION_COLLECTIONID", allocationSize = 1)
+    @Column(name = "COLLECTIONID", nullable = false)
+    private int collectionid;
 
     @Column(name = "AUTHORID", nullable = false)
     private String authorid;
@@ -58,7 +60,7 @@ public class CollectionEntity {
                 .build();
     }
 
-    public String getId() {
+    public int getId() {
         return collectionid;
     }
 }

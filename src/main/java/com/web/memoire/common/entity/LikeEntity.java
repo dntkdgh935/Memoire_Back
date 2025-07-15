@@ -20,7 +20,7 @@ public class LikeEntity {
 
     @Id
     @Column(name="COLLECTIONID", nullable = false)
-    private String collectionid;
+    private int collectionid;
     @Id
     @Column(name="USERID", nullable = false)
     private String userid;

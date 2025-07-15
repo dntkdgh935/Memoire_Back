@@ -13,6 +13,6 @@ public class CollectionTagId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private String collectionid;
-    private String tagid;
+    private int collectionid;
+    private int tagid;
 }

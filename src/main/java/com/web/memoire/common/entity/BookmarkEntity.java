@@ -22,7 +22,7 @@ public class BookmarkEntity {
 
     @Id
     @Column(name="COLLECTIONID", nullable = false)
-    private String collectionid;
+    private int collectionid;
 
     public Bookmark toDto() {
         return Bookmark.builder()

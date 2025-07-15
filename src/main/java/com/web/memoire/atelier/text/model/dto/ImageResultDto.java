@@ -19,6 +19,6 @@ public class ImageResultDto {
     private String filepath;       // 저장 경로
     private String style;          // 적용한 스타일
     private String memoryType;     // 예: "image"
-    private String collectionId;   // 소속 컬렉션
+    private int collectionId;   // 소속 컬렉션
     private int memoryOrder;       // 정렬 순서
 }

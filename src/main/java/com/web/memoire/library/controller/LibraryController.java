@@ -99,7 +99,8 @@ public class LibraryController {
     // 컬렉션 아이디로 컬렉션 정보 가져옴
     // TODO: 프론트쪽 요청 바꾸기
     @GetMapping("/collection/{collectionId}")
-    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId, @PathVariable String userid) {
+    public ResponseEntity<?> getCollectionDetail(@PathVariable int collectionId) {
+
         log.info("LibraryController.getCollectionDetail...");
         try {
             return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, userid));
@@ -112,7 +113,8 @@ public class LibraryController {
     @PostMapping("/togglelike")
     public ResponseEntity<?> toggleLikeColl(
             @RequestParam("userid") String userid,
-            @RequestParam("collectionId") String collectionId,
+            @RequestParam("collectionId") int collectionId,
+
             @RequestParam("isLiked") boolean isLiked
     ) {
         log.info("👍 좋아요 요청 - user: {}, collection: {}, isLiked: {}", userid, collectionId, isLiked);
@@ -134,7 +136,7 @@ public class LibraryController {
     @PostMapping("/togglebm")
     public ResponseEntity<?> toggleBMColl(
             @RequestParam("userid") String userid,
-            @RequestParam("collectionId") String collectionId,
+            @RequestParam("collectionId") int collectionId,
             @RequestParam("isBookmarked") boolean isBookmarked
     ) {
         log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", userid, collectionId, isBookmarked);
@@ -155,7 +157,7 @@ public class LibraryController {
 
     @GetMapping("/countlike")
     public ResponseEntity<?> countLike(
-            @RequestParam("collectionId") String collectionId)
+            @RequestParam("collectionId") int collectionId)
     {
         try {
             int likeCount = libraryService.countLikesByCollectionId(collectionId);
@@ -169,7 +171,7 @@ public class LibraryController {
 
     @GetMapping("/countbm")
     public ResponseEntity<?> countBookmark(
-            @RequestParam("collectionId") String collectionId
+            @RequestParam("collectionId") int collectionId
     ) {
         try {
             int bmCount = libraryService.countBookmarksByCollectionId(collectionId);
@@ -184,7 +186,7 @@ public class LibraryController {
 
     // collectionid에 해당하는 모든 메모리 조회
     @GetMapping("/collection/memories/{collectionid}")
-    public ResponseEntity<?> getMemoriesByCollectionId(@PathVariable String collectionid) {
+    public ResponseEntity<?> getMemoriesByCollectionId(@PathVariable int collectionid) {
         log.info("LibraryController.getMemoriesByCollectionId...");
 
         try {

@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface LibBookmarkRepository extends JpaRepository<BookmarkEntity, BookmarkId> {
 
-    BookmarkEntity findByUseridAndCollectionid(String userId, String collectionId);
+    BookmarkEntity findByUseridAndCollectionid(String userId, int collectionId);
 
     // 유저가 북마크한 전체 컬렉션 조회
     @Query(value = "SELECT b FROM BookmarkEntity b where b.userid = :userid")
@@ -20,13 +20,13 @@ public interface LibBookmarkRepository extends JpaRepository<BookmarkEntity, Boo
 
     // 컬렉션의 북마크 수 조회
     @Query(value = "SELECT count(b) from BookmarkEntity b where b.collectionid = :collectionid")
-    int countCollectionBookmarks(@Param("collectionid") String collectionid);
+    int countCollectionBookmarks(@Param("collectionid") int collectionid);
 
     // 컬렉션의 북마크 상세 조회
     @Query(value = "SELECT b from BookmarkEntity b where b.collectionid = :collectionid")
-    List<BookmarkEntity> findAllCollectionBookmarks(@Param("collectionid") String collectionid);
+    List<BookmarkEntity> findAllCollectionBookmarks(@Param("collectionid") int collectionid);
 
-    void deleteByUseridAndCollectionid(String userid, String collectionId);
+    void deleteByUseridAndCollectionid(String userid, int collectionId);
 
-    int countBookmarkEntitiesByCollectionid(String collectionId);
+    int countBookmarkEntitiesByCollectionid(int collectionId);
 }

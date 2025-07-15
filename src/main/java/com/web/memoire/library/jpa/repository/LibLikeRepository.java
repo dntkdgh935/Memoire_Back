@@ -5,9 +5,9 @@ import com.web.memoire.common.entity.LikeId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LibLikeRepository extends JpaRepository<LikeEntity, LikeId> {
-    LikeEntity findByUseridAndCollectionid(String userId, String collectionId);
+    LikeEntity findByUseridAndCollectionid(String userId, int collectionId);
 
-    void deleteByUseridAndCollectionid(String userid, String collectionId);
+    void deleteByUseridAndCollectionid(String userid, int collectionId);
 
-    int countLikeEntitiesByCollectionid(String collectionId);
+    int countLikeEntitiesByCollectionid(int collectionId);
 }

@@ -23,7 +23,7 @@ public class AtelierMemoryEntity {
     private String memoryType;
 
     @Column(name = "collectionid", nullable = false)
-    private String collectionId;
+    private int collectionId;
 
     @Column(name = "title", nullable = false, length = 100)
     private String title;
