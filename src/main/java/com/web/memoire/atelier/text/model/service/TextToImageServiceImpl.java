@@ -15,26 +15,28 @@ import java.time.LocalDateTime;
 public class TextToImageServiceImpl implements TextToImageService {
 
     private final PythonApiService pythonApiService;
-    private final MemoryRepository memoryRepository;  // ✅ 이걸로 대체
+    private final MemoryRepository memoryRepository;
 
     @Override
     public ImageResultDto generateImage(ImagePromptRequest request) {
         try {
+            // ✅ FastAPI 호출
             ImageResultDto resultDto = pythonApiService.callDalle(request);
 
+            // ✅ 메모리 저장 여부 확인
             if (request.isSaveToMemory()) {
                 MemoryEntity memory = MemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getPrompt())
-                        .collectionid(resultDto.getCollectionId())
+                        .collectionid(String.valueOf(resultDto.getCollectionId()))
                         .filename(resultDto.getFilename())
                         .filepath(resultDto.getFilepath())
-                        .memoryType("image")
-                        .createdDate(java.sql.Timestamp.valueOf(LocalDateTime.now()))
+                        .memoryType(resultDto.getMemoryType())
                         .memoryOrder(resultDto.getMemoryOrder())
+                        .createdDate(java.sql.Timestamp.valueOf(LocalDateTime.now()))
                         .build();
 
-                memoryRepository.save(memory);  // ✅ 여기서 직접 저장
+                memoryRepository.save(memory);
             }
 
             return resultDto;
