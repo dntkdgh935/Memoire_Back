@@ -8,7 +8,7 @@ import java.util.List;
 
 @Repository
 public interface ImTImMemoryRepository extends JpaRepository<MemoryEntity, Integer> {
-    List<MemoryEntity> findByCollectionidOrderByCreatedDateDesc(String collectionId);
+    List<MemoryEntity> findByCollectionidOrderByCreatedDateDesc(int collectionId);
 
-    int findMaxMemoryOrderByCollectionid(String collectionId);
+    int findMaxMemoryOrderByCollectionid(int collectionId);
 }

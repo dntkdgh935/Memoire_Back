@@ -9,7 +9,7 @@ import java.util.List;
 
 @Repository
 public interface VideoMemoryRepository extends JpaRepository<MemoryEntity, String> {
-    List<MemoryEntity> findByCollectionidOrderByCreatedDateDesc(String collectionId);
+    List<MemoryEntity> findByCollectionidOrderByCreatedDateDesc(int collectionId);
 
-    Collection<Object> findByCollectionid(String collectionId);
+    Collection<Object> findByCollectionid(int collectionId);
 }

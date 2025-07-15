@@ -19,7 +19,7 @@ public class ImTImMemoryService {
     private final ImTImMemoryRepository imtimmemoryRepository;
 
 
-    public List<Memory> getMemoriesByCollectionId(String collectionId) {
+    public List<Memory> getMemoriesByCollectionId(int collectionId) {
         List<MemoryEntity> entities = imtimmemoryRepository.findByCollectionidOrderByCreatedDateDesc(collectionId);
         List<Memory> dtos = new ArrayList<>();
         for (MemoryEntity e : entities) {
@@ -29,12 +29,12 @@ public class ImTImMemoryService {
     }
 
     @Transactional
-    public void createMemory(String collectionId, ImTImResultDto dto) {
+    public void createMemory(int collectionId, ImTImResultDto dto) {
         int nextOrder = imtimmemoryRepository.findMaxMemoryOrderByCollectionid(collectionId) + 1;
 
         MemoryEntity m = MemoryEntity.builder()
                 .memoryType("image")             // 구분값
-                .collectionid(String.valueOf(collectionId))      // FK
+                .collectionid(collectionId)      // FK
                 .title(dto.getTitle())           // 사용자 지정 제목
                 .content(dto.getContent())       // 설명/내용
                 .filename(dto.getFilename())     // 파일명
