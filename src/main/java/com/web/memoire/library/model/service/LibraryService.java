@@ -203,32 +203,45 @@ public class LibraryService {
     // TB_RELATIONSHIP : 팔로우 버튼 클릭 --> 요청(0) --> 승인시 팔로우(1)
     // 차단: 2
     @Transactional
-    public void toggleFollowRequest(String userid, String targetid) {
+    public void toggleFollowRequest(String userid, String targetid, String nextRel) {
         RelationshipId id = new RelationshipId(userid, targetid);
 
         Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
         log.info("✅ toggleFollowRequest: " + optional.isPresent());
 
-        if (optional.isEmpty()) {
-            // 관계 없음 → 요청 상태로 새로 추가
-            RelationshipEntity newRelation = RelationshipEntity.builder()
-                    .userid(userid)
-                    .targetid(targetid)
-                    .status("0") // 요청 상태
-                    .followDate(new Date())
-                    .build();
-            libRelationshipRepository.save(newRelation);
-
+        if ("3".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
+            libRelationshipRepository.deleteById(id);  // 관계 삭제
         } else {
-            RelationshipEntity relation = optional.get();
-            String status = relation.getStatus();
+            // 상태가 3이 아니면 관계가 존재하므로 상태 변경
 
-            // 요청 상태이거나, 이미 팔로우 상태에서 클릭할 경우
-            if ("1".equals(status) || "0".equals(status)) {
-                // 팔로우 상태 → 삭제
-                libRelationshipRepository.delete(relation);
+            if (optional.isPresent()) {
+                RelationshipEntity relationship = optional.get();
+                relationship.setStatus(nextRel);  // 상태 변경
+                libRelationshipRepository.save(relationship);  // 업데이트된 관계 저장
+            } else {
+                // 관계가 없을 경우 새로 관계를 추가 (상태 0: 요청됨으로)
+                RelationshipEntity newRelationship = new RelationshipEntity();
+                newRelationship.setUserid(userid);
+                newRelationship.setTargetid(targetid);
+                newRelationship.setStatus(nextRel);
+                newRelationship.setFollowDate(new Date());
+                libRelationshipRepository.save(newRelationship);  // 새 관계 추가
             }
         }
+    }
+
+    public Object getRelationshipStatus(String userid, String targetid) {
+        RelationshipId id = new RelationshipId(userid, targetid);
+        Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+
+        // Optional이 비어있지 않은 경우
+        if (optional.isPresent()) {
+            return optional.get().getStatus();
+        }
+        else{
+            return "3"; // no relationship
+        }
+
     }
 }
 

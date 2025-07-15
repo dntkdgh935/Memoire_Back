@@ -19,7 +19,7 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
-    private String tempLoginUserId="bc2b3a47-c06d-4693-8e47-7e8422458919";
+    private String tempLoginUserId="ee418479-6ac2-43f1-96e0-e5413f4926cb";
 
 
     //ArhciveMain.js용=========================================================
@@ -164,12 +164,13 @@ public class LibraryController {
     @PostMapping("/toggleFollow")
     public ResponseEntity<?> toggleFollowRequest(
             @RequestParam("userid") String userid,
-            @RequestParam("targetid") String targetid
+            @RequestParam("targetid") String targetid,
+            @RequestParam("nextRel") String nextRel
     ) {
         log.info("🔁 팔로우 토글 요청 - user: {}, target: {}", userid, targetid);
 
         try {
-            libraryService.toggleFollowRequest(userid, targetid);
+            libraryService.toggleFollowRequest(userid, targetid, nextRel);
             return ResponseEntity.ok("팔로우 상태 토글 완료");
         } catch (Exception e) {
             log.error("팔로우 상태 토글 실패", e);
@@ -177,6 +178,18 @@ public class LibraryController {
         }
     }
 
+    @GetMapping("/getRelationshipStatus")
+    public ResponseEntity<?> getRelationshipStatus(String userid, String targetid) {
+        log.info("🔁 관계 확인 요청 : userid: {}, target: {}", userid, targetid);
+
+        try{
+            return ResponseEntity.ok(libraryService.getRelationshipStatus(userid, targetid));
+
+        }catch(Exception e){
+            log.error("관계 확인 실패");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("관계 확인 실패");
+        }
+    }
 
 
 
