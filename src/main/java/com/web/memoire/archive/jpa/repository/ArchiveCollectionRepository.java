@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ArchiveCollectionRepository extends JpaRepository<CollectionEntity, String> {
+public interface ArchiveCollectionRepository extends JpaRepository<CollectionEntity, Integer> {
 
     // 유저의 컬렉션 전체 조회
     @Query(value = "SELECT c FROM CollectionEntity c where c.authorid = :userid")
@@ -21,5 +21,5 @@ public interface ArchiveCollectionRepository extends JpaRepository<CollectionEnt
 
     // 유저의 컬렉션 조회
     @Query(value = "SELECT c FROM CollectionEntity c where c.collectionid = :collectionid")
-    CollectionEntity findCollectionById(@Param("collectionid") String collectionid);
+    CollectionEntity findCollectionById(@Param("collectionid") int collectionid);
 }

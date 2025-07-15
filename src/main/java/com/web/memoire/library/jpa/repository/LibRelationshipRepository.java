@@ -11,6 +11,8 @@ import java.util.List;
 
 public interface LibRelationshipRepository extends JpaRepository<RelationshipEntity, RelationshipId> {
 
-
+    // 유저의 팔로잉 조회 (from ArchiveRepository)
+    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.userid = :userid AND r.status = '1'")
+    List<RelationshipEntity> findAllUserFollowing(@Param("userid") String userid);
 
 }

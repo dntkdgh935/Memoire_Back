@@ -14,5 +14,5 @@ public class BookmarkId implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String userid;
-    private String collectionid;
+    private int collectionid;
 }

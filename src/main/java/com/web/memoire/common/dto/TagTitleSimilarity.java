@@ -22,8 +22,8 @@ public class TagTitleSimilarity {
     @NotNull
     private int tagid;
 
-    @NotBlank
-    private String collectionid;
+    @NotNull
+    private int collectionid;
 
     @NotNull
     private double similarityScore;

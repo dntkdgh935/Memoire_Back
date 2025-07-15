@@ -20,7 +20,7 @@ import java.util.Date;
 public class Like {
 
     @NotBlank
-    private String collectionid;
+    private int collectionid;
 
     @NotBlank
     private String userid;

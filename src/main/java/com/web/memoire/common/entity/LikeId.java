@@ -13,6 +13,6 @@ public class LikeId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private String collectionid;
+    private int collectionid;
     private String userid;
 }

@@ -18,9 +18,10 @@ public class TextResultDto {
     private String content;
     private String style;
     private String memoryType;
-    private String collectionId;
+    private int collectionId;
     private int memoryOrder;
     private String date; // ✅ 추가됨: 생성 일자 (문자열
+
 
     public TextResultDto(String content) {
         this.content = content;

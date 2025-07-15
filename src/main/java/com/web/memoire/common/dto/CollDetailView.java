@@ -17,7 +17,7 @@ public class CollDetailView {
 
     //join된 부분
 
-    private String collectionid;
+    private int collectionid;
 
     private String authorid;
 

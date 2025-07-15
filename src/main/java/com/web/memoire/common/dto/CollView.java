@@ -1,10 +1,12 @@
 package com.web.memoire.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -12,7 +14,7 @@ import java.util.List;
 @Builder
 public class CollView {
 
-    private String collectionid;
+    private int collectionid;
 
     private String authorid;
 

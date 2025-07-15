@@ -2,6 +2,7 @@ package com.web.memoire.common.dto;
 
 import com.web.memoire.common.entity.BookmarkEntity;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,8 +19,8 @@ public class Bookmark {
     @NotBlank
     private String userid;
 
-    @NotBlank
-    private String collectionid;
+    @NotNull
+    private int collectionid;
 
     public BookmarkEntity toEntity() {
         return BookmarkEntity.builder()

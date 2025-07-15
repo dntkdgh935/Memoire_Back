@@ -24,7 +24,7 @@ public class TagTitleSimilarityEntity {
 
     @Id
     @Column(name = "COLLECTIONID", nullable = false)
-    private String collectionid;
+    private int collectionid;
 
     @Column(name = "SIMILARITY_SCORE", nullable = false)
     private double similarityScore;

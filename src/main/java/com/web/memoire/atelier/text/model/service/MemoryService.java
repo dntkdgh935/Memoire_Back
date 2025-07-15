@@ -9,7 +9,7 @@ public interface MemoryService {
 
     MemoryEntity saveMemory(MemoryEntity memory);
 
-    List<MemoryEntity> findByCollectionid(String collectionid);
+    List<MemoryEntity> findByCollectionid(int collectionid);
 
     List<MemoryEntity> findByUserId(String userId);
 

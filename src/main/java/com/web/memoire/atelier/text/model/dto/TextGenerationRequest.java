@@ -14,7 +14,7 @@ public class TextGenerationRequest {
     private String title;
 
     @JsonProperty("collectionId")
-    private String collectionId;
+    private int collectionId;    // 저장할 컬렉션 ID
 
     @JsonProperty("saveToMemory")
     private boolean saveToMemory;

@@ -1,15 +1,12 @@
 package com.web.memoire.user.controller;
 
 import com.web.memoire.security.jwt.JWTUtil;
-import com.web.memoire.security.jwt.jpa.entity.Token; // Token 엔티티가 아닌, DTO나 서비스에서 사용하는 Token 클래스라면 경로가 다를 수 있습니다.
-// JWTUtil에서 사용하는 Token 클래스의 정확한 경로를 확인해주세요.
-// 보통 com.web.memoire.security.jwt.model.dto.Token 이나 이런 식입니다.
+import com.web.memoire.security.jwt.jpa.entity.Token;
 import com.web.memoire.security.jwt.model.service.TokenService;
-import com.web.memoire.user.jpa.entity.UserEntity; // ✅ UserEntity 임포트
-import com.web.memoire.user.jpa.repository.UserRepository; // ✅ UserRepository 임포트
+import com.web.memoire.user.jpa.entity.UserEntity;
+import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.dto.User;
 import com.web.memoire.user.model.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +33,7 @@ import java.util.UUID;
 @RequestMapping("/user")
 public class UserController {
     private final UserService userService;
-    private final UserRepository userRepository; // ✅ UserRepository 주입 추가
+    private final UserRepository userRepository;
 
     private final BCryptPasswordEncoder bcryptPasswordEncoder;
     private final ClientRegistrationRepository clientRegistrationRepository;
@@ -81,39 +78,28 @@ public class UserController {
 
     }
     @PostMapping("/social")
-    public ResponseEntity<Map<String, String>> getSocialAuthorizationUrl(
-            @RequestBody Map<String, String> requestBody,
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) {
-        String socialType = requestBody.get("socialType");
-        if (socialType == null || socialType.isEmpty()) {
-            log.warn("Invalid request: socialType is missing.");
-            return ResponseEntity.badRequest().body(Map.of("error", "소셜 타입이 필요합니다."));
+    public ResponseEntity<?> requestSocialAuthorization(@RequestBody Map<String, String> payload) {
+        String socialType = payload.get("socialType");
+        if (socialType == null) {
+            return ResponseEntity.badRequest().body("{\"error\":\"socialType is required\"}");
         }
 
         log.info("Requested socialType: {}", socialType);
 
-        try {
-            ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(socialType);
-
-            if (clientRegistration == null) {
-                log.error("ClientRegistration not found for socialType: {}", socialType);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "지원하지 않는 소셜 로그인 타입입니다."));
-            }
-
-            String authorizationRequestUri = "/oauth2/authorization/" + socialType;
-
-            Map<String, String> responseMap = new HashMap<>();
-            responseMap.put("authorizationUrl", authorizationRequestUri);
-
-            log.info("Generated authorization URL for {}: {}", socialType, authorizationRequestUri);
-            return ResponseEntity.ok(responseMap);
-
-        } catch (Exception e) {
-            log.error("Error generating social login URL for {}: {}", socialType, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "소셜 로그인 URL 생성 중 오류가 발생했습니다."));
+        ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(socialType);
+        if (clientRegistration == null) {
+            return ResponseEntity.badRequest().body("{\"error\":\"Invalid socialType: " + socialType + "\"}");
         }
+
+        String baseUrl = "http://localhost:8080";
+        String authorizationUrl = baseUrl + "/oauth2/authorization/" + socialType;
+
+        log.info("Generated authorization URL for {}: {}", socialType, authorizationUrl);
+
+        Map<String, String> responseBody = new HashMap<>();
+        responseBody.put("authorizationUrl", authorizationUrl);
+
+        return ResponseEntity.ok(responseBody);
     }
 
 
@@ -131,6 +117,10 @@ public class UserController {
             userEntity.setName(request.getName());
             userEntity.setNickname(request.getNickname());
             userEntity.setPhone(request.getPhone());
+            // ✅ loginId와 password 업데이트 로직 제거
+            // userEntity.setLoginId(request.getLoginId());
+            // userEntity.setPassword(bcryptPasswordEncoder.encode(request.getPassword()));
+
 
             // 생년월일 String -> Date 변환
             if (request.getBirthday() != null && !request.getBirthday().isEmpty()) {
@@ -143,15 +133,12 @@ public class UserController {
                 }
             }
 
-            // (선택 사항) loginId 업데이트
-            // userEntity.setLoginId(request.getLoginId()); // 필요하다면 이 라인의 주석을 해제하세요.
-
             // 3. 업데이트된 UserEntity 저장
-            userRepository.save(userEntity); // ✅ 직접 userRepository.save 호출
+            userRepository.save(userEntity);
             log.info("UserEntity updated successfully for userId: {}", userEntity.getUserId());
 
             // 4. JWT 토큰 발급을 위해 UserEntity를 User DTO로 변환
-            User userDto = userEntity.toDto(); // UserEntity에 toDto() 메서드가 구현되어 있어야 합니다.
+            User userDto = userEntity.toDto();
 
             // 5. 역할 기반 권한 확인
             if(userDto.getRole().equals("BAD")){
@@ -166,7 +153,6 @@ public class UserController {
             String accessToken = jwtUtil.generateToken(userDto, "access");
             String refreshToken = jwtUtil.generateToken(userDto, "refresh");
 
-            // Assuming `Token` is `com.web.memoire.security.jwt.jpa.entity.Token`
             tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken));
             log.info("Tokens generated and refresh token saved for userId: {}", userDto.getUserId());
 
@@ -200,6 +186,5 @@ public class UserController {
         private String nickname;
         private String phone;
         private String birthday;
-        private String loginId;
     }
 }

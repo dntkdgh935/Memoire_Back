@@ -18,13 +18,13 @@ public interface ArchiveBookmarkRepository extends JpaRepository<BookmarkEntity,
 
     // 컬렉션의 북마크 수 조회
     @Query(value = "SELECT count(b) from BookmarkEntity b where b.collectionid = :collectionid")
-    int countCollectionBookmarks(@Param("collectionid") String collectionid);
+    int countCollectionBookmarks(@Param("collectionid") int collectionid);
 
     // 컬렉션의 북마크 상세 조회
     @Query(value = "SELECT b from BookmarkEntity b where b.collectionid = :collectionid")
-    List<BookmarkEntity> findAllCollectionBookmarks(@Param("collectionid") String collectionid);
+    List<BookmarkEntity> findAllCollectionBookmarks(@Param("collectionid") int collectionid);
 
     // userid와 collectionid로 북마크 조회
     @Query(value = "SELECT b FROM BookmarkEntity b WHERE b.userid = :userid AND b.collectionid = :collectionid")
-    BookmarkEntity findBookmarkById(@Param("userid") String userid, @Param("collectionid") String collectionid);
+    BookmarkEntity findBookmarkById(@Param("userid") String userid, @Param("collectionid") int collectionid);
 }

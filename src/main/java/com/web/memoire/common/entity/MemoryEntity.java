@@ -18,6 +18,8 @@ import java.util.Date;
 public class MemoryEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "memmory_seq")
+    @SequenceGenerator(name = "memory_seq", sequenceName = "SEQ_TB_MEMORY_MEMORYID", allocationSize = 1)
     @Column(name = "MEMORYID", nullable = false)
     private int memoryid;
 
@@ -25,13 +27,13 @@ public class MemoryEntity {
     private String memoryType;
 
     @Column(name = "COLLECTIONID", nullable = false)
-    private String collectionid;
+    private int collectionid;
 
     @Column(name = "TITLE", length = 100, nullable = false)
     private String title;
 
     @Lob
-    @Column(name = "CONTENT", nullable = false)
+    @Column(name = "CONTENT")
     private String content;
 
     @Column(name = "FILENAME")
