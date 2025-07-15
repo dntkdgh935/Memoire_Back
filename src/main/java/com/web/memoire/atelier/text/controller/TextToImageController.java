@@ -56,7 +56,7 @@ public class TextToImageController {
                 .memoryid(newId)
                 .title(dto.getTitle())
                 .content(dto.getPrompt())
-                .collectionid(String.valueOf(dto.getCollectionId()))
+                .collectionid(dto.valueOf(dto.getCollectionId()))
                 .memoryType(dto.getMemoryType())
                 .memoryOrder(dto.getMemoryOrder())
                 .filename(dto.getFilename())

@@ -11,7 +11,7 @@ public class ImagePromptRequest {
     private String style;
     private String title;
     private String content;
-    private Long collectionId;
+    private int collectionId;
     private boolean saveToMemory;
     private String userId;
     private String memoryType;
