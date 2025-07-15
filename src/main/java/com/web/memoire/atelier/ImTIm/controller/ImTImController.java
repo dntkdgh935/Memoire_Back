@@ -33,7 +33,7 @@ public class ImTImController {
 
     @GetMapping("/collections/{collectionId}/memories")
     public ResponseEntity<List<Memory>> getMemoriesByCollection(
-            @PathVariable("collectionId") String collectionId) {
+            @PathVariable("collectionId") int collectionId) {
         List<Memory> memories = imtimMemoryService.getMemoriesByCollectionId(collectionId);
         return ResponseEntity.ok(memories);
     }
@@ -48,7 +48,7 @@ public class ImTImController {
 
     @PostMapping("/{collectionId}")
     public ResponseEntity<Memory> createMemory(
-            @PathVariable String collectionId,
+            @PathVariable int collectionId,
             @RequestBody ImTImResultDto imtimResultDto
     ) throws ParseException {
 

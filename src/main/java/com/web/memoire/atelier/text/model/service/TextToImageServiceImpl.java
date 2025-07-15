@@ -28,7 +28,7 @@ public class TextToImageServiceImpl implements TextToImageService {
                 MemoryEntity memory = MemoryEntity.builder()
                         .title(resultDto.getTitle())
                         .content(resultDto.getPrompt())
-                        .collectionid(String.valueOf(resultDto.getCollectionId()))
+                        .collectionid(resultDto.getCollectionId())
                         .filename(resultDto.getFilename())
                         .filepath(resultDto.getFilepath())
                         .memoryType(resultDto.getMemoryType())

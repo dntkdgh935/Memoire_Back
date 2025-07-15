@@ -1,16 +1,17 @@
 package com.web.memoire.atelier.video.controller;
 
-import com.web.memoire.common.dto.Memory;
-import com.web.memoire.common.dto.Collection;
 import com.web.memoire.atelier.video.model.dto.TtsPreviewRequest;
 import com.web.memoire.atelier.video.model.dto.VideoGenerationRequest;
 import com.web.memoire.atelier.video.model.dto.VideoResultDto;
-import com.web.memoire.atelier.video.model.service.*;
+import com.web.memoire.atelier.video.model.service.VideoCollectionService;
+import com.web.memoire.atelier.video.model.service.VideoMemoryService;
+import com.web.memoire.atelier.video.model.service.VideoPythonApiService;
+import com.web.memoire.common.dto.Collection;
+import com.web.memoire.common.dto.Memory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.text.ParseException;
 import java.util.List;
@@ -41,7 +42,7 @@ public class VideoController {
 
     @GetMapping("/collections/{collectionId}/memories")
     public ResponseEntity<List<Memory>> getMemoriesByCollection(
-            @PathVariable("collectionId") String collectionId) {
+            @PathVariable("collectionId") int collectionId) {
         List<Memory> memories = memoryService.getMemoriesByCollectionId(collectionId);
         return ResponseEntity.ok(memories);
     }
@@ -70,7 +71,7 @@ public class VideoController {
 
     @PostMapping("/{collectionId}")
     public ResponseEntity<Memory> createMemory(
-            @PathVariable String collectionId,
+            @PathVariable int collectionId,
             @RequestBody VideoResultDto videoResultDto
     ) throws ParseException {
 

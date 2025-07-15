@@ -270,7 +270,7 @@ public class ArchiveController {
 //        }
 //
 //    }  // insertNotice closed
-    @PostMapping("/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name="file", required=false) MultipartFile file) {
         log.info("ArchiveController.insertNewCollection...");
         log.info("collection : " + collection); //collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)

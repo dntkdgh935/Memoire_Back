@@ -103,7 +103,7 @@ public class LibraryController {
 
         log.info("LibraryController.getCollectionDetail...");
         try {
-            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, userid));
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, tempLoginUserId));
         } catch (Exception e) {
             log.error("Error while fetching collection detail", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");

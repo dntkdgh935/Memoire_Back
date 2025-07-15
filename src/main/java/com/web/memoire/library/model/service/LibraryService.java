@@ -1,7 +1,6 @@
 package com.web.memoire.library.model.service;
 
 import com.web.memoire.common.dto.CollView;
-import com.web.memoire.common.dto.Relationship;
 import com.web.memoire.common.dto.Tag;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.library.jpa.repository.*;
@@ -336,7 +335,7 @@ public class LibraryService {
 //    }
 
 
-    private CollView makeCollectionView(String collectionId, String userId) {
+    private CollView makeCollectionView(int collectionId, String userId) {
         // 컬렉션 정보 조회
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
 

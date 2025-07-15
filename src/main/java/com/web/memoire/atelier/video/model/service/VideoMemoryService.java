@@ -20,7 +20,7 @@ public class VideoMemoryService {
 
     private final VideoMemoryRepository memoryRepository;
 
-    public List<Memory> getMemoriesByCollectionId(String collectionId) {
+    public List<Memory> getMemoriesByCollectionId(int collectionId) {
         List<MemoryEntity> entities = memoryRepository.findByCollectionidOrderByCreatedDateDesc(collectionId);
         List<Memory> dtos = new ArrayList<>();
         for (MemoryEntity e : entities) {
@@ -30,7 +30,7 @@ public class VideoMemoryService {
     }
 
     @Transactional
-    public void createMemory(String CollectionId, VideoResultDto result) throws ParseException {
+    public void createMemory(int CollectionId, VideoResultDto result) throws ParseException {
         int nextOrder = memoryRepository.findByCollectionid(CollectionId).size() + 1;
 
         // 파일명 추출 (URL에서 마지막 경로)
@@ -45,7 +45,7 @@ public class VideoMemoryService {
 
         MemoryEntity entity = MemoryEntity.builder()
                 .memoryType("video")
-                .collectionid(String.valueOf(CollectionId))
+                .collectionid(CollectionId)
                 .title(result.getTitle())
                 .content(null)
                 .filename(fileName)
