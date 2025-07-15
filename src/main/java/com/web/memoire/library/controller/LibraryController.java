@@ -97,11 +97,12 @@ public class LibraryController {
 
     // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
     // 컬렉션 아이디로 컬렉션 정보 가져옴
+    // TODO: 프론트쪽 요청 바꾸기
     @GetMapping("/collection/{collectionId}")
-    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId) {
+    public ResponseEntity<?> getCollectionDetail(@PathVariable String collectionId, @PathVariable String userid) {
         log.info("LibraryController.getCollectionDetail...");
         try {
-            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, tempLoginUserId));
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, userid));
         } catch (Exception e) {
             log.error("Error while fetching collection detail", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
@@ -110,16 +111,17 @@ public class LibraryController {
 
     @PostMapping("/togglelike")
     public ResponseEntity<?> toggleLikeColl(
+            @RequestParam("userid") String userid,
             @RequestParam("collectionId") String collectionId,
             @RequestParam("isLiked") boolean isLiked
     ) {
-        log.info("👍 좋아요 요청 - user: {}, collection: {}, isLiked: {}", tempLoginUserId, collectionId, isLiked);
+        log.info("👍 좋아요 요청 - user: {}, collection: {}, isLiked: {}", userid, collectionId, isLiked);
 
         try {
             if (isLiked) {
-                libraryService.addLike(tempLoginUserId, collectionId);
+                libraryService.addLike(userid, collectionId);
             } else {
-                libraryService.removeLike(tempLoginUserId, collectionId);
+                libraryService.removeLike(userid, collectionId);
             }
 
             return ResponseEntity.ok("처리 성공");
@@ -131,16 +133,17 @@ public class LibraryController {
 
     @PostMapping("/togglebm")
     public ResponseEntity<?> toggleBMColl(
+            @RequestParam("userid") String userid,
             @RequestParam("collectionId") String collectionId,
             @RequestParam("isBookmarked") boolean isBookmarked
     ) {
-        log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", tempLoginUserId, collectionId, isBookmarked);
+        log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", userid, collectionId, isBookmarked);
 
         try {
             if (isBookmarked) {
-                libraryService.addBM(tempLoginUserId, collectionId);
+                libraryService.addBM(userid, collectionId);
             } else {
-                libraryService.removeBM(tempLoginUserId, collectionId);
+                libraryService.removeBM(userid, collectionId);
             }
 
             return ResponseEntity.ok("처리 성공");
