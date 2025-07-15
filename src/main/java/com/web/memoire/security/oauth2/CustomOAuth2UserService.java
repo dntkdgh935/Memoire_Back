@@ -34,6 +34,10 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
 
+        // ✅ 디버깅용 로그 추가: delegate가 반환한 OAuth2User의 실제 타입 확인
+        log.info("Delegate.loadUser() returned OAuth2User type: {}", oAuth2User.getClass().getName());
+        // ✅ 여기에 디버깅 포인트 설정하여 oAuth2User 객체 내부 확인
+
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
         log.info("Social Login Type: {}", registrationId);
@@ -69,6 +73,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     fullBirthday = birthyear + "-" + birthdayStr;
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     birthdayDate = sdf.parse(fullBirthday);
+                    log.debug("Parsed Naver birthday: {}", birthdayDate); // Debug log
                 } catch (ParseException e) {
                     log.warn("Failed to parse Naver birthday: {}", fullBirthday, e);
                     birthdayDate = null;
@@ -91,6 +96,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                             String fullBirthday = currentYear + birthdayStr;
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
                             birthdayDate = sdf.parse(fullBirthday);
+                            log.debug("Parsed Kakao birthday: {}", birthdayDate); // Debug log
                         } catch (ParseException e) {
                             log.warn("Failed to parse Kakao birthday: {}", birthdayStr, e);
                             birthdayDate = null;
@@ -102,6 +108,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     mobile = (String) kakaoAccount.get("phone_number");
                     if (mobile != null && mobile.startsWith("+82 ")) {
                         mobile = "0" + mobile.substring(4).replace("-", "");
+                        log.debug("Parsed Kakao phone number: {}", mobile); // Debug log
                     }
                 }
                 if (name == null && nickname != null) {
@@ -182,42 +189,32 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         customAttributes.put("name", userEntity.getName());
         customAttributes.put("nickname", userEntity.getNickname());
 
-        // 🚨 최종 수정:
-        // DefaultOAuth2User의 생성자에 전달되는 nameAttributeKey는
-        // attributes 맵에서 "이름"으로 사용될 속성의 '키(Key)'입니다.
-        // 예를 들어 Google의 'sub', Naver/Kakao의 'id' 같은 것이죠.
-        // 우리는 이미 CustomOAuth2User에서 getName()을 userId로 오버라이드 했으므로
-        // DefaultOAuth2User가 어떤 키를 이름으로 사용하려 해도 최종 결과에는 영향이 없습니다.
-        // 따라서, NullPointerException을 피하고 Spring Security의 기대치를 만족시키기 위해
-        // 단순히 소셜 ID가 담긴 속성의 키를 전달하거나, 안전한 고정 문자열을 사용합니다.
         String nameAttributeKeyToPass = null;
         if ("google".equals(registrationId)) {
-            nameAttributeKeyToPass = "sub"; // Google의 기본 user-name-attribute
+            nameAttributeKeyToPass = "sub";
         } else if ("naver".equals(registrationId)) {
-            nameAttributeKeyToPass = "id"; // Naver의 기본 user-name-attribute (response 객체 내부의 id)
+            nameAttributeKeyToPass = "id";
         } else if ("kakao".equals(registrationId)) {
-            nameAttributeKeyToPass = "id"; // Kakao의 기본 user-name-attribute
+            nameAttributeKeyToPass = "id";
         } else {
-            // 다른 소셜 타입이 있다면 그에 맞는 키를 설정하거나,
-            // 기본적으로 "id"를 사용합니다.
             nameAttributeKeyToPass = "id";
         }
 
-        // 또한, DefaultOAuth2UserService가 oAuth2User 객체를 생성할 때
-        // 내부적으로 userNameAttributeName을 파싱하여 oAuth2User.getName()을 구성하므로,
-        // oAuth2User.getAttributes().keySet()에서 해당 키가 존재하는지 확인하여
-        // 동적으로 설정하는 것도 방법입니다.
-        // 하지만 고정된 키를 사용하는 것이 가장 안정적입니다.
-
-        return new CustomOAuth2User(
+        CustomOAuth2User finalCustomUser = new CustomOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority(userEntity.getRole())),
                 customAttributes,
-                nameAttributeKeyToPass, // 🚨 고정된 키 전달
+                nameAttributeKeyToPass,
                 userEntity.getUserId(),
                 isNewUser,
                 needsAdditionalInfo,
                 registrationId,
                 socialId
         );
+
+        // ✅ 디버깅용 로그 추가: 반환하기 직전의 CustomOAuth2User 객체 타입 확인
+        log.info("CustomOAuth2UserService returning CustomOAuth2User type: {}", finalCustomUser.getClass().getName());
+        // ✅ 여기에 디버깅 포인트 설정하여 finalCustomUser 객체 내부 확인
+
+        return finalCustomUser;
     }
 }
