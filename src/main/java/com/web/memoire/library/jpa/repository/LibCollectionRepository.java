@@ -9,6 +9,7 @@ public interface LibCollectionRepository extends JpaRepository<CollectionEntity,
 
     List<CollectionEntity> findByVisibility(int visibility);
 
-
     CollectionEntity findByCollectionid(int collectionid);
+    List<CollectionEntity> findByAuthoridOrderByCreatedDateDesc(String targetid);
+
 }
