@@ -1,15 +1,12 @@
 package com.web.memoire.user.controller;
 
 import com.web.memoire.security.jwt.JWTUtil;
-import com.web.memoire.security.jwt.jpa.entity.Token; // Token 엔티티가 아닌, DTO나 서비스에서 사용하는 Token 클래스라면 경로가 다를 수 있습니다.
-// JWTUtil에서 사용하는 Token 클래스의 정확한 경로를 확인해주세요.
-// 보통 com.web.memoire.security.jwt.model.dto.Token 이나 이런 식입니다.
+import com.web.memoire.security.jwt.jpa.entity.Token;
 import com.web.memoire.security.jwt.model.service.TokenService;
-import com.web.memoire.user.jpa.entity.UserEntity; // ✅ UserEntity 임포트
-import com.web.memoire.user.jpa.repository.UserRepository; // ✅ UserRepository 임포트
+import com.web.memoire.user.jpa.entity.UserEntity;
+import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.dto.User;
 import com.web.memoire.user.model.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +33,7 @@ import java.util.UUID;
 @RequestMapping("/user")
 public class UserController {
     private final UserService userService;
-    private final UserRepository userRepository; // ✅ UserRepository 주입 추가
+    private final UserRepository userRepository;
 
     private final BCryptPasswordEncoder bcryptPasswordEncoder;
     private final ClientRegistrationRepository clientRegistrationRepository;
@@ -94,11 +91,7 @@ public class UserController {
             return ResponseEntity.badRequest().body("{\"error\":\"Invalid socialType: " + socialType + "\"}");
         }
 
-        // ✅ 여기를 수정해야 합니다.
-        // Spring Security의 기본 인가 엔드포인트는 /oauth2/authorization/{registrationId} 입니다.
-        // 현재 애플리케이션이 실행되는 호스트와 포트를 포함하여 절대 경로를 생성합니다.
-        // (실제 환경에서는 application.properties 등에서 baseUrl을 가져오는 것이 좋습니다.)
-        String baseUrl = "http://localhost:8080"; // ✅ 백엔드 서버의 주소와 포트를 명시
+        String baseUrl = "http://localhost:8080";
         String authorizationUrl = baseUrl + "/oauth2/authorization/" + socialType;
 
         log.info("Generated authorization URL for {}: {}", socialType, authorizationUrl);
@@ -124,6 +117,10 @@ public class UserController {
             userEntity.setName(request.getName());
             userEntity.setNickname(request.getNickname());
             userEntity.setPhone(request.getPhone());
+            // ✅ loginId와 password 업데이트 로직 제거
+            // userEntity.setLoginId(request.getLoginId());
+            // userEntity.setPassword(bcryptPasswordEncoder.encode(request.getPassword()));
+
 
             // 생년월일 String -> Date 변환
             if (request.getBirthday() != null && !request.getBirthday().isEmpty()) {
@@ -136,15 +133,12 @@ public class UserController {
                 }
             }
 
-            // (선택 사항) loginId 업데이트
-            // userEntity.setLoginId(request.getLoginId()); // 필요하다면 이 라인의 주석을 해제하세요.
-
             // 3. 업데이트된 UserEntity 저장
-            userRepository.save(userEntity); // ✅ 직접 userRepository.save 호출
+            userRepository.save(userEntity);
             log.info("UserEntity updated successfully for userId: {}", userEntity.getUserId());
 
             // 4. JWT 토큰 발급을 위해 UserEntity를 User DTO로 변환
-            User userDto = userEntity.toDto(); // UserEntity에 toDto() 메서드가 구현되어 있어야 합니다.
+            User userDto = userEntity.toDto();
 
             // 5. 역할 기반 권한 확인
             if(userDto.getRole().equals("BAD")){
@@ -159,7 +153,6 @@ public class UserController {
             String accessToken = jwtUtil.generateToken(userDto, "access");
             String refreshToken = jwtUtil.generateToken(userDto, "refresh");
 
-            // Assuming `Token` is `com.web.memoire.security.jwt.jpa.entity.Token`
             tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken));
             log.info("Tokens generated and refresh token saved for userId: {}", userDto.getUserId());
 
@@ -193,6 +186,5 @@ public class UserController {
         private String nickname;
         private String phone;
         private String birthday;
-        private String loginId;
     }
 }
