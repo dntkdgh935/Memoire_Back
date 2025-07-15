@@ -81,39 +81,32 @@ public class UserController {
 
     }
     @PostMapping("/social")
-    public ResponseEntity<Map<String, String>> getSocialAuthorizationUrl(
-            @RequestBody Map<String, String> requestBody,
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) {
-        String socialType = requestBody.get("socialType");
-        if (socialType == null || socialType.isEmpty()) {
-            log.warn("Invalid request: socialType is missing.");
-            return ResponseEntity.badRequest().body(Map.of("error", "소셜 타입이 필요합니다."));
+    public ResponseEntity<?> requestSocialAuthorization(@RequestBody Map<String, String> payload) {
+        String socialType = payload.get("socialType");
+        if (socialType == null) {
+            return ResponseEntity.badRequest().body("{\"error\":\"socialType is required\"}");
         }
 
         log.info("Requested socialType: {}", socialType);
 
-        try {
-            ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(socialType);
-
-            if (clientRegistration == null) {
-                log.error("ClientRegistration not found for socialType: {}", socialType);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "지원하지 않는 소셜 로그인 타입입니다."));
-            }
-
-            String authorizationRequestUri = "/oauth2/authorization/" + socialType;
-
-            Map<String, String> responseMap = new HashMap<>();
-            responseMap.put("authorizationUrl", authorizationRequestUri);
-
-            log.info("Generated authorization URL for {}: {}", socialType, authorizationRequestUri);
-            return ResponseEntity.ok(responseMap);
-
-        } catch (Exception e) {
-            log.error("Error generating social login URL for {}: {}", socialType, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "소셜 로그인 URL 생성 중 오류가 발생했습니다."));
+        ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(socialType);
+        if (clientRegistration == null) {
+            return ResponseEntity.badRequest().body("{\"error\":\"Invalid socialType: " + socialType + "\"}");
         }
+
+        // ✅ 여기를 수정해야 합니다.
+        // Spring Security의 기본 인가 엔드포인트는 /oauth2/authorization/{registrationId} 입니다.
+        // 현재 애플리케이션이 실행되는 호스트와 포트를 포함하여 절대 경로를 생성합니다.
+        // (실제 환경에서는 application.properties 등에서 baseUrl을 가져오는 것이 좋습니다.)
+        String baseUrl = "http://localhost:8080"; // ✅ 백엔드 서버의 주소와 포트를 명시
+        String authorizationUrl = baseUrl + "/oauth2/authorization/" + socialType;
+
+        log.info("Generated authorization URL for {}: {}", socialType, authorizationUrl);
+
+        Map<String, String> responseBody = new HashMap<>();
+        responseBody.put("authorizationUrl", authorizationUrl);
+
+        return ResponseEntity.ok(responseBody);
     }
 
 
