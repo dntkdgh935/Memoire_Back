@@ -37,15 +37,13 @@ public class VideoMemoryService {
         String videoUrl = result.getVideoUrl();
         String fileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
 
-        Date dt = new Date();
+        Date now = new Date();
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
+        String dateStr = fmt.format(now);
+        Date dt = fmt.parse(dateStr);
 
-        if (result.getCreatedAt() != null) {
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-            dt = formatter.parse(result.getCreatedAt());
-        }
 
         MemoryEntity entity = MemoryEntity.builder()
-                .memoryid(123)   // 여기 수정해야 함
                 .memoryType("video")
                 .collectionid(String.valueOf(CollectionId))
                 .title(result.getTitle())
@@ -63,16 +61,17 @@ public class VideoMemoryService {
         MemoryEntity entity = memoryRepository.findById(memoryId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메모리 ID: " + memoryId));
 
+        Date now = new Date();
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
+        String dateStr = fmt.format(now);
+        Date dt = fmt.parse(dateStr);
+
         entity.setMemoryType("video");
         entity.setFilename(result.getFileName());
         entity.setFilepath(result.getVideoUrl());
         entity.setTitle(result.getTitle());
+        entity.setCreatedDate(dt);
 
-        if (result.getCreatedAt() != null) {
-            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-            Date dt = formatter.parse(result.getCreatedAt());
-            entity.setCreatedDate(dt);
-        }
 
         memoryRepository.save(entity);
     }

@@ -34,7 +34,7 @@ public class ImTImMemoryService {
 
         MemoryEntity m = MemoryEntity.builder()
                 .memoryType("image")             // 구분값
-                .collectionid(collectionId)      // FK
+                .collectionid(String.valueOf(collectionId))      // FK
                 .title(dto.getTitle())           // 사용자 지정 제목
                 .content(dto.getContent())       // 설명/내용
                 .filename(dto.getFilename())     // 파일명
@@ -46,6 +46,12 @@ public class ImTImMemoryService {
         imtimmemoryRepository.save(m);
     }
 
+    //@Id
+    //@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "memory_seq")
+    //@SequenceGenerator(name = "memory_seq", sequenceName = "MEMORY_SEQ", allocationSize = 1)
+    //@Column(name = "MEMORYID", updatable = false, nullable = false)
+    //private Integer memoryid;     이렇게 entity 변경 필요
+
     @Transactional
     public void updateExisting(int memoryId, ImTImResultDto dto) {
         MemoryEntity m = imtimmemoryRepository.findById(memoryId)
@@ -54,7 +60,7 @@ public class ImTImMemoryService {
         m.setTitle(dto.getTitle());
         m.setContent(dto.getContent());
         m.setFilename(dto.getFilename());
-        m.setFilepath(dto.getFilepath());        // 업데이트 시각 (엔티티에 @UpdateTimestamp가 있으면 생략 가능)
+        m.setFilepath(dto.getFilepath());
 
         imtimmemoryRepository.save(m);
     }

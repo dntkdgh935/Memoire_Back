@@ -15,6 +15,4 @@ public class ImTImResultDto {
     private String filepath;
     private String title;
     private String content;
-    private Long collectionId;
-
 }
