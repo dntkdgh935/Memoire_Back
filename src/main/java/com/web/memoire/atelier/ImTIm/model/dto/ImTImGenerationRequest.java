@@ -13,9 +13,5 @@ import lombok.NoArgsConstructor;
 public class ImTImGenerationRequest {
     private String imageUrl;
     private String stylePrompt;
-    private String userId;
-    private String title;
-    private String content;
-    private String filename;
-    private String filepath;
+    private String extraPrompt;
 }

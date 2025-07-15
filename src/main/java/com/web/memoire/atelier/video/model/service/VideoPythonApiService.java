@@ -1,5 +1,6 @@
 package com.web.memoire.atelier.video.model.service;
 
+import com.web.memoire.atelier.video.exception.TtsSyncException;
 import com.web.memoire.atelier.video.model.dto.TtsPreviewRequest;
 import com.web.memoire.atelier.video.model.dto.VideoGenerationRequest;
 import com.web.memoire.atelier.video.model.dto.VideoResultDto;
@@ -43,13 +44,22 @@ public class VideoPythonApiService {
         if (isDisabled()) {
             return null;
         }
-        return restTemplate.postForObject(pythonBaseUrl + "/generate-tts", request, String.class);
+        if(request.getScript() == null || request.getScript().isBlank()) {
+            throw new TtsSyncException("TTS 텍스트를 입력해주세요.");
+        }
+
+        try {
+            return restTemplate.postForObject(pythonBaseUrl + "/generate-tts", request, String.class);
+        } catch (Exception ex){
+            throw new TtsSyncException("음성 생성 중 오류 발생: "+ ex.getMessage());
+        }
     }
 
     public VideoResultDto generateVideo(VideoGenerationRequest request) {
         if (isDisabled()) {
             return null;
         }
+
         return restTemplate.postForObject(pythonBaseUrl + "/generate-video", request, VideoResultDto.class);
     }
 

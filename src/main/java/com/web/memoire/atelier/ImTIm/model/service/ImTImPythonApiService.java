@@ -1,14 +1,17 @@
 package com.web.memoire.atelier.ImTIm.model.service;
 
+import com.web.memoire.atelier.ImTIm.exception.ImageGenerationException;
+import com.web.memoire.atelier.ImTIm.exception.StylePromptException;
+import com.web.memoire.atelier.ImTIm.exception.invalidImageFormatException;
 import com.web.memoire.atelier.ImTIm.model.dto.ImTImGenerationRequest;
 import com.web.memoire.atelier.ImTIm.model.dto.ImTImResultDto;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -43,13 +46,29 @@ public class ImTImPythonApiService {
         if (isDisabled()) {
             return null;
         }
-        return callFastApiForImage(request);
-    }
+        HttpHeaders headers = restTemplate.headForHeaders(request.getImageUrl());
+        MediaType contentType = headers.getContentType();
 
-    public String uploadImage(MultipartFile file) {
-        if (isDisabled()) {
-            return null;
+        if (contentType == null) {
+            throw new invalidImageFormatException(
+                    "이미지 URL의 Content-Type을 판별할 수 없습니다: " + request.getImageUrl()
+            );
         }
-        return restTemplate.postForObject(pythonBaseUrl + "/upload-image", file, String.class);
+
+        String mime = contentType.toString();  // 이제는 안전하게 toString() 호출 가능
+        if (!mime.startsWith("image/")) {
+            throw new invalidImageFormatException(
+                    "지원되지 않는 이미지 형식입니다: " + mime
+            );
+        }
+        if (request.getStylePrompt() == null || request.getStylePrompt().isBlank()) {
+            throw new StylePromptException("스타일 프롬프트를 입력해주세요.");
+        }
+
+        try {
+            return callFastApiForImage(request);
+        } catch (Exception ex) {
+            throw new ImageGenerationException("이미지 생성에 실패했습니다: " + ex.getMessage(), ex);
+        }
     }
 }

@@ -48,12 +48,6 @@ public class VideoController {
 
 
 
-    @PostMapping("/upload-image")
-    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file) {
-        String imageUrl = videopythonApiService.uploadImage(file);
-        return ResponseEntity.ok(imageUrl);
-    }
-
     @PostMapping("/generate-tts")
     public ResponseEntity<String> generateTTS(@RequestBody TtsPreviewRequest requestDto) {
         String ttsUrl = videopythonApiService.generateTTS(requestDto);

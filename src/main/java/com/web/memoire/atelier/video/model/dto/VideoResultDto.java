@@ -12,14 +12,6 @@ import lombok.*;
 public class VideoResultDto {
     private String videoUrl;
     private String fileName;
-    private String createdAt;
     private String title;
-
-    public MemoryEntity toEntity() {
-        return MemoryEntity.builder()
-                .filename(fileName)
-                .filepath(videoUrl)
-                .title(title)
-                .build();
-    }
+    private String content;
 }
