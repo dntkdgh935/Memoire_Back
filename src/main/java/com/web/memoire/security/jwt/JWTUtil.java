@@ -39,10 +39,15 @@ public class JWTUtil {
 
         return Jwts.builder()
                 .setSubject(user.getUserId()) // 토큰의 주체 (여기서는 사용자 ID)
-                .claim("userid", user.getUserId())
+                .claim("userid", user.getUserId()) // 사용자 ID 클레임 (AuthProvider.js에서 userid로 접근)
                 .claim("category", category) // 토큰의 카테고리 (access/refresh)
                 .claim("name", user.getName()) // 사용자 이름
                 .claim("role", user.getRole() != null && user.getRole().equals("ADMIN") ? "ADMIN" : "USER") // 사용자 권한
+                .claim("autoLoginFlag", user.getAutoLoginFlag()) // ✅ autoLoginFlag 클레임 추가
+                .claim("nickname", user.getNickname()) // ✅ nickname 클레임 추가
+                // 필요하다면 phone, birthday 등 다른 필드도 여기에 추가할 수 있습니다.
+                // .claim("phone", user.getPhone())
+                // .claim("birthday", user.getBirthday())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // 현재 시간 + 만료 시간
                 .signWith(SignatureAlgorithm.HS512, secretKey.getBytes()) // HS512 알고리즘과 비밀 키로 서명 (비밀 키를 바이트 배열로 변환)
                 .compact(); // JWT 생성

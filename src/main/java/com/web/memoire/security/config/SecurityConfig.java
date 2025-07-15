@@ -78,8 +78,8 @@ public class SecurityConfig implements WebMvcConfigurer {
 
     // ✅ CustomAuthenticationSuccessHandler 빈 등록
     @Bean
-    public CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler(JWTUtil jwtUtil, TokenService tokenService, UserRepository userRepository) {
-        return new CustomAuthenticationSuccessHandler(jwtUtil, tokenService, userRepository);
+    public CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler(JWTUtil jwtUtil, TokenService tokenService, UserRepository userRepository, SocialUserRepository socialUserRepository) {
+        return new CustomAuthenticationSuccessHandler(jwtUtil, tokenService, userRepository, socialUserRepository);
     }
 
     @Override
@@ -116,7 +116,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/upload_files/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/*.jpg").permitAll()
-                        .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social", "/user/socialSignUp").permitAll() // ✅ /user/social, /user/socialSignUp 추가
+                        .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social", "/user/socialSignUp", "/user/social/complete-signup").permitAll()
                         .requestMatchers("/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
