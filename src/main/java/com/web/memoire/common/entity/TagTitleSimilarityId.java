@@ -14,6 +14,6 @@ public class TagTitleSimilarityId implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int tagid;
-    private String collectionid;
+    private int collectionid;
 
 }

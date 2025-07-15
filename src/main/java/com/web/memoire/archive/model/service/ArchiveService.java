@@ -71,11 +71,11 @@ public class ArchiveService {
         return list;
     }
 
-    public int countCollectionBookmarks(String collectionid) {
+    public int countCollectionBookmarks(int collectionid) {
         return archiveBookmarkRepository.countCollectionBookmarks(collectionid);
     }
 
-    public ArrayList<Bookmark> findAllCollectionBookmarks(String collectionid) {
+    public ArrayList<Bookmark> findAllCollectionBookmarks(int collectionid) {
         List<BookmarkEntity> entityList = archiveBookmarkRepository.findAllCollectionBookmarks(collectionid);
         ArrayList<Bookmark> list = new ArrayList<>();
         for (BookmarkEntity entity : entityList) {
@@ -94,13 +94,19 @@ public class ArchiveService {
         return archiveCollectionRepository.countAllCollectionsByUserId(userid);
     }
 
-    public Collection findCollectionById(String collectionid) {
+    public Collection findCollectionById(int collectionid) {
         return archiveCollectionRepository.findCollectionById(collectionid).toDto();
     }
 
-    public CollView findCollViewByCollectionId(String userid, String collectionid) {
+    public CollView findCollViewByCollectionId(String userid, int collectionid) {
         CollectionEntity coll = archiveCollectionRepository.findCollectionById(collectionid);
         return collectionToCollView(userid, coll.getCollectionid());
+    }
+
+    @Transactional
+    public int insertCollection(Collection collection) {
+        CollectionEntity entity = archiveCollectionRepository.save(collection.toEntity());
+        return entity != null ? entity.getCollectionid() : 0;
     }
 
     // ArchiveCollectionTagRepository
@@ -115,11 +121,11 @@ public class ArchiveService {
         return list;
     }
 
-    public int countCollectionLikes(String collectionid) {
+    public int countCollectionLikes(int collectionid) {
         return archiveLikeRepository.countCollectionLikes(collectionid);
     }
 
-    public ArrayList<Like> findAllCollectionLikes(String collectionid) {
+    public ArrayList<Like> findAllCollectionLikes(int collectionid) {
         List<LikeEntity> entityList = archiveLikeRepository.findAllCollectionLikes(collectionid);
         ArrayList<Like> list = new ArrayList<>();
         for (LikeEntity entity : entityList) {
@@ -129,7 +135,7 @@ public class ArchiveService {
     }
 
     // ArchiveMemoryRepository
-    public ArrayList<Memory> findAllUserMemories(String userid, String collectionid) {
+    public ArrayList<Memory> findAllUserMemories(String userid, int collectionid) {
         List<MemoryEntity> entityList = archiveMemoryRepository.findAllUserMemories(userid, collectionid);
         ArrayList<Memory> list = new ArrayList<>();
         for (MemoryEntity entity : entityList) {
@@ -140,6 +146,12 @@ public class ArchiveService {
 
     public int countAllMemoriesByUserId(String userid) {
         return archiveMemoryRepository.countAllMemoriesByUserId(userid);
+    }
+
+    @Transactional
+    public int insertMemory(Memory memory) {
+        MemoryEntity entity = archiveMemoryRepository.save(memory.toEntity());
+        return entity != null ? entity.getMemoryid() : 0;
     }
 
     // ArchiveRelationshipRepository
@@ -255,7 +267,7 @@ public class ArchiveService {
         }).toList();
     }
 
-    private CollView collectionToCollView(String userid, String collectionid) {
+    private CollView collectionToCollView(String userid, int collectionid) {
         CollectionEntity collection = archiveCollectionRepository.findCollectionById(collectionid);
         //✅ memory_order = 1인 MemoryEntity 가져오기
         MemoryEntity memory = archiveMemoryRepository.findFirstMemoryByCollectionId(collection.getCollectionid());

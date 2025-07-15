@@ -23,7 +23,7 @@ public class TextToTextController {
 
     // ✅ 1) 특정 컬렉션의 메모리 목록 조회
     @GetMapping("/memories/{collectionId}")
-    public ResponseEntity<List<MemoryEntity>> getMemories(@PathVariable String collectionId) {
+    public ResponseEntity<List<MemoryEntity>> getMemories(@PathVariable int collectionId) {
         System.out.println("🔍 전달받은 collectionId = " + collectionId);
         List<MemoryEntity> memories = memoryRepository.findByCollectionid(collectionId);
         System.out.println("📦 가져온 메모리 수 = " + memories.size());

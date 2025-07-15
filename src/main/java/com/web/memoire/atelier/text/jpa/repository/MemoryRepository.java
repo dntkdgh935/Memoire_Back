@@ -11,7 +11,7 @@ import java.util.List;
 public interface MemoryRepository extends JpaRepository<MemoryEntity, Integer> {
 
     // 🔍 특정 컬렉션에 속한 메모리 목록 조회
-    List<MemoryEntity> findByCollectionid(String collectionid);
+    List<MemoryEntity> findByCollectionid(int collectionid);
 
     // 🆔 MEMORYID의 최대값 조회 → 신규 메모리 ID 수동 설정용
     @Query("SELECT COALESCE(MAX(m.memoryid), 0) FROM MemoryEntity m")

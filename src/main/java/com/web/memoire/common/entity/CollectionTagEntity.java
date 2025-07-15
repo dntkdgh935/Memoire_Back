@@ -17,10 +17,10 @@ import lombok.NoArgsConstructor;
 public class CollectionTagEntity {
     @Id
     @Column(name = "COLLECTIONID", nullable = false)
-    private String collectionid;
+    private int collectionid;
     @Id
     @Column(name = "TAGID", nullable = false)
-    private String tagid;
+    private int tagid;
 
     public CollectionTag toDto() {
         return CollectionTag.builder()

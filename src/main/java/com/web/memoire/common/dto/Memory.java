@@ -22,11 +22,10 @@ public class Memory {
     private int memoryid;
     @NotBlank
     private String memoryType;
-    @NotBlank
-    private String collectionid;
+    @NotNull
+    private int collectionid;
     @NotBlank
     private String title;
-    @NotBlank
     private String content;
     private String filename;
     private String filepath;

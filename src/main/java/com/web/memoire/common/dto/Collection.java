@@ -19,8 +19,8 @@ import java.util.Date;
 @Component
 public class Collection {
 
-    @NotBlank
-    private String collectionid;
+    @NotNull
+    private int collectionid;
 
     @NotBlank
     private String authorid;

@@ -96,7 +96,7 @@ public class LibraryService {
     }
 
     @Transactional
-    public void addLike(String userid, String collectionId) {
+    public void addLike(String userid, int collectionId) {
         LikeEntity like = LikeEntity.builder()
                 .userid(userid)
                 .collectionid(collectionId)
@@ -106,12 +106,12 @@ public class LibraryService {
         libLikeRepository.save(like);
     }
     @Transactional
-    public void removeLike(String userid, String collectionId) {
+    public void removeLike(String userid, int collectionId) {
         libLikeRepository.deleteByUseridAndCollectionid(userid, collectionId);
     }
 
     @Transactional
-    public void addBM(String userid, String collectionId) {
+    public void addBM(String userid, int collectionId) {
         BookmarkEntity BM = BookmarkEntity.builder()
                 .userid(userid)
                 .collectionid(collectionId)
@@ -119,18 +119,18 @@ public class LibraryService {
         libBookmarkRepository.save(BM);
     }
     @Transactional
-    public void removeBM(String userid, String collectionId) {
+    public void removeBM(String userid, int collectionId) {
         libBookmarkRepository.deleteByUseridAndCollectionid(userid, collectionId );
     }
 
-    public int countLikesByCollectionId(String collectionId){
+    public int countLikesByCollectionId(int collectionId){
         return libLikeRepository.countLikeEntitiesByCollectionid(collectionId);
     }
-    public int countBookmarksByCollectionId(String collectionId){
+    public int countBookmarksByCollectionId(int collectionId){
         return libBookmarkRepository.countBookmarkEntitiesByCollectionid(collectionId);
     }
 
-    public CollView getCollectionDetail(String collectionId, String userId) {
+    public CollView getCollectionDetail(int collectionId, String userId) {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
 
         //✅ memory_order = 1인 MemoryEntity 가져오기
@@ -178,11 +178,11 @@ public class LibraryService {
 
 
 
-    public Object findByCollectionid(String collectionid) {
+    public Object findByCollectionid(int collectionid) {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionid);
         return collection;
     }
-    public Object getMemoriesByCollectionId(String collectionid) {
+    public Object getMemoriesByCollectionId(int collectionid) {
         List <MemoryEntity> memories =  libMemoryRepository.findByCollectionid(collectionid);
         return memories;
     }
