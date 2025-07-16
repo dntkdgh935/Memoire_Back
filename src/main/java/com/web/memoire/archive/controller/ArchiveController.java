@@ -215,61 +215,6 @@ public class ArchiveController {
         }
     }
 
-//    // 새 공지글 등록 요청 처리용 (파일 업로드 기능 포함)
-//    // insert 쿼리문 실행 요청임 => 전송방식 POST 임 => @PostMapping 지정해야 함
-//    // "/admin/**" 으로 보안설정을 따로 하고 싶다면, 클래스 위의 @RequestMapping 사용하면 안됨
-//    @PostMapping(value = "/admin/notice", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    public ResponseEntity<Map<String, Object>> noticeInsertMethod(
-//            @ModelAttribute Notice notice,
-//            @RequestParam(name="ofile", required=false) MultipartFile mfile	) {
-//        log.info("/admin/notice : " + notice);
-//
-//        Map<String, Object> map = new HashMap<>();
-//
-//        //공지사항 첨부파일 저장 폴더를 경로 저장 (application.properties 에 경로 설정 추가)
-//        String savePath = uploadDir + "/notice";
-//        log.info("savePath : " + savePath);
-//
-//        //첨부파일이 있을 때
-//        if (mfile != null && !mfile.isEmpty()) {
-//            // 전송온 파일이름 추출함
-//            String fileName = mfile.getOriginalFilename();
-//            String renameFileName = null;
-//
-//            //저장 폴더에는 변경된 파일이름을 파일을 저장 처리함
-//            //바꿀 파일명 : 년월일시분초.확장자
-//            if (fileName != null && fileName.length() > 0) {
-//                renameFileName = FileNameChange.change(fileName, "yyyyMMddHHmmss");
-//                log.info("변경된 첨부 파일명 확인 : " + renameFileName);
-//
-//                try {
-//                    //저장 폴더에 바뀐 파일명으로 파일 저장하기
-//                    mfile.transferTo(new File(savePath + "\\" + renameFileName));
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-//                }
-//            } //파일명 바꾸어 저장하기
-//
-//            //notice 객체에 첨부파일 정보 저장하기
-//            notice.setOriginalFilePath(fileName);
-//            notice.setRenameFilePath(renameFileName);
-//        } //첨부파일 있을 때
-//
-//        //새로 등록할 공지글 번호는 현재 마지막 등록글 번호에 + 1 한 값으로 저장 처리함
-//        notice.setNoticeNo(noticeService.selectLast().getNoticeNo() + 1);
-//
-//        if (noticeService.insertNotice(notice) > 0) {
-//            map.put("status", "success");
-//            map.put("message", "새 공지 등록 성공!");
-//            return ResponseEntity.status(HttpStatus.CREATED).body(map);
-//        } else {
-//            map.put("status", "fail");
-//            map.put("message", "DB 등록 실패");
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(map);
-//        }
-//
-//    }  // insertNotice closed
     @PostMapping(value = "/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name="file", required=false) MultipartFile file) {
         log.info("ArchiveController.insertNewCollection...");
@@ -302,11 +247,11 @@ public class ArchiveController {
                     } else if (memory.getMemoryType().equals("video")) {
                         savePath += "/memory_video";
                     }
-                    memory.setFilepath(savePath);
+                    memory.setFilepath(savePath.substring(2) + "\\" + memory.getFilename());
                     memory.setContent(null);
                     if (archiveService.insertMemory(memory) > 0) {
                         try {
-                            file.transferTo(new File(memory.getFilepath(), memory.getFilename()));
+                            file.transferTo(new File(savePath, memory.getFilename()));
                             return ResponseEntity.ok("저장 성공");
                         } catch (Exception e) {
                             // 파일 저장 실패
@@ -331,5 +276,171 @@ public class ArchiveController {
         }
     }
 
+    @PostMapping(value = "/newMemory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> insertNewMemory(@ModelAttribute Memory memory, @RequestParam String authorid, @RequestParam(name="file", required=false) MultipartFile file) {
+        log.info("ArchiveController.insertNewMemory...");
+        log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
 
+        memory.setCreatedDate(new Date());
+        try {
+            memory.setMemoryOrder(archiveService.findAllUserMemories(authorid, memory.getCollectionid()).size() + 1);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+        }
+        if (memory.getMemoryType().equals("text")) {
+            memory.setFilename(null);
+            memory.setFilepath(null);
+            if (archiveService.insertMemory(memory) > 0) {
+                return ResponseEntity.ok("저장 성공");
+            } else {
+                // 텍스트 메모리 저장 실패
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+            }
+        } else if (memory.getMemoryType().equals("image") || memory.getMemoryType().equals("video")) {
+            if (file != null && !file.isEmpty()) {
+                String savePath = uploadDir;
+                String uuid = UUID.randomUUID().toString();
+                String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
+                memory.setFilename(uuid + "." + ext);
+                if (memory.getMemoryType().equals("image")) {
+                    savePath += "/memory_img";
+                } else if (memory.getMemoryType().equals("video")) {
+                    savePath += "/memory_video";
+                }
+                memory.setFilepath(savePath.substring(2) + "\\" + memory.getFilename());
+                memory.setContent(null);
+                if (archiveService.insertMemory(memory) > 0) {
+                    try {
+                        file.transferTo(new File(savePath, memory.getFilename()));
+                        return ResponseEntity.ok("저장 성공");
+                    } catch (Exception e) {
+                        // 파일 저장 실패
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+                    }
+                } else {
+                    // 미디어 메모리 저장 실패
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+                }
+            } else {
+                // 미디어 타입인데 파일 없음
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+            }
+        } else {
+            // 파일 타입이 조건에 부합하지 않음
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+        }
+    }
+
+    @PostMapping("/editColl")
+    public ResponseEntity<?> editCollection(@ModelAttribute Collection collection) {
+        log.info("ArchiveController.editCollection...");
+        log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
+//        TODO: 여긴 추가하거나 말거나 (컬렉션을 편집하면 임베딩을 새로고침)
+//        TODO: collection.setTitleEmbedding(blabla);
+//        컬렉션 수정하면 날짜 초기화
+        collection.setCreatedDate(new Date());
+        if (archiveService.insertCollection(collection) > 0) {
+            return ResponseEntity.ok("저장 성공");
+        } else {
+            // 컬렉션 저장 실패
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editColl 에러");
+        }
+    }
+
+    @DeleteMapping("/collection/{collectionid}")
+    public ResponseEntity<?> collectionDelete(@PathVariable int collectionid, @RequestParam String userid) {
+        try {
+            ArrayList<Memory> list = archiveService.findAllUserMemories(userid, collectionid);
+            for (Memory memory: list) {
+                if (memory.getMemoryType().equals("image")) {
+                    new File(uploadDir + "\\memory_img\\" + memory.getFilename()).delete();
+                } else if (memory.getMemoryType().equals("video")) {
+                    new File(uploadDir + "\\memory_video\\" + memory.getFilename()).delete();
+                }
+                if (archiveService.deleteMemory(memory.getMemoryid()) <= 0) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
+
+                }
+            }
+            if (archiveService.deleteCollection(collectionid) > 0) {
+                return ResponseEntity.ok("삭제 성공");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
+        }
+    }
+
+    @PostMapping(value = "/editMemory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> editMemory(@ModelAttribute Memory memory, @RequestParam(name="file", required=false) MultipartFile file, @RequestParam String previousFileType, @RequestParam String previousFileName) {
+        log.info("ArchiveController.editMemory...");
+        log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
+
+        memory.setCreatedDate(new Date());
+        if (memory.getMemoryType().equals("text")) {
+            memory.setFilename(null);
+            memory.setFilepath(null);
+            if (archiveService.insertMemory(memory) > 0) {
+                try {
+                    if (previousFileType.equals("image")) {
+                        new File(uploadDir + "\\memory_img\\" + previousFileName).delete();
+                    } else if (previousFileType.equals("video")) {
+                        new File(uploadDir + "\\memory_video\\" + previousFileName).delete();
+                    }
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+                }
+                return ResponseEntity.ok("저장 성공");
+            } else {
+                // 텍스트 메모리 저장 실패
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+            }
+        } else if (memory.getMemoryType().equals("image") || memory.getMemoryType().equals("video")) {
+            if (file != null && !file.isEmpty()) {
+                String savePath = uploadDir;
+                String uuid = UUID.randomUUID().toString();
+                String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
+                memory.setFilename(uuid + "." + ext);
+                if (memory.getMemoryType().equals("image")) {
+                    savePath += "/memory_img";
+                } else if (memory.getMemoryType().equals("video")) {
+                    savePath += "/memory_video";
+                }
+                memory.setFilepath(savePath.substring(2) + "\\" + memory.getFilename());
+                memory.setContent(null);
+                if (archiveService.insertMemory(memory) > 0) {
+                    try {
+                        file.transferTo(new File(savePath, memory.getFilename()));
+                        if (previousFileType.equals("image")) {
+                            new File(uploadDir + "\\memory_img\\" + previousFileName).delete();
+                        } else if (previousFileType.equals("video")) {
+                            new File(uploadDir + "\\memory_video\\" + previousFileName).delete();
+                        }
+                        return ResponseEntity.ok("저장 성공");
+                    } catch (Exception e) {
+                        // 파일 저장 실패
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+                    }
+                } else {
+                    // 미디어 메모리 저장 실패
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+                }
+            } else {
+                // 미디어 타입인데 파일 없음
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+            }
+        } else {
+            // 파일 타입이 조건에 부합하지 않음
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+        }
+    }
+
+    @DeleteMapping("/memory/{memoryid}")
+    public ResponseEntity<?> memoryDelete(@PathVariable int memoryid) {
+        if (archiveService.deleteMemory(memoryid) > 0) {
+            return ResponseEntity.ok("삭제 성공");
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/memory/{memoryid} 에러");
+    }
 }

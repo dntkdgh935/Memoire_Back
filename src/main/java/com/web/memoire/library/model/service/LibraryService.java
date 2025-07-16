@@ -84,6 +84,7 @@ public class LibraryService {
                     .visibility(collection.getVisibility())
                     .createdDate(collection.getCreatedDate())
                     .titleEmbedding(collection.getTitleEmbedding())
+                    .color(collection.getColor())
                     .thumbnailPath(thumbnailPath)
                     .textContent(textContent) // 필요 시 추출
                     .userlike(like != null)
@@ -134,6 +135,7 @@ public class LibraryService {
                     .visibility(collection.getVisibility())
                     .createdDate(collection.getCreatedDate())
                     .titleEmbedding(collection.getTitleEmbedding())
+                    .color(collection.getColor())
                     .thumbnailPath(thumbnailPath)
                     .textContent(textContent) // 필요 시 추출
                     .userlike(like != null)
@@ -216,6 +218,7 @@ public class LibraryService {
                 .visibility(collection.getVisibility())
                 .createdDate(collection.getCreatedDate())
                 .titleEmbedding(collection.getTitleEmbedding())
+                .color(collection.getColor())
                 .thumbnailPath(thumbnailPath)
                 .textContent(textContent) // 필요 시 추출
                 .userlike(like != null)
@@ -370,6 +373,7 @@ public class LibraryService {
                 .visibility(collection.getVisibility())
                 .createdDate(collection.getCreatedDate())
                 .titleEmbedding(collection.getTitleEmbedding())
+                .color(collection.getColor())
                 .thumbnailPath(thumbnailPath)
                 .textContent(textContent)
                 .userlike(like != null)
