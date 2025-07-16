@@ -27,7 +27,7 @@ public class ArchiveController {
     @Autowired
     private ArchiveService archiveService;
 
-    @Value("D:/upload_files")
+    @Value("C:/upload_files")
     private String uploadDir;
 
     @GetMapping("/userinfo")
@@ -247,7 +247,7 @@ public class ArchiveController {
                     } else if (memory.getMemoryType().equals("video")) {
                         savePath += "/memory_video";
                     }
-                    memory.setFilepath(savePath.substring(2) + "\\" + memory.getFilename());
+                    memory.setFilepath(savePath.substring(2) + "/" + memory.getFilename());
                     memory.setContent(null);
                     if (archiveService.insertMemory(memory) > 0) {
                         try {
@@ -307,7 +307,7 @@ public class ArchiveController {
                 } else if (memory.getMemoryType().equals("video")) {
                     savePath += "/memory_video";
                 }
-                memory.setFilepath(savePath.substring(2) + "\\" + memory.getFilename());
+                memory.setFilepath(savePath.substring(2) + "/" + memory.getFilename());
                 memory.setContent(null);
                 if (archiveService.insertMemory(memory) > 0) {
                     try {
@@ -407,7 +407,7 @@ public class ArchiveController {
                 } else if (memory.getMemoryType().equals("video")) {
                     savePath += "/memory_video";
                 }
-                memory.setFilepath(savePath.substring(2) + "\\" + memory.getFilename());
+                memory.setFilepath(savePath.substring(2) + "/" + memory.getFilename());
                 memory.setContent(null);
                 if (archiveService.insertMemory(memory) > 0) {
                     try {
