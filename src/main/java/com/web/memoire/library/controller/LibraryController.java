@@ -267,5 +267,21 @@ public class LibraryController {
     }
 */
 
+    // 컬렉션 검색 (검색어와 userid를 함께 받기)
+    @GetMapping("/search/collection")
+    public ResponseEntity<?> searchCollections(
+            @RequestParam("query") String query,
+            @RequestParam("userid") String userid) {
+        log.info("LibraryController.searchCollections... 검색어: {}, userid: {}", query, userid);
+
+        try {
+            // 라이브러리 서비스에서 컬렉션 검색 실행
+            return ResponseEntity.ok(libraryService.searchCollections(query, userid));
+        } catch (Exception e) {
+            log.error("컬렉션 검색 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 검색 실패");
+        }
+    }
+
 
 }

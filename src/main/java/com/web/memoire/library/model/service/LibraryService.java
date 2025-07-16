@@ -386,5 +386,19 @@ public class LibraryService {
                 .build();
     }
 
+    public List <CollView> searchCollections(String query, String userid) {
+        // 컬렉션 이름에 키워드 포함한 것 리턴해, 한 컬렉션마다 CollView로 전환(makeCollectionView(collid, userid) 사용)
+
+        // 컬렉션 이름에 query가 포함된 것들을 가져오기
+        List<CollectionEntity> collections = libCollectionRepository.findByCollectionTitleContaining(query);
+
+        List<CollView> collViews = new ArrayList<>();
+        for (CollectionEntity collection : collections) {
+            CollView cv = makeCollectionView(collection.getId(), userid);
+            collViews.add(cv);
+        }
+
+        return collViews;
+    }
 }
 
