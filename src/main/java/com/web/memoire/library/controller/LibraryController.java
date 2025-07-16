@@ -20,8 +20,6 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
-    //TODO: tempLoginUserId 모두 대체하기
-    private String tempLoginUserId="ee418479-6ac2-43f1-96e0-e5413f4926cb";
 
     //TODO: WebClient 추가하기(추천용)
 //    private final WebClient webClient;
@@ -98,12 +96,12 @@ public class LibraryController {
     // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
     // 컬렉션 아이디로 컬렉션 정보 가져옴
     // TODO: 프론트쪽 요청 바꾸기
-    @GetMapping("/collection/{collectionId}")
-    public ResponseEntity<?> getCollectionDetail(@PathVariable int collectionId) {
+    @GetMapping("/collection/{collectionId}/{userid}")
+    public ResponseEntity<?> getCollectionDetail(@PathVariable int collectionId, @PathVariable String userid) {
 
         log.info("LibraryController.getCollectionDetail...");
         try {
-            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, tempLoginUserId));
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, userid));
         } catch (Exception e) {
             log.error("Error while fetching collection detail", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
@@ -268,6 +266,22 @@ public class LibraryController {
         }
     }
 */
+
+    // 컬렉션 검색 (검색어와 userid를 함께 받기)
+    @GetMapping("/search/collection")
+    public ResponseEntity<?> searchCollections(
+            @RequestParam("query") String query,
+            @RequestParam("userid") String userid) {
+        log.info("LibraryController.searchCollections... 검색어: {}, userid: {}", query, userid);
+
+        try {
+            // 라이브러리 서비스에서 컬렉션 검색 실행
+            return ResponseEntity.ok(libraryService.searchCollections(query, userid));
+        } catch (Exception e) {
+            log.error("컬렉션 검색 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 검색 실패");
+        }
+    }
 
 
 }

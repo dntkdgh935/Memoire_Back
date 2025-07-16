@@ -183,51 +183,55 @@ public class LibraryService {
         return libBookmarkRepository.countBookmarkEntitiesByCollectionid(collectionId);
     }
 
-    public CollView getCollectionDetail(int collectionId, String userId) {
+    public CollView getCollectionDetail(int collectionId, String userId) throws Exception {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+        log.info("getCollectionDetail 서비스 작동중");
+        // 컬렉션이 존재하지 않으면 예외 처리
+        if (collection == null) {
+            throw new IllegalArgumentException("컬렉션을 찾을 수 없습니다.");
+        }
 
-        //✅ memory_order = 1인 MemoryEntity 가져오기
-        MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
-        String thumbnailPath = memory != null ? memory.getFilepath() : null;
-        String thumbType = memory != null ? memory.getMemoryType() : null;
-        String textContent = memory != null ? memory.getContent() : null;
+        //유저가 자신의 컬렉션은 그냥 접근 가능
+        if (userId.equals(collection.getAuthorid())){
+            return makeCollectionView(collectionId, userId);
+        }
+        // 공개 범위가 1 (공개)일 때
+        if (collection.getVisibility() == 1) {
+            // userId가 차단(2)된 경우 접근 불가
+            Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
+            Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
+            if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus()))
+                    ||(relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+                 log.info("user: " + userId+", author: " + collection.getAuthorid());
+                throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
+            }
+            else {
+                // 그 외의 경우 접근 가능
+                log.info("공개 컬렉션 뷰 만들기");
+                return makeCollectionView(collectionId, userId);
+            }
+        }
 
-        //✅ Author 정보 가져오기
-        Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
-        String authorName = author.isPresent() ? author.get().getName() : null;
-        // 작성자 프로필 이미지 가져오기
-        String authorProfileImage = libUserRepository.findByUserId(collection.getAuthorid())
-                .map(UserEntity::getProfileImagePath)
-                .orElse("/default_profile.jpg");
+        // 공개 범위가 2 (팔로워만)일 때
+        else if (collection.getVisibility() == 2) {
+            Optional<RelationshipEntity> relationship = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
+            if (relationship.isPresent() && "1".equals(relationship.get().getStatus())) {
+                return makeCollectionView(collectionId, userId);
+            } else {
+                throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
+            }
+        }
 
-        //✅ 로그인 유저의 좋아요, 북마크 여부 가져오기
-        LikeEntity like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
-        BookmarkEntity bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
+        // 공개 범위가 3 (작성자만)일 때
+        else if (collection.getVisibility() == 3 && collection.getAuthorid().equals(userId)) {
+            return makeCollectionView(collectionId, userId);// 작성자 본인이라면 실행
+        }
 
-        //collection의 총 좋아요 수/ 총 북마크 수 가져오기
-        int likeCount = countLikesByCollectionId(collection.getId());
-        int bookmarkCount = countBookmarksByCollectionId(collection.getId());
-        log.info("✅북마크 수: " + bookmarkCount);
+        // 그 외의 경우 접근 불가
+        else {
+            throw new Exception("이 컬렉션에 접근할 권한이 없습니다.");
+        }
 
-        return CollView.builder()
-                .collectionid(collection.getId())
-                .authorid(collection.getAuthorid())
-                .authorname(authorName)
-                .collectionTitle(collection.getCollectionTitle())
-                .readCount(collection.getReadCount())
-                .visibility(collection.getVisibility())
-                .createdDate(collection.getCreatedDate())
-                .titleEmbedding(collection.getTitleEmbedding())
-                .color(collection.getColor())
-                .thumbnailPath(thumbnailPath)
-                .textContent(textContent) // 필요 시 추출
-                .userlike(like != null)
-                .userbookmark(bookmark != null)
-                .authorProfileImage(authorProfileImage)
-                .thumbType(thumbType)
-                .likeCount(likeCount)
-                .bookmarkCount(bookmarkCount)
-                .build();
     }
 
 
@@ -338,6 +342,7 @@ public class LibraryService {
 //    }
 
 
+    //조회자 id(userId)에 맞게 컬렉션 정보를 리턴함
     private CollView makeCollectionView(int collectionId, String userId) {
         // 컬렉션 정보 조회
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
@@ -385,5 +390,19 @@ public class LibraryService {
                 .build();
     }
 
+    public List <CollView> searchCollections(String query, String userid) {
+        // 컬렉션 이름에 키워드 포함한 것 리턴해, 한 컬렉션마다 CollView로 전환(makeCollectionView(collid, userid) 사용)
+
+        // 컬렉션 이름에 query가 포함된 것들을 가져오기
+        List<CollectionEntity> collections = libCollectionRepository.findByCollectionTitleContaining(query);
+
+        List<CollView> collViews = new ArrayList<>();
+        for (CollectionEntity collection : collections) {
+            CollView cv = makeCollectionView(collection.getId(), userid);
+            collViews.add(cv);
+        }
+
+        return collViews;
+    }
 }
 

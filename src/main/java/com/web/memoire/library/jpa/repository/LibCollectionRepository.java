@@ -12,4 +12,5 @@ public interface LibCollectionRepository extends JpaRepository<CollectionEntity,
     CollectionEntity findByCollectionid(int collectionid);
     List<CollectionEntity> findByAuthoridOrderByCreatedDateDesc(String targetid);
 
+    List<CollectionEntity> findByCollectionTitleContaining(String query);
 }
