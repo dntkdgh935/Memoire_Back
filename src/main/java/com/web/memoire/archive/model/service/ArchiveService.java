@@ -109,6 +109,16 @@ public class ArchiveService {
         return entity != null ? entity.getCollectionid() : 0;
     }
 
+    @Transactional
+    public int deleteCollection(int collectionid) {
+        try {
+            archiveCollectionRepository.deleteById(collectionid);
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     // ArchiveCollectionTagRepository
 
     // ArchiveLikeRepository
@@ -152,6 +162,16 @@ public class ArchiveService {
     public int insertMemory(Memory memory) {
         MemoryEntity entity = archiveMemoryRepository.save(memory.toEntity());
         return entity != null ? entity.getMemoryid() : 0;
+    }
+
+    @Transactional
+    public int deleteMemory(int memoryid) {
+        try {
+            archiveMemoryRepository.deleteById(memoryid);
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     // ArchiveRelationshipRepository
@@ -255,6 +275,7 @@ public class ArchiveService {
                     .visibility(c.getVisibility())
                     .createdDate(c.getCreatedDate())
                     .titleEmbedding(c.getTitleEmbedding())
+                    .color(c.getColor())
                     .thumbnailPath(thumbnailPath)
                     .textContent(textContent) // 필요 시 추출
                     .userlike(like != null)
@@ -301,6 +322,7 @@ public class ArchiveService {
                 .visibility(collection.getVisibility())
                 .createdDate(collection.getCreatedDate())
                 .titleEmbedding(collection.getTitleEmbedding())
+                .color(collection.getColor())
                 .thumbnailPath(thumbnailPath)
                 .textContent(textContent) // 필요 시 추출
                 .userlike(like != null)
