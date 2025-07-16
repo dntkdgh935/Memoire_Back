@@ -13,5 +13,4 @@ public class VideoResultDto {
     private String videoUrl;
     private String fileName;
     private String title;
-    private String content;
 }
