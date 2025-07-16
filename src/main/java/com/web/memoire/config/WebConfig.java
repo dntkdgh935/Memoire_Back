@@ -21,12 +21,12 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) { // ✅ 맞음
 
         registry.addResourceHandler("/upload_files/user_profile/**")
-                .addResourceLocations("file:///D:/upload_files/user_profile/");
+                .addResourceLocations("file:///C:/upload_files/user_profile/");
 
         registry.addResourceHandler("/upload_files/memory_img/**")
-                .addResourceLocations("file:///D:/upload_files/memory_img/");
+                .addResourceLocations("file:///C:/upload_files/memory_img/");
 
         registry.addResourceHandler("/upload_files/memory_video/**")
-                .addResourceLocations("file:///D:/upload_files/memory_video/");
+                .addResourceLocations("file:///C:/upload_files/memory_video/");
     }
 }
