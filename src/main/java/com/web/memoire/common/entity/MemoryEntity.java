@@ -18,7 +18,7 @@ import java.util.Date;
 public class MemoryEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "memmory_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "memory_seq")
     @SequenceGenerator(name = "memory_seq", sequenceName = "SEQ_TB_MEMORY_MEMORYID", allocationSize = 1)
     @Column(name = "MEMORYID", nullable = false)
     private int memoryid;
