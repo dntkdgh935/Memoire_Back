@@ -29,7 +29,7 @@ public class ImapVerificationService {
     private String imapPassword;
 
     private static final Pattern PHONE_DOMAIN_PATTERN = Pattern.compile("<?([0-9]{10,11})\\s*@\\s*([a-zA-Z0-9.-]+)>?");
-    private static final String[] ALLOWED_DOMAINS = {"vmms.nate.com", "ktfmms.magicn.com", "lguplus.com", "lguplus.co.kr", "sktelecom.com", "mms.skt.com"};
+    private static final String[] ALLOWED_DOMAINS = {"vmms.nate.com", "ktfmms.magicn.com", "lguplus.com", "lguplus.co.kr", "sktelecom.com", "mms.skt.com","mmsmail.uplus.co.kr"};
 
     public String verifyCodeViaEmail(String verificationCode, String targetPhone) throws Exception {
         Properties props = new Properties();
