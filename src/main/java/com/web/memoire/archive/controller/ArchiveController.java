@@ -273,8 +273,8 @@ public class ArchiveController {
     @PostMapping(value = "/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name="file", required=false) MultipartFile file) {
         log.info("ArchiveController.insertNewCollection...");
-        log.info("collection : " + collection); //collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
-        log.info("memory: " + memory); //memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
+        log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
+        log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
         collection.setCreatedDate(new Date());
 //        TODO: collection.setTitleEmbedding(blabla);
         int collectionid = archiveService.insertCollection(collection);
@@ -288,37 +288,47 @@ public class ArchiveController {
                 if (archiveService.insertMemory(memory) > 0) {
                     return ResponseEntity.ok("저장 성공");
                 } else {
+                    // 텍스트 메모리 저장 실패
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
                 }
-            }
-            if (file != null && !file.isEmpty()) {
-                String savePath = uploadDir;
-                String uuid = UUID.randomUUID().toString();
-                String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
-                memory.setFilename(uuid + "." + ext);
-                if (memory.getMemoryType().equals("image")) {
-                    savePath += "/memory_img";
-                } else if (memory.getMemoryType().equals("video")) {
-                    savePath += "/memory_video";
-                }
-                memory.setFilepath(savePath);
-                memory.setContent(null);
-                if (archiveService.insertMemory(memory) > 0) {
-                    try {
-                        file.transferTo(new File(memory.getFilepath(), memory.getFilename()));
-                    } catch (Exception e) {
+            } else if (memory.getMemoryType().equals("image") || memory.getMemoryType().equals("video")) {
+                if (file != null && !file.isEmpty()) {
+                    String savePath = uploadDir;
+                    String uuid = UUID.randomUUID().toString();
+                    String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
+                    memory.setFilename(uuid + "." + ext);
+                    if (memory.getMemoryType().equals("image")) {
+                        savePath += "/memory_img";
+                    } else if (memory.getMemoryType().equals("video")) {
+                        savePath += "/memory_video";
+                    }
+                    memory.setFilepath(savePath);
+                    memory.setContent(null);
+                    if (archiveService.insertMemory(memory) > 0) {
+                        try {
+                            file.transferTo(new File(memory.getFilepath(), memory.getFilename()));
+                            return ResponseEntity.ok("저장 성공");
+                        } catch (Exception e) {
+                            // 파일 저장 실패
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
+                        }
+                    } else {
+                        // 미디어 메모리 저장 실패
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
                     }
                 } else {
+                    // 미디어 타입인데 파일 없음
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
                 }
-
-
+            } else {
+                // 파일 타입이 조건에 부합하지 않음
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
             }
+
         } else {
+            // 컬렉션 저장 실패
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
         }
-        return ResponseEntity.ok("저장 성공");
     }
 
 
