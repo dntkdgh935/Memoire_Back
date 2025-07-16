@@ -20,8 +20,6 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
-    //TODO: tempLoginUserId 모두 대체하기
-    private String tempLoginUserId="ee418479-6ac2-43f1-96e0-e5413f4926cb";
 
     //TODO: WebClient 추가하기(추천용)
 //    private final WebClient webClient;
@@ -98,12 +96,12 @@ public class LibraryController {
     // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
     // 컬렉션 아이디로 컬렉션 정보 가져옴
     // TODO: 프론트쪽 요청 바꾸기
-    @GetMapping("/collection/{collectionId}")
-    public ResponseEntity<?> getCollectionDetail(@PathVariable int collectionId) {
+    @GetMapping("/collection/{collectionId}/{userid}")
+    public ResponseEntity<?> getCollectionDetail(@PathVariable int collectionId, @PathVariable String userid) {
 
         log.info("LibraryController.getCollectionDetail...");
         try {
-            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, tempLoginUserId));
+            return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, userid));
         } catch (Exception e) {
             log.error("Error while fetching collection detail", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
