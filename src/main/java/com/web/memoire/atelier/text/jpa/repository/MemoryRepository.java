@@ -14,11 +14,11 @@ public interface MemoryRepository extends JpaRepository<MemoryEntity, Integer> {
     // 🔍 특정 컬렉션에 속한 메모리 목록 조회
     List<MemoryEntity> findByCollectionid(int collectionid);
 
-    // 🆔 MEMORYID의 최대값 조회 → 신규 메모리 ID 수동 설정용
+    // 🆔 MemoryEntity 전체의 최대 ID 조회 (필요하다면 유지)
     @Query("SELECT COALESCE(MAX(m.memoryid), 0) FROM MemoryEntity m")
     int findMaxMemoryId();
 
-    @Query("SELECT MAX(m.memoryOrder) FROM MemoryEntity m WHERE m.collectionid = :collectionId")
+    // 📊 해당 컬렉션의 메모리 순서 중 최대값 조회 (새 메모리 order 계산용)
+    @Query("SELECT COALESCE(MAX(m.memoryOrder), 0) FROM MemoryEntity m WHERE m.collectionid = :collectionId")
     Integer findMaxMemoryOrderByCollectionId(@Param("collectionId") int collectionId);
 }
-

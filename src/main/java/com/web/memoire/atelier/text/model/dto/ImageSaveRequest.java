@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class ImageSaveRequest {
+    private Integer originalMemoryId;
     private String title;
     private String imageUrl;
     private String prompt;
