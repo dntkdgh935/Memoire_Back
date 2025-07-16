@@ -26,10 +26,12 @@ public class CollView {
 
     private int visibility;
 
-    @JsonFormat(pattern = "yyyy.MM.dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date createdDate;
 
     private String titleEmbedding;
+
+    private String color;
 
     private String viewType;
 
