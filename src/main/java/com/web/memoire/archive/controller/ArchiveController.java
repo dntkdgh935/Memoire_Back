@@ -283,6 +283,8 @@ public class ArchiveController {
             memory.setCreatedDate(new Date());
             memory.setMemoryOrder(1);
             if (memory.getMemoryType().equals("text")) {
+                memory.setFilename(null);
+                memory.setFilepath(null);
                 if (archiveService.insertMemory(memory) > 0) {
                     return ResponseEntity.ok("저장 성공");
                 } else {
@@ -300,9 +302,10 @@ public class ArchiveController {
                     savePath += "/memory_video";
                 }
                 memory.setFilepath(savePath);
+                memory.setContent(null);
                 if (archiveService.insertMemory(memory) > 0) {
                     try {
-                        file.transferTo(new File(savePath, memory.getFilename()));
+                        file.transferTo(new File(memory.getFilepath(), memory.getFilename()));
                     } catch (Exception e) {
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
                     }
