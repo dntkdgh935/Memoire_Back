@@ -29,7 +29,7 @@ public class JWTFilter extends OncePerRequestFilter {
 
     // ✅ 인증이 필요 없는 정확한 경로 목록 (추가: /user/social, /user/socialSignUp)
     private static final List<String> PERMIT_ALL_PATHS_EXACT = Arrays.asList(
-            "/", "/login", "/reissue", "/user/signup", "/user/idcheck", "/favicon.ico", "/manifest.json",
+            "/", "/login", "/reissue", "/user/signup", "/user/idcheck","/user/findid","/user/findpwd", "/favicon.ico", "/manifest.json",
             "/user/social", "/user/socialSignUp",
             "/user/social", "/user/social/complete-signup",
             "/oauth2/authorization/", "/oauth2/callback/success"

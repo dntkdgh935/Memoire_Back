@@ -33,7 +33,9 @@ public class PwdEntity {
 
     @PrePersist
     public void prePersist() {
-        chPwd = new GregorianCalendar().getGregorianChange();
+        if (chPwd == null) { // chPwd가 null일 때만 설정
+            chPwd = new Date();
+        }
     }
 
     public Pwd toDto(){

@@ -2,6 +2,7 @@ package com.web.memoire.user.jpa.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.web.memoire.user.jpa.entity.UserEntity;
+import com.web.memoire.user.jpa.entity.PwdEntity;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -44,4 +45,22 @@ public class UserRepositoryCustomImpl implements UserRepositoryCustom {
                 .fetchOne();
         return Optional.ofNullable(result);
     }
+
+    @Override
+    public UserEntity updateUserPassword(String userId, String encode) {
+        long affectedRows = queryFactory
+                .update(userEntity) // userEntity (TB_USER 테이블)를 업데이트합니다.
+                .set(userEntity.password, encode) // password 필드를 새롭게 인코딩된 비밀번호로 설정합니다.
+                .where(userEntity.userId.eq(userId)) // userId가 주어진 값과 같은 조건을 설정합니다.
+                .execute(); // 업데이트 쿼리를 실행하고 영향을 받은 행의 수를 반환합니다.
+
+        // 업데이트된 행이 있다면, 업데이트된 UserEntity를 다시 조회하여 반환합니다.
+        if (affectedRows > 0) {
+            // findByUserId 메소드를 사용하여 업데이트된 UserEntity를 조회합니다.
+            return findByUserId(userId).orElse(null);
+        }
+        // 업데이트된 행이 없거나 사용자를 찾을 수 없는 경우 null을 반환합니다.
+        return null;
+    }
+
 }

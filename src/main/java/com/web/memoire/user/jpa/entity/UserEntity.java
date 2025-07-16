@@ -48,7 +48,7 @@ public class UserEntity {
     @Column(name="NICKNAME", length = 50)
     private String nickname;
 
-    @Column(name="PHONE", unique = true, length = 100)
+    @Column(name="PHONE", length = 100)
     private String phone;
 
     @Column(name="PROFILE_IMAGE_PATH", length = 200)
