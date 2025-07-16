@@ -14,5 +14,4 @@ public class ImTImResultDto {
     private String filename;
     private String filepath;
     private String title;
-    private String content;
 }

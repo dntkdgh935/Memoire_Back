@@ -36,7 +36,7 @@ public class ImTImMemoryService {
                 .memoryType("image")             // 구분값
                 .collectionid(collectionId)      // FK
                 .title(dto.getTitle())           // 사용자 지정 제목
-                .content(dto.getContent())       // 설명/내용
+                .content(null)       // 설명/내용
                 .filename(dto.getFilename())     // 파일명
                 .filepath(dto.getFilepath())     // 파일 경로 또는 URL
                 .createdDate(new Date())         // 생성 시각
@@ -58,7 +58,6 @@ public class ImTImMemoryService {
                 .orElseThrow(() -> new EntityNotFoundException("Memory not found: " + memoryId));
 
         m.setTitle(dto.getTitle());
-        m.setContent(dto.getContent());
         m.setFilename(dto.getFilename());
         m.setFilepath(dto.getFilepath());
 

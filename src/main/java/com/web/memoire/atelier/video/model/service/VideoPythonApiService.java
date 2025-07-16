@@ -26,13 +26,6 @@ public class VideoPythonApiService {
         return pythonBaseUrl == null || pythonBaseUrl.isBlank();
     }
 
-    public String uploadImage(MultipartFile file) {
-        if (isDisabled()) {
-            return null;
-        }
-        return restTemplate.postForObject(pythonBaseUrl + "/upload-image", file, String.class);
-    }
-
     public String previewTTS(TtsPreviewRequest request) {
         if (isDisabled()) {
             return null;
