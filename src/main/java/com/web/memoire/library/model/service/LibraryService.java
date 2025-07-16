@@ -189,6 +189,10 @@ public class LibraryService {
             throw new IllegalArgumentException("컬렉션을 찾을 수 없습니다.");
         }
 
+        //유저가 자신의 컬렉션은 그냥 접근 가능
+        if (userId.equals(collection.getAuthorid())){
+            return makeCollectionView(collectionId, userId);
+        }
         // 공개 범위가 1 (공개)일 때
         if (collection.getVisibility() == 1) {
             // userId가 차단(2)된 경우 접근 불가
@@ -196,6 +200,7 @@ public class LibraryService {
             Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
             if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus()))
                     ||(relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+                 log.info("user: " + userId+", author: " + collection.getAuthorid());
                 throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
             }
             else {
