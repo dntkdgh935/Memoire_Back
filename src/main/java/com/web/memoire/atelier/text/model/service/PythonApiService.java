@@ -26,20 +26,20 @@ public class PythonApiService {
     @Value("${python.image-url}")
     private String imageApiUrl;
 
+    /**
+     * ChatGPT 호출용 메서드 (텍스트 생성)
+     */
     public TextResultDto callGpt(TextGenerationRequest request) {
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<TextGenerationRequest> entity = new HttpEntity<>(request, headers);
 
         try {
-            // 요청 JSON 출력
             ObjectMapper mapper = new ObjectMapper();
             String jsonBody = mapper.writeValueAsString(request);
-            System.out.println("🔗 FastAPI 호출 주소 = " + textApiUrl);
-            System.out.println("📨 보낼 JSON = " + jsonBody);
+            System.out.println("🔗 FastAPI Text URL = " + textApiUrl);
+            System.out.println("📨 Request JSON = " + jsonBody);
 
-            // 실제 호출
             ResponseEntity<TextResultDto> response = restTemplate.exchange(
                     textApiUrl,
                     HttpMethod.POST,
@@ -47,49 +47,51 @@ public class PythonApiService {
                     TextResultDto.class
             );
 
-            System.out.println("✅ GPT 결과 수신 완료, 제목: " + response.getBody().getTitle());
+            System.out.println("✅ Text generation success, title=" + response.getBody().getTitle());
             return response.getBody();
 
         } catch (JsonProcessingException e) {
-            System.out.println("❌ JSON 직렬화 오류");
-            e.printStackTrace();
-            throw new TextGenerationException("요청 JSON 직렬화 실패", e);
-
+            throw new TextGenerationException("JSON serialization failed", e);
         } catch (HttpStatusCodeException e) {
-            System.out.println("❌ FastAPI 응답 오류 - 상태 코드: " + e.getStatusCode());
-            System.out.println("❌ 응답 바디: " + e.getResponseBodyAsString());
-            throw new TextGenerationException("텍스트 생성 중 오류 발생", e);
-
+            System.out.println("❌ FastAPI Text error code=" + e.getStatusCode());
+            System.out.println("❌ Body: " + e.getResponseBodyAsString());
+            throw new TextGenerationException("Text generation error", e);
         } catch (Exception e) {
-            System.out.println("❌ 예기치 못한 오류 발생");
-            e.printStackTrace();
-            throw new TextGenerationException("예기치 못한 오류", e);
+            throw new TextGenerationException("Unexpected text generation error", e);
         }
     }
 
+    /**
+     * DALL·E 이미지 생성 호출
+     */
     public ImageResultDto callDalle(ImagePromptRequest request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<ImagePromptRequest> entity = new HttpEntity<>(request, headers);
 
         try {
-            System.out.println("📦 보낼 JSON: " + new ObjectMapper().writeValueAsString(request));
-            System.out.println("🔗 FastAPI 호출 주소 = " + imageApiUrl);  // 절대 "http://" + imageApiUrl 하지 마세요
-            return restTemplate.exchange(
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonBody = mapper.writeValueAsString(request);
+            System.out.println("🔗 FastAPI Image URL = " + imageApiUrl);
+            System.out.println("📨 Request JSON = " + jsonBody);
+
+            ResponseEntity<ImageResultDto> response = restTemplate.exchange(
                     imageApiUrl,
                     HttpMethod.POST,
                     entity,
                     ImageResultDto.class
-            ).getBody();
+            );
+
+            ImageResultDto dto = response.getBody();
+            System.out.println("✅ Image generation success, url=" + dto.getImageUrl());
+            return dto;
+
         } catch (HttpStatusCodeException e) {
-            System.out.println("❌ DALL·E 응답 오류 - 상태 코드: " + e.getStatusCode());
-            System.out.println("❌ 응답 바디: " + e.getResponseBodyAsString());
-            throw new RuntimeException("이미지 생성 중 오류 발생", e);
+            System.out.println("❌ FastAPI Image error code=" + e.getStatusCode());
+            System.out.println("❌ Body: " + e.getResponseBodyAsString());
+            throw new TextGenerationException("Image generation error", e);
         } catch (Exception e) {
-            System.out.println("❌ 예기치 못한 이미지 생성 오류");
-            e.printStackTrace();
-            throw new RuntimeException("예기치 못한 이미지 생성 오류", e);
+            throw new TextGenerationException("Unexpected image generation error", e);
         }
     }
-
 }
