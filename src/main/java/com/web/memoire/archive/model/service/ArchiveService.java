@@ -6,11 +6,17 @@ import com.web.memoire.common.entity.*;
 import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.dto.User;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +30,6 @@ public class ArchiveService {
 
     @Autowired
     private final UserRepository userRepository;
-
-//    @Autowired
-//    private final
-
     @Autowired
     private final ArchiveBookmarkRepository archiveBookmarkRepository;
     @Autowired
@@ -38,6 +40,8 @@ public class ArchiveService {
     private final ArchiveMemoryRepository archiveMemoryRepository;
     @Autowired
     private final ArchiveRelationshipRepository archiveRelationshipRepository;
+    @Autowired
+    private OpenAIService openAIService;
 
     // UserRepository
     public User findUserById(String userid) {
@@ -335,4 +339,32 @@ public class ArchiveService {
     }
 
 
+    // 예시: JSON 형식으로 임베딩 배열을 추출
+    private static String extractEmbedding(String jsonResponse) throws JSONException {
+        // JSONObject로 변환
+        JSONObject jsonObject = new JSONObject(jsonResponse);
+
+        // "data" 배열에서 첫 번째 객체 추출
+        JSONArray data = jsonObject.getJSONArray("data");
+        JSONObject firstItem = data.getJSONObject(0);
+
+        // "embedding" 키가 존재하는지 확인 후, 존재하면 해당 값을 문자열로 변환하여 반환
+        if (firstItem.has("embedding")) {
+            JSONArray embeddingArray = firstItem.getJSONArray("embedding");
+            return embeddingArray.toString();  // JSONArray를 문자열로 변환
+        } else {
+            throw new JSONException("\"embedding\" key not found");
+        }
+    }
+
+    public String getEmbeddedTitle(@NotBlank String collectionTitle) {
+        // OpenAIService를 호출하여 임베딩 값을 가져옴
+        Mono<String> embeddingMono = openAIService.getEmbedding(collectionTitle);
+        String embeddedTitle = embeddingMono.block();  // 임베딩 결과 동기적으로 받아옴
+        return extractEmbedding(embeddedTitle);  // 임베딩 값에서 필요한 숫자만 추출
+    }
+
+    public Collection getCollectionById(@NotNull int collectionid) {
+        return archiveCollectionRepository.findCollectionById(collectionid).toDto();
+    }
 }

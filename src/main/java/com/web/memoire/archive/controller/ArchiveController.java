@@ -1,9 +1,11 @@
 package com.web.memoire.archive.controller;
 
 import com.web.memoire.archive.model.service.ArchiveService;
+
 import com.web.memoire.common.dto.*;
 import com.web.memoire.user.model.dto.User;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -12,11 +14,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 @Slf4j
 @RestController
@@ -26,6 +32,8 @@ public class ArchiveController {
 
     @Autowired
     private ArchiveService archiveService;
+
+
 
     @Value("C:/upload_files")
     private String uploadDir;
@@ -144,12 +152,10 @@ public class ArchiveController {
                 else if (coll.getVisibility() == 2) {
                     if (archiveService.findRelationshipById(userid, coll.getAuthorid()) == null) {
                         // do not add
-                    }
-                    else if (archiveService.findRelationshipById(userid, coll.getAuthorid()).getStatus().equals("1") && !archiveService.findRelationshipByUserIdAndTargetId(userid, coll.getAuthorid()).getStatus().equals("2")) {
+                    } else if (archiveService.findRelationshipById(userid, coll.getAuthorid()).getStatus().equals("1") && !archiveService.findRelationshipByUserIdAndTargetId(userid, coll.getAuthorid()).getStatus().equals("2")) {
                         // ok
                         c.add(coll);
-                    }
-                    else {
+                    } else {
                         // do not add
                     }
                 }
@@ -205,8 +211,7 @@ public class ArchiveController {
             int result = archiveService.updateStatusMessage(userid, statusMessage);
             if (result == 1) {
                 return ResponseEntity.ok("상태메시지 수정 성공!");
-            }
-            else {
+            } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("/updateStatusMessage 에러");
             }
         } catch (Exception e) {
@@ -216,12 +221,14 @@ public class ArchiveController {
     }
 
     @PostMapping(value = "/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name="file", required=false) MultipartFile file) {
+    public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file) {
         log.info("ArchiveController.insertNewCollection...");
         log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
         log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
         collection.setCreatedDate(new Date());
-//        TODO: collection.setTitleEmbedding(blabla);
+        //=============================
+        collection.setTitleEmbedding(archiveService.getEmbeddedTitle(collection.getCollectionTitle()));
+        //=============================
         int collectionid = archiveService.insertCollection(collection);
         if (collectionid > 0) {
             memory.setCollectionid(collectionid);
@@ -277,7 +284,7 @@ public class ArchiveController {
     }
 
     @PostMapping(value = "/newMemory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> insertNewMemory(@ModelAttribute Memory memory, @RequestParam String authorid, @RequestParam(name="file", required=false) MultipartFile file) {
+    public ResponseEntity<?> insertNewMemory(@ModelAttribute Memory memory, @RequestParam String authorid, @RequestParam(name = "file", required = false) MultipartFile file) {
         log.info("ArchiveController.insertNewMemory...");
         log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
 
@@ -337,6 +344,12 @@ public class ArchiveController {
         log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
 //        TODO: 여긴 추가하거나 말거나 (컬렉션을 편집하면 임베딩을 새로고침)
 //        TODO: collection.setTitleEmbedding(blabla);
+        // 기존 컬렉션을 가져오는 로직 (예: DB에서 불러옴)
+        Collection existingCollection = archiveService.getCollectionById(collection.getCollectionid());
+        if (existingCollection != null && !existingCollection.getCollectionTitle().equals(collection.getCollectionTitle())) {
+            collection.setTitleEmbedding(archiveService.getEmbeddedTitle(collection.getCollectionTitle()));
+        }
+
 //        컬렉션 수정하면 날짜 초기화
         collection.setCreatedDate(new Date());
         if (archiveService.insertCollection(collection) > 0) {
@@ -351,7 +364,7 @@ public class ArchiveController {
     public ResponseEntity<?> collectionDelete(@PathVariable int collectionid, @RequestParam String userid) {
         try {
             ArrayList<Memory> list = archiveService.findAllUserMemories(userid, collectionid);
-            for (Memory memory: list) {
+            for (Memory memory : list) {
                 if (memory.getMemoryType().equals("image")) {
                     new File(uploadDir + "\\memory_img\\" + memory.getFilename()).delete();
                 } else if (memory.getMemoryType().equals("video")) {
@@ -373,10 +386,9 @@ public class ArchiveController {
     }
 
     @PostMapping(value = "/editMemory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> editMemory(@ModelAttribute Memory memory, @RequestParam(name="file", required=false) MultipartFile file, @RequestParam String previousFileType, @RequestParam String previousFileName) {
+    public ResponseEntity<?> editMemory(@ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file, @RequestParam String previousFileType, @RequestParam String previousFileName) {
         log.info("ArchiveController.editMemory...");
         log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
-
         memory.setCreatedDate(new Date());
         if (memory.getMemoryType().equals("text")) {
             memory.setFilename(null);
@@ -443,4 +455,6 @@ public class ArchiveController {
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/memory/{memoryid} 에러");
     }
+
+
 }
