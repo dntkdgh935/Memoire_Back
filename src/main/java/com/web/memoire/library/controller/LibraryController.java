@@ -9,6 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.List;
+import java.util.Map;
 
 
 @Slf4j
@@ -237,35 +241,35 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("관계 확인 실패");
         }
     }
+
     // TODO: Natural Recommendation
-    // FastAPI로 GET 요청 보내기
-    /*@GetMapping("/get-recommendations/{userId}")
-    public ResponseEntity<?> getRecommendations(@PathVariable String userId) {
-        log.info("LibraryController.getRecommendations... for userId: {}", userId);
+    @PostMapping("/get-recommendations/{userid}")
+    public ResponseEntity<?> getRecommendations(@PathVariable String userid) {
+        log.info("LibraryController.getRecommendations... for userId: {}", userid);
 
         try {
-            // FastAPI로 추천 요청 보내기
-            String url = "/recommendations/" + userId;
-
             // WebClient를 사용하여 FastAPI 서버에 GET 요청 보내기
-            WebClient webClient = webClientBuilder.baseUrl("http://localhost:8000").build();
+            WebClient webClient = WebClient.builder()
+                                            .baseUrl("http://localhost:8000")
+                                            .build();
 
-            // FastAPI 서버에서 추천 점수 받기
-            String recommendations = webClient.get()  // GET 요청으로 변경
-                    .uri(url)
+            // FastAPI에 POST 요청 보내기
+            List<Map<String, Object>> response = webClient.post()
+                    .uri("/library/recommend")  // FastAPI의 /library/recommend 엔드포인트로
+                    .bodyValue(Map.of("userid", userid))  // 유저 ID를 전달
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .block();  // 동기식 호출
+                    .bodyToMono(List.class)
+                    .block();
 
-            log.info("Received recommendations from FastAPI: {}", recommendations);
+            log.info("Received recommendations from FastAPI: {}", response);
+            return ResponseEntity.ok(response);  // 추천 아이템 목록 반환
 
-            return ResponseEntity.ok(recommendations); // 추천 결과 반환
         } catch (Exception e) {
             log.error("Error while fetching recommendations", e);
             return ResponseEntity.status(500).body("추천 요청 실패");
         }
     }
-*/
+
 
     // 컬렉션 검색 (검색어와 userid를 함께 받기)
     @GetMapping("/search/collection")
