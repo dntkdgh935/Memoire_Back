@@ -49,7 +49,6 @@ public class ArchiveController {
             for (Relationship rel : archiveService.findAllUserFollower(userid)) {
                 User user = archiveService.findUserById(rel.getUserid());
                 // 상대방 개인정보 처리
-                user.setUserId(null);
                 user.setName(null);
                 user.setBirthday(null);
                 user.setPhone(null);
@@ -78,7 +77,6 @@ public class ArchiveController {
             for (Relationship rel : archiveService.findAllUserFollowing(userid)) {
                 User user = archiveService.findUserById(rel.getTargetid());
                 // 상대방 개인정보 처리
-                user.setUserId(null);
                 user.setName(null);
                 user.setBirthday(null);
                 user.setPhone(null);
@@ -368,6 +366,7 @@ public class ArchiveController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
             }
         } catch (Exception e) {
+            log.error("error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
         }
     }

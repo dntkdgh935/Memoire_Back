@@ -22,10 +22,10 @@ public class TagEntity {
     @Column(name = "TAG_NAME", nullable = false)
     private String tagName;
 
-    @Column(name = "SEARCH_COUNT", nullable = false, columnDefinition = "number default 0")
+    @Column(name = "SEARCH_COUNT", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
     private int searchCount;
 
-    @Column(name = "LIKE_COUNT", nullable = false, columnDefinition = "number default 0")
+    @Column(name = "LIKE_COUNT", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
     private int likeCount;
 
     @Lob

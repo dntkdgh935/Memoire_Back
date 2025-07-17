@@ -33,7 +33,7 @@ public class MemoryEntity {
     private String title;
 
     @Lob
-    @Column(name = "CONTENT")
+    @Column(name = "CONTENT", columnDefinition = "CLOB")
     private String content;
 
     @Column(name = "FILENAME")
@@ -42,7 +42,7 @@ public class MemoryEntity {
     @Column(name = "FILEPATH", length = 200)
     private String filepath;
 
-    @Column(name = "CREATED_DATE", nullable = false)
+    @Column(name = "CREATED_DATE", nullable = false, columnDefinition = "DATE DEFAULT SYSDATE")
     private Date createdDate;
 
     @Column(name = "MEMORY_ORDER", nullable = false)

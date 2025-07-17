@@ -24,7 +24,7 @@ public class RelationshipEntity {
     @Id
     @Column(name = "TARGETID", nullable = false)
     private String targetid;
-    @Column(name = "FOLLOW_DATE", nullable = false, columnDefinition = "date default sysdate")
+    @Column(name = "FOLLOW_DATE", nullable = false, columnDefinition = "DATE DEFAULT SYSDATE")
     private Date followDate;
     @Column(name = "STATUS", nullable = false)
     private String status;

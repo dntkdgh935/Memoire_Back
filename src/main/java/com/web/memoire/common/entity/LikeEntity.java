@@ -24,7 +24,7 @@ public class LikeEntity {
     @Id
     @Column(name="USERID", nullable = false)
     private String userid;
-    @Column(name="LIKED_DATE", nullable = false, columnDefinition = "date default sysdate")
+    @Column(name="LIKED_DATE", nullable = false, columnDefinition = "DATE DEFAULT SYSDATE")
     private Date likedDate;
 
     public Like toDto() {
