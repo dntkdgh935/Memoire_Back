@@ -11,4 +11,5 @@ public class VideoGenerationRequest {
     private String videoPrompt;
     private String extraPrompt;
     private String ttsUrl;
+    private String title;
 }

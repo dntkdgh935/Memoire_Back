@@ -14,4 +14,5 @@ public class ImTImGenerationRequest {
     private String imageUrl;
     private String stylePrompt;
     private String extraPrompt;
+    private String title;
 }
