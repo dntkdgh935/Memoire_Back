@@ -55,11 +55,6 @@ public class VideoController {
         return ResponseEntity.ok(ttsUrl);
     }
 
-    @PostMapping("/preview-tts")
-    public ResponseEntity<String> previewTTS(@RequestBody TtsPreviewRequest requestDto) {
-        String previewUrl = videopythonApiService.previewTTS(requestDto);
-        return ResponseEntity.ok(previewUrl);
-    }
 
     @PostMapping("/generate-video")
     public ResponseEntity<VideoResultDto> generateVideo(@RequestBody VideoGenerationRequest requestDto) {

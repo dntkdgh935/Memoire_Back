@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class VideoPythonApiService {
@@ -24,13 +23,6 @@ public class VideoPythonApiService {
 
     private boolean isDisabled() {
         return pythonBaseUrl == null || pythonBaseUrl.isBlank();
-    }
-
-    public String previewTTS(TtsPreviewRequest request) {
-        if (isDisabled()) {
-            return null;
-        }
-        return restTemplate.postForObject(pythonBaseUrl + "/preview-tts", request, String.class);
     }
 
     public String generateTTS(TtsPreviewRequest request) {

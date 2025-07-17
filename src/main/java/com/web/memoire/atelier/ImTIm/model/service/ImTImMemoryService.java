@@ -46,12 +46,6 @@ public class ImTImMemoryService {
         imtimmemoryRepository.save(m);
     }
 
-    //@Id
-    //@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "memory_seq")
-    //@SequenceGenerator(name = "memory_seq", sequenceName = "MEMORY_SEQ", allocationSize = 1)
-    //@Column(name = "MEMORYID", updatable = false, nullable = false)
-    //private Integer memoryid;     이렇게 entity 변경 필요
-
     @Transactional
     public void updateExisting(int memoryId, ImTImResultDto dto) {
         MemoryEntity m = imtimmemoryRepository.findById(memoryId)
