@@ -30,18 +30,18 @@ public class CollectionEntity {
     @Column(name = "COLLECTION_TITLE", nullable = false)
     private String collectionTitle;
 
-    @Column(name = "READ_COUNT", nullable = false, columnDefinition = "number default 0")
+    @Column(name = "READ_COUNT", nullable = false, columnDefinition = "NUMBER DEFAULT 0")
     private int readCount;
 
-    @Column(name = "VISIBILITY", nullable = false, columnDefinition = "number default 1")
+    @Column(name = "VISIBILITY", nullable = false, columnDefinition = "NUMBER DEFAULT 1")
     private int visibility;
 
     @JsonFormat(pattern = "yyyy.MM.dd")
-    @Column(name = "CREATED_DATE", nullable = false, columnDefinition = "date default sysdate")
+    @Column(name = "CREATED_DATE", nullable = false, columnDefinition = "DATE DEFAULT SYSDATE")
     private Date createdDate;
 
     @Lob
-    @Column(name = "TITLE_EMBEDDING")
+    @Column(name = "TITLE_EMBEDDING", columnDefinition = "CLOB")
     private String titleEmbedding;
 
     @Column(name = "COLOR", length = 50, nullable = false)
