@@ -5,10 +5,12 @@ import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.dto.Pwd;
 import com.web.memoire.user.model.dto.User;
+import com.web.memoire.user.model.service.PwdService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,10 @@ public class UserService {
     @Autowired
     private final PwdService pwdService;
 
+    @Autowired
+    private final BCryptPasswordEncoder bcryptPasswordEncoder;
+
+
     public boolean selectCheckId(String loginId) {
         return userRepository.existsById(loginId);
     }
@@ -41,6 +47,12 @@ public class UserService {
                     log.warn("사용자 조회 실패: loginId '{}' 에 해당하는 사용자를 찾을 수 없습니다.", loginId);
                     return new NoSuchElementException("사용자를 찾을 수 없습니다.");
                 });
+    }
+
+    public User findUserByUserId(String userId) {
+        UserEntity userEntity = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("userId " + userId + "에 해당하는 사용자를 찾을 수 없습니다."));
+        return userEntity.toDto(); // UserEntity를 User DTO로 변환하여 반환
     }
 
     @Transactional
@@ -74,25 +86,38 @@ public class UserService {
     }
 
     @Transactional
-    public UserEntity updateUserPassword(@NotNull String userId, String newEncodedPassword) {
+    public UserEntity updateUserPassword(@NotNull String userId, String newRawPassword) { // 파라미터 이름 변경: newRawPassword
         UserEntity userEntity = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new NoSuchElementException("비밀번호 변경 대상 사용자를 찾을 수 없습니다: " + userId));
 
-        String currentEncodedPassword = userEntity.getPassword();
-        // 비밀번호 변경 이력을 저장할 때 Pwd DTO의 toEntity()를 사용하려면 Pwd 객체를 생성하여 넘겨야 합니다.
-        // 현재 PwdService의 savePasswordHistory 메서드가 어떻게 구현되어 있는지 모르지만
-        // 일반적으로는 여기서는 userId, 이전 비밀번호, 새 비밀번호를 직접 전달하여 Entity를 만들게 됩니다.
-        // PwdService.savePasswordHistory(userId, currentEncodedPassword, newEncodedPassword);
-        // 만약 PwdService가 Pwd DTO를 받도록 되어 있다면, 다음과 같이 Pwd 객체를 생성해야 합니다.
-        Pwd pwdHistory = Pwd.builder()
+        String currentEncodedPassword = userEntity.getPassword(); // 현재 암호화된 비밀번호
+        String newEncodedPassword = bcryptPasswordEncoder.encode(newRawPassword); // 새로 입력된 비밀번호 암호화
+
+        // 1. 새 비밀번호와 현재 비밀번호 비교
+        if (bcryptPasswordEncoder.matches(newRawPassword, currentEncodedPassword)) {
+            log.warn("비밀번호 변경 실패: userId={}, 새 비밀번호가 현재 비밀번호와 동일합니다.", userId);
+            throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+        }
+
+        // 2. 새 비밀번호와 과거 비밀번호 이력 비교
+        // 최근 3개의 비밀번호를 재사용할 수 없도록 정책 설정 (필요에 따라 숫자 변경)
+        int passwordHistoryLimit = 3;
+        if (pwdService.hasUsedPreviousPassword(userId, newRawPassword, passwordHistoryLimit)) {
+            log.warn("비밀번호 변경 실패: userId={}, 새 비밀번호가 과거에 사용된 비밀번호입니다.", userId);
+            throw new IllegalArgumentException("새 비밀번호는 과거에 사용했던 비밀번호와 달라야 합니다.");
+        }
+
+        // 3. 비밀번호 변경 이력 저장
+        // PwdEntity의 prevPwd는 변경되기 전의 비밀번호, currPwd는 변경될 새 비밀번호를 저장
+        PwdEntity pwdHistoryEntity = PwdEntity.builder()
                 .userId(userId)
-                .chPwd(new Date()) // 변경일은 현재 날짜
-                .prevPwd(currentEncodedPassword)
-                .currPwd(newEncodedPassword)
+                .chPwd(new Date()) // 변경일은 현재 날짜/시간
+                .prevPwd(currentEncodedPassword) // 이전 암호화된 비밀번호
+                .currPwd(newEncodedPassword)   // 새로 암호화된 비밀번호
                 .build();
-        pwdService.savePasswordHistory(pwdHistory.toEntity());
+        pwdService.savePasswordHistory(pwdHistoryEntity); // PwdEntity를 직접 전달
 
-
+        // 4. UserEntity의 비밀번호 업데이트
         userEntity.setPassword(newEncodedPassword);
         return userRepository.save(userEntity);
     }

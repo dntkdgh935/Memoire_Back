@@ -15,20 +15,22 @@ import java.util.Date;
 @NoArgsConstructor
 @Builder
 public class Pwd {
+    private Long id; // 추가: PwdEntity의 ID에 맞춤
     @NotNull
     private String userId;
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul") // 시간 정보 포함
     private Date chPwd;
     private String prevPwd;
     @NotNull
     private String currPwd;
 
     public PwdEntity toEntity() {
-             return PwdEntity.builder()
-                 .userId(this.userId)
-                 .chPwd(this.chPwd)
-                 .prevPwd(this.prevPwd)
-                 .currPwd(this.currPwd)
-                 .build();
-         }
+        return PwdEntity.builder()
+                .id(this.id) // ID도 매핑 (새로운 이력 생성 시에는 null로 전달)
+                .userId(this.userId)
+                .chPwd(this.chPwd)
+                .prevPwd(this.prevPwd)
+                .currPwd(this.currPwd)
+                .build();
+    }
 }

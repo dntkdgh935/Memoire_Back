@@ -16,6 +16,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -27,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Date;
+import java.util.NoSuchElementException; // NoSuchElementException 임포트 추가
 
 @Slf4j
 @RestController
@@ -105,11 +108,16 @@ public class UserController {
                 log.warn("사용자 ID를 찾을 수 없음: name={}, phone={}", name, phone);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
             }
+        } catch (NoSuchElementException e) { // NoSuchElementException을 명시적으로 처리
+            log.warn("사용자 ID를 찾을 수 없음: name={}, phone={}", name, phone, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
         } catch (Exception e) {
             log.error("아이디 찾기 오류 발생: name={}, phone={}", name, phone, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("사용자 ID를 찾는 중 오류가 발생했습니다.");
         }
     }
+
+    // UserController.java (findpwdUpdatePassword 메서드 부분)
 
     @PostMapping("/findpwd")
     public ResponseEntity<?> findpwdUpdatePassword(@RequestBody User user) {
@@ -127,12 +135,13 @@ public class UserController {
 
             if (foundUser != null) {
                 String temporaryPassword = GeneratePassword.generateRandomPassword(8, 16);
-                String encodedTemporaryPassword = bcryptPasswordEncoder.encode(temporaryPassword);
+                // String encodedTemporaryPassword = bcryptPasswordEncoder.encode(temporaryPassword); // 이 줄은 제거
 
                 log.info("Generated temporary password (plaintext): {}", temporaryPassword);
-                log.info("Encoded temporary password (for DB storage): {}", encodedTemporaryPassword);
+                // log.info("Encoded temporary password (for DB storage): {}", encodedTemporaryPassword); // 이 줄도 제거
 
-                userService.updateUserPassword(foundUser.getUserId(), encodedTemporaryPassword);
+                // UserService.updateUserPassword는 이제 평문 비밀번호를 받습니다.
+                userService.updateUserPassword(foundUser.getUserId(), temporaryPassword); // 변경: encodedTemporaryPassword -> temporaryPassword
 
                 log.info("비밀번호 업데이트 성공: loginId={}", foundUser.getLoginId());
 
@@ -145,6 +154,12 @@ public class UserController {
                 log.warn("사용자를 찾을 수 없음: loginId={}, phone={}", user.getLoginId(), user.getPhone());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
             }
+        } catch (NoSuchElementException e) { // NoSuchElementException을 명시적으로 처리
+            log.warn("비밀번호 찾기 실패: 사용자를 찾을 수 없음: loginId={}, phone={}", user.getLoginId(), user.getPhone(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
+        } catch (IllegalArgumentException e) { // UserService에서 던질 수 있는 예외 처리 (비밀번호 정책 위반 등)
+            log.error("비밀번호 업데이트 중 오류 발생 (정책 위반): loginId={}, phone={}, error={}", user.getLoginId(), user.getPhone(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage()); // 사용자에게 정책 위반 메시지 전달
         } catch (Exception e) {
             log.error("비밀번호 업데이트 중 오류 발생: loginId={}, phone={}", user.getLoginId(), user.getPhone(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("비밀번호 업데이트 중 오류가 발생했습니다.");
@@ -239,6 +254,31 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "회원가입 완료 중 서버 오류가 발생했습니다."));
         }
     }
+    @GetMapping("/myinfo-detail") // 새로운 API 엔드포인트
+    public ResponseEntity<?> getMyInfoDetail(@AuthenticationPrincipal UserDetails userDetails) {
+        String userId = userDetails.getUsername(); // JWT 토큰에서 추출된 userId
+
+        log.info("내 상세 정보 조회 요청: userId={}", userId);
+
+        try {
+            User userDto = userService.findUserByUserId(userId); // UserService에 새로운 메서드 필요
+
+            if (userDto != null) {
+                // 생년월일 Date 객체를 YYYY-MM-DD 문자열로 변환하여 DTO에 설정 (필요하다면)
+                // 또는 DTO에 Date 필드를 직접 사용하고 프론트에서 포매팅
+                // 여기서는 User DTO에 birthday가 Date 타입이라고 가정하고, 프론트에서 파싱한다고 가정.
+                // 만약 User DTO에 @JsonFormat("yyyy-MM-dd")가 있다면 자동으로 처리됩니다.
+                log.info("내 상세 정보 조회 성공: userId={}", userId);
+                return ResponseEntity.ok(userDto);
+            } else {
+                log.warn("내 상세 정보 조회 실패: 사용자를 찾을 수 없음 userId={}", userId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "사용자 정보를 찾을 수 없습니다."));
+            }
+        } catch (Exception e) {
+            log.error("내 상세 정보 조회 중 오류 발생: userId={}, error={}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "사용자 정보를 불러오는 중 오류가 발생했습니다."));
+        }
+    }
 
     @PatchMapping("/myinfo")
     public ResponseEntity<?> updateMyInfo(@RequestBody MyInfoUpdateRequest request) {
@@ -280,44 +320,42 @@ public class UserController {
     }
 
     @PatchMapping("/update/password")
-    public ResponseEntity<?> updatePassword(@RequestBody Pwd pwdRequest) { // Pwd DTO를 인자로 받음
+    public ResponseEntity<?> updatePassword(@RequestBody Pwd pwdRequest) {
         log.info("비밀번호 변경 요청: userId={}", pwdRequest.getUserId());
 
         if (pwdRequest.getUserId() == null || pwdRequest.getUserId().trim().isEmpty()) {
-            log.error("비밀번호 변경 실패: userId가 비어있습니다.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("사용자 ID는 필수입니다.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "사용자 ID는 필수입니다."));
         }
         if (pwdRequest.getPrevPwd() == null || pwdRequest.getPrevPwd().isEmpty()) {
-            log.error("비밀번호 변경 실패: 현재 비밀번호가 비어있습니다.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("현재 비밀번호는 필수입니다.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "현재 비밀번호는 필수입니다."));
         }
         if (pwdRequest.getCurrPwd() == null || pwdRequest.getCurrPwd().isEmpty()) {
-            log.error("비밀번호 변경 실패: 새 비밀번호가 비어있습니다.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("새 비밀번호는 필수입니다.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "새 비밀번호는 필수입니다."));
         }
 
         try {
             UserEntity userEntity = userRepository.findByUserId(pwdRequest.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new NoSuchElementException("사용자 정보를 찾을 수 없습니다.")); // IllegalArgumentException 대신 NoSuchElementException 사용
 
             // 현재 비밀번호 확인
             if (!bcryptPasswordEncoder.matches(pwdRequest.getPrevPwd(), userEntity.getPassword())) {
                 log.warn("비밀번호 변경 실패: userId={}, oldPassword 불일치", pwdRequest.getUserId());
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("현재 비밀번호가 일치하지 않습니다.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "현재 비밀번호가 일치하지 않습니다."));
             }
 
-            // 새 비밀번호 암호화 및 업데이트
-            String encodedNewPassword = bcryptPasswordEncoder.encode(pwdRequest.getCurrPwd());
-            userService.updateUserPassword(pwdRequest.getUserId(), encodedNewPassword);
+            userService.updateUserPassword(pwdRequest.getUserId(), pwdRequest.getCurrPwd());
 
             log.info("비밀번호 변경 성공: userId={}", pwdRequest.getUserId());
-            return ResponseEntity.ok().body("비밀번호가 성공적으로 변경되었습니다.");
-        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok().body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다.")); // 성공 메시지도 JSON으로 통일
+        } catch (NoSuchElementException e) { // 사용자 정보 없음
             log.error("비밀번호 변경 실패: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            log.error("비밀번호 변경 중 오류 발생: userId={}, error={}", pwdRequest.getUserId(), e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("비밀번호 변경 중 오류가 발생했습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (IllegalArgumentException e) { // UserService에서 던지는 정책 위반 예외
+            log.error("비밀번호 변경 실패 (정책 위반): {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) { // 그 외 예상치 못한 모든 예외
+            log.error("비밀번호 변경 중 예상치 못한 오류 발생: userId={}, error={}", pwdRequest.getUserId(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "비밀번호 변경 중 서버 오류가 발생했습니다."));
         }
     }
 
