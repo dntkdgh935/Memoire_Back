@@ -12,6 +12,6 @@ import java.util.List;
 public interface ChatRepository extends JpaRepository<ChatEntity, String> {
 
     // 기존 대화내용 불러오기
-    @Query(value = "SELECT c FROM ChatEntity c WHERE c.chatroomid = :chatroomid ORDER BY c.sentTime DESC")
+    @Query(value = "SELECT c FROM ChatEntity c WHERE c.chatroomid = :chatroomid ORDER BY c.sentTime ASC")
     List<ChatEntity> findByChatroomidOrderBySentTimeAsc(@Param("chatroomid") String chatroomid);
 }

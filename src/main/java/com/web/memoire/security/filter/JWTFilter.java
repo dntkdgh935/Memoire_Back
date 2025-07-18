@@ -35,7 +35,6 @@ public class JWTFilter extends OncePerRequestFilter {
             "/oauth2/authorization/", "/oauth2/callback/success"
     );
     // ✅ 인증이 필요 없는 특정 문자열로 시작하는 경로 목록
-//    TODO: chat 관련 인증 절차 만들기
     private static final List<String> PERMIT_ALL_PATHS_START_WITH = Arrays.asList(
             "/js/", "/css/", "/public/", "/api/", "/upload_files/", "/auth/", "/chat/" // /auth/ 경로도 추가 (SecurityConfig 참고)
     );

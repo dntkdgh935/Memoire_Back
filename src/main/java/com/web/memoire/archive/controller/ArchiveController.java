@@ -1,11 +1,9 @@
 package com.web.memoire.archive.controller;
 
 import com.web.memoire.archive.model.service.ArchiveService;
-
 import com.web.memoire.common.dto.*;
 import com.web.memoire.user.model.dto.User;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -14,15 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.UUID;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 @Slf4j
 @RestController
@@ -448,7 +442,15 @@ public class ArchiveController {
     }
 
     @DeleteMapping("/memory/{memoryid}")
-    public ResponseEntity<?> memoryDelete(@PathVariable int memoryid) {
+    public ResponseEntity<?> memoryDelete(@PathVariable int memoryid, @RequestParam String userid) {
+        log.info("ArchiveController.memoryDelete...");
+
+        Memory memory = archiveService.findMemoryByMemoryid(memoryid);
+        int collectionid = memory.getCollectionid();
+        ArrayList<Memory> list = archiveService.findAllUserMemories(userid, collectionid);
+        if (list.size() == 1) {
+            return ResponseEntity.ok("컬렉션에 메모리가 1개 이상 필요합니다.");
+        }
         if (archiveService.deleteMemory(memoryid) > 0) {
             return ResponseEntity.ok("삭제 성공");
         }

@@ -149,6 +149,10 @@ public class ArchiveService {
     }
 
     // ArchiveMemoryRepository
+    public Memory findMemoryByMemoryid(int memoryid) {
+        return archiveMemoryRepository.findMemoryById(memoryid).toDto();
+    }
+
     public ArrayList<Memory> findAllUserMemories(String userid, int collectionid) {
         List<MemoryEntity> entityList = archiveMemoryRepository.findAllUserMemories(userid, collectionid);
         ArrayList<Memory> list = new ArrayList<>();
