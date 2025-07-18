@@ -3,9 +3,11 @@ package com.web.memoire.library.model.service;
 import com.web.memoire.common.dto.CollView;
 import com.web.memoire.common.dto.FollowRequest;
 import com.web.memoire.common.dto.Tag;
+import com.web.memoire.common.dto.UserCardView;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.library.jpa.repository.*;
 import com.web.memoire.user.jpa.entity.UserEntity;
+import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.AccessDeniedException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -28,7 +31,7 @@ public class LibraryService {
     private final LibLikeRepository libLikeRepository;
     private final LibUserRepository libUserRepository;
     private final LibRelationshipRepository libRelationshipRepository;
-
+    private final LibCollTagRepository libCollTagRepository;
 
     // 모든 태그 가져오기
     public List<Tag> getAllTags() {
@@ -94,55 +97,6 @@ public class LibraryService {
         }
         return collViews;
     }
-        //1. 자신의 컬렉션은 보이지 않게 (collection의 authorid == userId인 경우) 미포함
-        //2. 공개범위 팔로워인데 팔로잉 안하는 유저의 컬렉션 보이지 않게 (findByVisibility(2)
-        //       userid:collection의 authorid, && targetid: userId(로그인 유저) 키의 realtionship의 status!=1인 경우 미포함
-
-        /*
-        [참고 코드]
-        if (collection.getVisibility() == 1) {
-            // userId가 차단(2)된 경우 접근 불가
-            Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
-            if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus()))
-                    ||(relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
-                 log.info("user: " + userId+", author: " + collection.getAuthorid());
-                throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
-            }
-            else {
-                // 그 외의 경우 접근 가능
-                log.info("공개 컬렉션 뷰 만들기");
-                return makeCollectionView(collectionId, userId);
-            }
-        }
-
-        // 공개 범위가 2 (팔로워만)일 때
-        else if (collection.getVisibility() == 2) {
-            Optional<RelationshipEntity> relationship = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            if (relationship.isPresent() && "1".equals(relationship.get().getStatus())) {
-                return makeCollectionView(collectionId, userId);
-            } else {
-                throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
-            }
-        }
-
-        // 공개 범위가 3 (작성자만)일 때
-        else if (collection.getVisibility() == 3 && collection.getAuthorid().equals(userId)) {
-            return makeCollectionView(collectionId, userId);// 작성자 본인이라면 실행
-        }
-
-        // 그 외의 경우 접근 불가
-        else {
-            throw new Exception("이 컬렉션에 접근할 권한이 없습니다.");
-        }
-        * */
-//        List<CollView> collViews = new ArrayList<>();
-//        for (CollectionEntity collection : publicCollections) {
-//            CollView cv = makeCollectionView(collection.getId(), userId);
-//            collViews.add(cv);
-//        }
-//        return collViews;
-
 
 
 
@@ -493,5 +447,119 @@ public class LibraryService {
         }
         return collViews;
     }
+
+    public Object searchUsers(String query, String loginUserid) {
+        List<UserEntity> users = libUserRepository.findByNicknameContaining(query);
+        List<UserCardView> userCardViews = new ArrayList<>();
+        for (UserEntity user : users) {
+            UserCardView userCardView = makeUserView(user.getUserId(), loginUserid);
+            userCardViews.add(userCardView);
+        }
+        return userCardViews;
+    }
+
+    private UserCardView makeUserView(String targetId, String loginUserid) {
+        //User테이블에서 정보 조회
+        //TB_TAG에서 정보 조회
+        //TB_RELATIONSHIP에서 정보 조회
+
+        UserEntity user = libUserRepository.findByUserId(targetId)
+                .orElseThrow(() -> new NoSuchElementException("User not found"));
+
+        String loginId = user.getLoginId();
+        String nickname = user.getNickname();
+        String profileImagePath= user.getProfileImagePath();
+        String statusMessage=user.getStatusMessage();
+
+        // 관계가 없으면 "3"을 리턴하도록 처리
+        String relStatusWLoginUser = libRelationshipRepository.findByUseridAndTargetid(loginUserid, targetId)
+                .map(RelationshipEntity::getStatus)  // 존재할 경우 상태 가져오기
+                .orElse("3");
+
+//        List<String> userFreqTags = new ArrayList<>();
+//        List <CollectionEntity> userColls= libCollectionRepository.findByAuthoridAndVisibility(targetId,1);
+//        List <CollectionTagEntity> userCollTags = new ArrayList<>();
+//
+//        for (CollectionEntity coll : userColls) {
+//            userCollTags.addAll(libCollTagRepository.findByCollectionid(coll.getId()));
+//            // coll에들어있는 모든 tagid들을 set으로 저장
+//        }
+//        // 태그 이름을 추출하여 빈도수를 카운트하는 코드 (Stream 사용)
+//        Map<String, Long> tagFrequencyMap = userCollTags.stream()
+//                .map(tag -> libTagRepository.findByTagid(tag.getTagid()))  // 단일 TagEntity를 가져옴
+//                .map(tagEntity -> tagEntity.getTagName())  // TagEntity에서 tagName을 추출
+//                .collect(Collectors.groupingBy(tagName -> tagName, Collectors.counting()));  // 태그 이름별로 빈도수 카운트
+//
+//
+//
+//
+//        // 빈도수 높은 3개의 태그를 추출 (내림차순 정렬 후 최대 3개 선택)
+//        List<String> mostFrequentTags = tagFrequencyMap.entrySet().stream()
+//                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))  // 빈도수 내림차순 정렬
+//                .limit(3)  // 상위 3개 태그만 추출
+//                .map(Map.Entry::getKey)  // 태그 이름만 추출
+//                .collect(Collectors.toList());  // 리스트로 반환
+
+        return UserCardView.builder()
+                .loginId(loginId)
+                .nickname(nickname)
+                .profileImagePath(profileImagePath)
+                .statusMessage(statusMessage)
+                .relStatusWLoginUser(relStatusWLoginUser)
+//                .userFreqTags()
+                .build();
+    }
 }
+/*
+ // 컬렉션 정보 조회
+        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+
+        // Memory 정보 조회 (memory_order = 1인 첫 번째 메모리)
+        MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
+        String thumbnailPath = memory != null ? memory.getFilepath() : null;
+        String thumbType = memory != null ? memory.getMemoryType() : null;
+        String textContent = memory != null ? memory.getContent() : null;
+
+        // 작성자 정보 조회
+        Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
+        String authorName = author.isPresent() ? author.get().getName() : null;
+        String authorProfileImage = author.get().getProfileImagePath();
+        LikeEntity like;
+        BookmarkEntity bookmark;
+
+        // TODO: userid 가 없는 경우(비로그인시) 따로 처리
+        if (userId!=null) {
+            // 로그인 유저의 좋아요 및 북마크 여부 확인
+            like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
+            bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
+        }
+        else{
+            like=null;
+            bookmark=null;
+        }
+        // 컬렉션의 좋아요 수, 북마크 수
+        int likeCount = countLikesByCollectionId(collection.getId());
+        int bookmarkCount = countBookmarksByCollectionId(collection.getId());
+
+        // CollView 객체 생성 및 반환
+        return CollView.builder()
+                .collectionid(collection.getId())
+                .authorid(collection.getAuthorid())
+                .authorname(authorName)
+                .collectionTitle(collection.getCollectionTitle())
+                .readCount(collection.getReadCount())
+                .visibility(collection.getVisibility())
+                .createdDate(collection.getCreatedDate())
+                .titleEmbedding(collection.getTitleEmbedding())
+                .color(collection.getColor())
+                .thumbnailPath(thumbnailPath)
+                .textContent(textContent)
+                .userlike(like != null)
+                .userbookmark(bookmark != null)
+                .authorProfileImage(authorProfileImage)
+                .thumbType(thumbType)
+                .likeCount(likeCount)
+                .bookmarkCount(bookmarkCount)
+                .build();
+ */
 

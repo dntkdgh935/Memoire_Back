@@ -290,6 +290,23 @@ public class LibraryController {
         }
     }
 
+    // 유저 검색 (검색어와 userid를 함께 받기)
+    @GetMapping("/search/user")
+    public ResponseEntity<?> searchUsers(
+            @RequestParam("query") String query,
+            @RequestParam("loginUserid") String loginUserid) {
+        log.info("LibraryController.searchUsers... 검색어: {}, userid: {}", query, loginUserid);
+
+        try {
+            // 라이브러리 서비스에서 컬렉션 검색 실행
+            // 차단 관계가 있는 유저는 검색되면 안 됨
+            return ResponseEntity.ok(libraryService.searchUsers(query, loginUserid));
+        } catch (Exception e) {
+            log.error("컬렉션 검색 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("유저 검색 실패");
+        }
+    }
+
     @GetMapping("/followreqs")
     public ResponseEntity<List<FollowRequest>> getFollowRequests(@RequestParam("userid") String userid) {
         try {

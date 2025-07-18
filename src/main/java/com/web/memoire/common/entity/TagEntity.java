@@ -32,6 +32,11 @@ public class TagEntity {
     @Column(name = "TAG_EMBEDDING", columnDefinition = "CLOB")
     private String tagEmbedding;
 
+    public String getTagName() {
+        return this.tagName;
+
+    }
+
     public Tag toDto() {
         return Tag.builder()
                 .tagid(tagid)

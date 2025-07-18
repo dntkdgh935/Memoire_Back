@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface LibUserRepository extends JpaRepository<UserEntity, String> {
@@ -16,6 +17,9 @@ public interface LibUserRepository extends JpaRepository<UserEntity, String> {
 
     @Query("SELECT u.profileImagePath FROM UserEntity u WHERE u.userId = :userId")
     String findProfileImagePathByUserId(@Param("userId") String userId);
+
+
+    List<UserEntity> findByNicknameContaining(String query);
 
 
 //    String findUserNameByUserId(String userId);

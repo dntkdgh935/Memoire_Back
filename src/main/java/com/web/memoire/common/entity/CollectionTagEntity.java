@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "TB_COLL_BOOKMARK")
+@Table(name = "TB_COLLECTION_TAG")
 @Entity
 @IdClass(CollectionTagId.class)
 public class CollectionTagEntity {
