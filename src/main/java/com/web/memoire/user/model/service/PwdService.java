@@ -1,14 +1,16 @@
 package com.web.memoire.user.model.service;
 
 import com.web.memoire.user.jpa.entity.PwdEntity;
-import com.web.memoire.user.jpa.entity.UserEntity; // UserEntity를 가져와 현재 비밀번호를 조회할 수 있음
+import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.PwdRepository;
-import com.web.memoire.user.jpa.repository.UserRepository; // UserEntity의 현재 비밀번호를 가져오기 위해 필요
+import com.web.memoire.user.jpa.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // BCryptPasswordEncoder 임포트
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List; // List 임포트
 import java.util.NoSuchElementException;
 
 @Slf4j
@@ -17,47 +19,54 @@ import java.util.NoSuchElementException;
 public class PwdService {
 
     private final PwdRepository pwdRepository;
-    private final UserRepository userRepository; // UserEntity의 현재 비밀번호를 가져오기 위해 필요
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder bcryptPasswordEncoder; // BCryptPasswordEncoder 주입
 
     /**
-     * 사용자의 현재 비밀번호를 이전 비밀번호 이력으로 저장합니다.
-     * 이 메소드는 새로운 비밀번호로 업데이트되기 직전에 호출되어야 합니다.
+     * 비밀번호 이력 엔티티를 저장합니다.
+     * 이 메서드는 UserService에서 PwdEntity 객체를 직접 받아 저장하는 데 사용됩니다.
      *
-     * @param userId 비밀번호 이력을 저장할 사용자의 고유 ID
-     * @param currentEncodedPassword 현재 사용 중인 암호화된 비밀번호
-     * @param newEncodedPassword 새로 설정될 암호화된 비밀번호
+     * @param pwdEntity 저장할 PwdEntity 객체
      */
     @Transactional
-    public void savePasswordHistory(String userId, String currentEncodedPassword, String newEncodedPassword) {
-        // PwdEntity의 PK 전략에 따라 로직이 달라질 수 있습니다.
-        // 현재 PwdEntity의 PK가 userId이므로, 기존 레코드가 있다면 업데이트, 없다면 새로 생성하는 방식
-        // 또는 PwdEntity의 PK를 자동 증가 ID로 변경하여 이력을 계속 추가하는 방식
-
-        // 여기서는 이력을 계속 추가하는 방식 (PwdEntity의 PK가 Long id; 이고 userId는 일반 컬럼이라고 가정)
-        // 만약 PwdEntity의 PK가 userId, chPwd 복합키라면, chPwd를 new Date()로 설정하여 새로운 이력을 만듭니다.
-
-        PwdEntity pwdEntity = PwdEntity.builder()
-                .userId(userId)
-                .prevPwd(currentEncodedPassword) // 이전 비밀번호
-                .currPwd(newEncodedPassword)     // 현재 비밀번호 (새로 설정될 비밀번호)
-                // .chPwd는 @PrePersist에서 설정되거나, 여기서 new Date()로 명시적으로 설정
-                .build();
-
+    public void savePasswordHistory(PwdEntity pwdEntity) {
         pwdRepository.save(pwdEntity);
-        log.info("사용자 {}의 비밀번호 이력이 저장되었습니다. 이전 비밀번호: {}, 새 비밀번호: {}",
-                userId, currentEncodedPassword, newEncodedPassword);
+        log.info("사용자 {}의 비밀번호 이력이 저장되었습니다. 변경일: {}, 이전 비밀번호: {}, 새 비밀번호: {}",
+                pwdEntity.getUserId(), pwdEntity.getChPwd(), pwdEntity.getPrevPwd(), pwdEntity.getCurrPwd());
     }
 
     /**
-     * 특정 사용자에게 특정 이전 비밀번호가 사용된 적이 있는지 확인합니다.
-     * (비밀번호 재사용 방지 로직에 사용될 수 있습니다.)
-     * @param userId 사용자 ID
-     * @param encodedPassword 확인할 암호화된 비밀번호
-     * @return 해당 비밀번호가 이전 비밀번호로 존재하면 true, 아니면 false
+     * 특정 사용자에게 특정 (암호화된) 비밀번호가 이전 비밀번호 이력으로 사용된 적이 있는지 확인합니다.
+     * 이 메서드는 새로운 비밀번호를 설정하기 전, 비밀번호 재사용을 방지하기 위해 호출될 수 있습니다.
+     * 예를 들어, 최근 3개의 비밀번호를 재사용할 수 없도록 하는 정책을 가정합니다.
+     *
+     * @param userId             사용자 ID
+     * @param encodedNewPassword 확인할 암호화된 (새로운) 비밀번호
+     * @param limitHistoryCount  확인할 이전 비밀번호 이력 개수 (예: 3이면 최근 3개)
+     * @return 해당 암호화된 비밀번호가 지정된 개수 내의 이전 비밀번호 이력과 일치하면 true, 아니면 false
      */
-    public boolean hasUsedPreviousPassword(String userId, String encodedPassword) {
-        // PwdRepository에 existsByUserIdAndPrevPwd(String userId, String prevPwd)와 같은 메소드가 필요
-        return pwdRepository.existsByUserIdAndPrevPwd(userId, encodedPassword);
+    public boolean hasUsedPreviousPassword(String userId, String encodedNewPassword, int limitHistoryCount) {
+        // 특정 사용자의 비밀번호 이력을 최신순으로 limitHistoryCount 만큼 가져옵니다.
+        // PwdRepository에 findTopNByUserIdOrderByChPwdDesc 메서드가 필요합니다.
+        // (만약 없다면 List<PwdEntity> findByUserIdOrderByChPwdDesc(String userId)를 사용 후, Java 코드에서 subList 처리)
+        List<PwdEntity> pwdHistory = pwdRepository.findTopRecordsByUserIdOrderByChPwdDesc(userId, limitHistoryCount);
 
+        for (PwdEntity historyEntry : pwdHistory) {
+            // 이전 비밀번호 (prevPwd)와 새 비밀번호 (encodedNewPassword) 비교
+            // matches() 메서드를 사용하여 평문 비밀번호와 암호화된 비밀번호를 비교합니다.
+            if (historyEntry.getPrevPwd() != null && bcryptPasswordEncoder.matches(encodedNewPassword, historyEntry.getPrevPwd())) {
+                log.info("사용자 {}의 새 비밀번호가 이전 비밀번호 이력 (prevPwd)과 일치합니다.", userId);
+                return true;
+            }
+            // 현재 비밀번호 (currPwd)와 새 비밀번호 (encodedNewPassword) 비교
+            // 이전에 '현재 비밀번호'였던 것이 현재 '새 비밀번호'와 같은 경우를 방지
+            if (historyEntry.getCurrPwd() != null && bcryptPasswordEncoder.matches(encodedNewPassword, historyEntry.getCurrPwd())) {
+                log.info("사용자 {}의 새 비밀번호가 과거 변경 시 현재 비밀번호 이력 (currPwd)과 일치합니다.", userId);
+                return true;
+            }
+        }
+        return false;
     }
+
+    // 다른 Pwd 관련 서비스 메서드들...
 }
