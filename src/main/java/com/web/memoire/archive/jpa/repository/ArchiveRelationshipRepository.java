@@ -13,7 +13,7 @@ import java.util.List;
 public interface ArchiveRelationshipRepository extends JpaRepository<RelationshipEntity, RelationshipId> {
 
     // 유저의 팔로잉 조회
-    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.userid = :userid AND r.status = '1'")
+    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.userid = :userid AND r.status = '1' ORDER BY r.followDate DESC")
     List<RelationshipEntity> findAllUserFollowing(@Param("userid") String userid);
 
     // 유저의 팔로잉 개수 조회
@@ -21,7 +21,7 @@ public interface ArchiveRelationshipRepository extends JpaRepository<Relationshi
     int countAllFollowingByUserId(@Param("userid") String userid);
 
     // 유저의 팔로워 조회
-    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.targetid = :userid AND r.status = '1'")
+    @Query(value = "SELECT r FROM RelationshipEntity r WHERE r.targetid = :userid AND r.status = '1' ORDER BY r.followDate DESC")
     List<RelationshipEntity> findAllUserFollower(@Param("userid") String userid);
 
     // 유저의 팔로워 개수 조회

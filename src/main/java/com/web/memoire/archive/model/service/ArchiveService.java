@@ -182,6 +182,16 @@ public class ArchiveService {
         }
     }
 
+    @Transactional
+    public int setThumbnail(Memory memory) {
+        MemoryEntity firstMemory = archiveMemoryRepository.findFirstMemoryByCollectionId(memory.getCollectionid());
+        firstMemory.setMemoryOrder(memory.getMemoryOrder());
+        memory.setMemoryOrder(1);
+        MemoryEntity one = archiveMemoryRepository.save(firstMemory);
+        MemoryEntity two = archiveMemoryRepository.save(memory.toEntity());
+        return one != null && two != null ? 1 : 0;
+    }
+
     // ArchiveRelationshipRepository
     public ArrayList<Relationship> findAllUserFollowing(String userid) {
         List<RelationshipEntity> entityList = archiveRelationshipRepository.findAllUserFollowing(userid);

@@ -212,6 +212,8 @@ public class ArchiveController {
         }
     }
 
+
+//    오류 가능성: transactional처리가 따로따로 됨 (insertCollection -> insertMemory)
     @PostMapping(value = "/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file) {
         log.info("ArchiveController.insertNewCollection...");
@@ -336,6 +338,7 @@ public class ArchiveController {
         log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
 //        TODO: 여긴 추가하거나 말거나 (컬렉션을 편집하면 임베딩을 새로고침)
 //        TODO: collection.setTitleEmbedding(blabla);
+        collection.setTitleEmbedding(null);
         // 기존 컬렉션을 가져오는 로직 (예: DB에서 불러옴)
         Collection existingCollection = archiveService.getCollectionById(collection.getCollectionid());
         if (existingCollection != null && !existingCollection.getCollectionTitle().equals(collection.getCollectionTitle())) {
@@ -364,7 +367,6 @@ public class ArchiveController {
                 }
                 if (archiveService.deleteMemory(memory.getMemoryid()) <= 0) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
-
                 }
             }
             if (archiveService.deleteCollection(collectionid) > 0) {
@@ -449,12 +451,22 @@ public class ArchiveController {
         int collectionid = memory.getCollectionid();
         ArrayList<Memory> list = archiveService.findAllUserMemories(userid, collectionid);
         if (list.size() == 1) {
-            return ResponseEntity.ok("컬렉션에 메모리가 1개 이상 필요합니다.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/memory/{memoryid} 에러");
         }
         if (archiveService.deleteMemory(memoryid) > 0) {
             return ResponseEntity.ok("삭제 성공");
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/memory/{memoryid} 에러");
+    }
+
+    @GetMapping("/setThumbnail/{memoryid}")
+    public ResponseEntity<?> setThumbnail(@PathVariable int memoryid) {
+        log.info("ArchiveController.setThumbnail...");
+        Memory memory = archiveService.findMemoryByMemoryid(memoryid);
+        if (archiveService.setThumbnail(memory) > 0) {
+            return ResponseEntity.ok("썸네일 설정 성공");
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/setThumbnail/{memoryid} 에러");
     }
 
 
