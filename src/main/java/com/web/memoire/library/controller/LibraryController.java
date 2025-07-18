@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -313,6 +314,21 @@ public class LibraryController {
             return ResponseEntity.ok().build();
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("DB에 관계 업데이트 실패");
+        }
+    }
+
+    @GetMapping("/archiveVisit")
+    public ResponseEntity<?> getArchiveMain(@RequestParam String userid, @RequestParam String ownerid) {
+        log.info("ArchiveController.getArchiveMain...방문 가능 여부 확인필");
+        log.info("컨트롤러 로그인 유저: "+userid+"방문 대상:"+ownerid);
+        try {
+            return ResponseEntity.ok(libraryService.findVisibleOwnerCollections(userid, ownerid));
+        }catch(AccessDeniedException ae){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ae.getMessage());
+        }
+        catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collections 에러");
         }
     }
 
