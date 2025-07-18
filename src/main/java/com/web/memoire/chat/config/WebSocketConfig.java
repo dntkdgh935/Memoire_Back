@@ -1,5 +1,6 @@
 package com.web.memoire.chat.config;
 
+import com.web.memoire.chat.security.filter.JwtHandshakeInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.WebSocketHandler;
@@ -13,13 +14,14 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final WebSocketHandler webSocketHandler;
+    private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry
                 // WebSocket 연결 허용 경로
-                .addHandler(webSocketHandler, "/chat/*")
-                // TODO: CORS 허용 (나중에 여기에 도메인을 넣으면 됨)
+                .addHandler(webSocketHandler, "/chat/{chatroomid}")
+                .addInterceptors(jwtHandshakeInterceptor)
                 .setAllowedOrigins("*");
     }
 }

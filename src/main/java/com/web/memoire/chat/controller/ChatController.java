@@ -59,9 +59,11 @@ public class ChatController {
     }
 
     @PostMapping("/check")
-    public ResponseEntity<?> checkChatroom(@RequestParam String userid, @RequestParam String otherUserid) {
+    public ResponseEntity<?> checkChatroom(@RequestParam List<String> users) {
         log.info("ChatController.checkChatroom...");
         try {
+            String userid = users.get(0);
+            String otherUserid = users.get(1);
             log.info("userid : " + userid);
             log.info("otherUserid : " + otherUserid);
             return ResponseEntity.ok(chatService.findByUserIdAndOtherUserId(userid, otherUserid));
@@ -72,13 +74,10 @@ public class ChatController {
     }
 
     @PostMapping("/new")
-    public ResponseEntity<?> createChatroom(@RequestParam String userid, @RequestParam String otherUserid) {
+    public ResponseEntity<?> createChatroom(@RequestParam List<String> users) {
         log.info("ChatController.createChatroom...");
         String chatroomid = UUID.randomUUID().toString();
-        ArrayList<String> users = new ArrayList<>();
-        users.add(userid);
-        users.add(otherUserid);
-        if (chatService.insertChatUsers(chatroomid, users) > 0) {
+        if (chatService.insertChatUsers(chatroomid, (ArrayList<String>) users) > 0) {
             return ResponseEntity.ok(chatroomid);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/new 에러");
