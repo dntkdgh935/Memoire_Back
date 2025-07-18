@@ -1,6 +1,7 @@
 package com.web.memoire.library.model.service;
 
 import com.web.memoire.common.dto.CollView;
+import com.web.memoire.common.dto.FollowRequest;
 import com.web.memoire.common.dto.Tag;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.library.jpa.repository.*;
@@ -403,6 +404,72 @@ public class LibraryService {
         }
 
         return collViews;
+    }
+
+    public List<FollowRequest> getFollowRequests(String userid) {
+        log.info("LibraryService에서 팔로우 목록 조회 시작");
+        List<RelationshipEntity> relationships = libRelationshipRepository.findByTargetidAndStatus(userid, "0");
+        log.info("관계 상태: "+relationships);
+        List<FollowRequest> followRequests = new ArrayList<>();
+
+
+        for (RelationshipEntity relationship : relationships) {
+            try {
+                String requesterId = relationship.getUserid();
+                String nickname = libUserRepository.findNicknameByUserId(requesterId);
+                String profileImage = libUserRepository.findProfileImagePathByUserId(requesterId);
+
+                // Optional을 사용하거나 null 체크를 할 수 있습니다.
+                if (nickname == null) {
+                    log.warn("닉네임이 없습니다. userId: {}", requesterId);
+                    nickname = "알 수 없음";  // 기본값 설정
+                }
+                if (profileImage == null) {
+                    log.warn("프로필 이미지가 없습니다. userId: {}", requesterId);
+                    profileImage = "";  // 기본값 설정
+                }
+                log.info("요청자 닉네임:"+nickname+ ", 프로필 path: "+profileImage);
+
+                FollowRequest followRequest = FollowRequest.builder()
+                        .requesterid(requesterId)
+                        .requesternickname(nickname)
+                        .requesterProfileImage(profileImage)
+                        .build();
+                followRequests.add(followRequest);
+            } catch (Exception e) {
+                log.error("팔로우 요청 변환 중 에러 발생", e);
+            }
+        }
+        log.info("찾은 팔로우 리퀘스트 리스트:"+followRequests);
+        return followRequests;
+    }
+
+    public void setRelationship(String userid, String targetid, String nextRel) {
+        try{
+            RelationshipId id = new RelationshipId(userid, targetid);
+            Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
+
+            if ("3".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
+                libRelationshipRepository.deleteById(id);  // 관계 삭제
+            } else {
+                // 상태가 3이 아니면 관계가 존재하므로 상태 변경
+                if (optional.isPresent()) {
+                    RelationshipEntity relationship = optional.get();
+                    relationship.setStatus(nextRel);  // 상태 변경
+                    libRelationshipRepository.save(relationship);  // 업데이트된 관계 저장
+                } else {
+                    // 관계가 없을 경우 새로 관계를 추가 (상태 0(요청)으로)
+                    RelationshipEntity newRelationship = new RelationshipEntity();
+                    newRelationship.setUserid(userid);
+                    newRelationship.setTargetid(targetid);
+                    newRelationship.setStatus(nextRel);
+                    newRelationship.setFollowDate(new Date());
+                    libRelationshipRepository.save(newRelationship);  // 새 관계 추가
+                }
+            }
+        }catch (Exception e){
+            throw new RuntimeException("알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 }
 
