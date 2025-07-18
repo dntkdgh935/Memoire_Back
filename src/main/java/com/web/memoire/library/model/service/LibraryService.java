@@ -232,15 +232,15 @@ public class LibraryService {
 
     }
 
-
-
     public Object findByCollectionid(int collectionid) {
-
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionid);
         return collection;
     }
+
+
     public Object getMemoriesByCollectionId(int collectionid) {
         List <MemoryEntity> memories =  libMemoryRepository.findByCollectionid(collectionid);
+        Collections.sort(memories, Comparator.comparingInt(MemoryEntity::getMemoryOrder));
         return memories;
     }
 
