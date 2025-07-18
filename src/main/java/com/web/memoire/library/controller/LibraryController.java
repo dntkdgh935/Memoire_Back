@@ -1,6 +1,7 @@
 package com.web.memoire.library.controller;
 
 
+import com.web.memoire.common.dto.FollowRequest;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -287,5 +289,31 @@ public class LibraryController {
         }
     }
 
+    @GetMapping("/followreqs")
+    public ResponseEntity<List<FollowRequest>> getFollowRequests(@RequestParam("userid") String userid) {
+        try {
+            log.info("LibraryController.getFollowRequests... <UNK> userid: {}", userid);
+            List<FollowRequest> followRequests = libraryService.getFollowRequests(userid);
+            log.info("요청 내용:"+followRequests);
+            if (followRequests.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new ArrayList<>());
+            } else {
+                return ResponseEntity.ok(followRequests);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @PostMapping("/followapproval")
+    public ResponseEntity<Object> followApproval(@RequestParam("requesterid") String requesterid, @RequestParam("targetid") String targetid) {
+        try{
+            String nextRel="1";
+            libraryService.setRelationship(requesterid, targetid, nextRel);
+            return ResponseEntity.ok().build();
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("DB에 관계 업데이트 실패");
+        }
+    }
 
 }

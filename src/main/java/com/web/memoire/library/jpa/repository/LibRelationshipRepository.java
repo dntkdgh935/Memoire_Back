@@ -17,4 +17,6 @@ public interface LibRelationshipRepository extends JpaRepository<RelationshipEnt
     List<RelationshipEntity> findAllUserFollowing(@Param("userid") String userid);
 
     Optional<RelationshipEntity> findByUseridAndTargetid(String userId, String authorid);
+
+    List<RelationshipEntity> findByTargetidAndStatus(String userid, String number);
 }
