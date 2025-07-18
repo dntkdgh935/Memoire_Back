@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException;
 import java.util.*;
 
 
@@ -317,22 +318,6 @@ public class LibraryService {
     }
 
 
-    // TODO: 클릭한 토픽에 대한 추천 (외부 시스템 가져올시 삭제)
-//    public Object getTopicColls4LoginUser(String userid, String selectedTag) {
-//        // 1. user 대상 추천 가능한 Collection 리스트 불러오기 ()
-//        //      + 공개범위가 public인 컬렉션 중
-//        //      -       relationship(2)인 targetid가 authorid인 컬렉션 제외
-//        //      + 공개범위가 follower인 컬렉션 중
-//        //              authorid가 targetid이고, viewer의 id인데, relatinoship status가 1인 경우 추가
-//        // 2. TB_COLLECTION 중 TB_TAG_TITLE_SIMILARITY에 selectedTag에 대한 유사도 점수가 있는 컬렉션들 뽑아 리스트로 만들고 정렬
-//        // 3. TB_COLLECTION 중 유사도 정보가 없는 컬렉션들을 껴넣음
-//        //   (정보 있는 컬렉션 10개마다 껴넣기(남은 개수가 10개도 없으면, 그만큼 넣고 마지막에 정보 없는 컬렉션을 붙이기)
-//        // 4. 유저 인터랙션 정보에 따라 재정렬
-//        // 5. 리턴
-//    }
-
-
-
     public List <CollView> searchCollections(String query, String userid) {
         // 컬렉션 이름에 키워드 포함한 것 리턴해, 한 컬렉션마다 CollView로 전환(makeCollectionView(collid, userid) 사용)
 
@@ -468,5 +453,45 @@ public class LibraryService {
                 .build();
     }
 
+    public Object findVisibleOwnerCollections(String userid, String ownerid) throws AccessDeniedException {
+        List<CollView> collViews = new ArrayList<>();
+        log.info("서비스 - 로그인 유저: "+userid+"방문 대상:"+ownerid);
+        Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userid, ownerid);
+        Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(ownerid, userid);
+        if (userToOtherRel.isPresent()) {
+            log.info("관계1: " + userToOtherRel.get().getStatus());
+        }
+        if (OtherToUserRel.isPresent()) {
+            log.info("관계2: " + OtherToUserRel.get().getStatus());
+        }
+        // 서로를 차단한 경우 오류 리턴
+        if ((userToOtherRel.isPresent() && userToOtherRel.get().getStatus().equals("2"))||
+                (OtherToUserRel.isPresent() && userToOtherRel.get().getStatus().equals("2"))) {
+            // 예외 던지기
+            log.error("차단 관계가 있습니다.");
+            throw new AccessDeniedException("You are blocked by this user.");
+        }
+
+        // 유저의 모든 컬렉션 가져옴
+        List<CollectionEntity> userCollections = libCollectionRepository.findByAuthoridAndVisibilityIn(ownerid, Arrays.asList("1", "2"));
+
+        for (CollectionEntity collection : userCollections) {
+            // 1. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
+            if (collection.getVisibility()==2) {
+                // 팔로우 상태이면 추가
+                if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
+                    collViews.add(makeCollectionView(collection.getId(), userid));
+                } else {
+                    // 팔로우하지 않으면 접근 불가
+                    log.info("user: " + userid + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
+                }
+            }
+            // 2. 전체 공개이면 보임
+            else if (collection.getVisibility()==1) {
+                collViews.add(makeCollectionView(collection.getId(), userid));
+            }
+        }
+        return collViews;
+    }
 }
 

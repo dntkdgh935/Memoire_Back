@@ -16,4 +16,8 @@ public interface LibCollectionRepository extends JpaRepository<CollectionEntity,
 
 
     List<CollectionEntity> findByVisibilityIn(List<String> list);
+
+    List<CollectionEntity> findByAuthorid(String ownerid);
+
+    List<CollectionEntity> findByAuthoridAndVisibilityIn(String ownerid, List<String> list);
 }
