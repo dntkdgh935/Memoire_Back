@@ -1,10 +1,7 @@
 package com.web.memoire.library.model.service;
 
-import com.web.memoire.common.dto.CollView;
+import com.web.memoire.common.dto.*;
 import com.web.memoire.common.dto.Collection;
-import com.web.memoire.common.dto.FollowRequest;
-import com.web.memoire.common.dto.Tag;
-import com.web.memoire.common.dto.UserCardView;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.library.jpa.repository.*;
 import com.web.memoire.user.jpa.entity.UserEntity;
@@ -620,17 +617,16 @@ public class LibraryService {
         return responseMono.block();
     }
 
-//    public List<Collection> getCollectionsByIdsInOrder(List<String> ids) {
-//        List<Collection> unordered = libCollectionRepository.findByIdIn(ids);
-//
-//        // 정렬
-//        Map<String, Collection> map = unordered.stream()
-//                .collect(Collectors.toMap(Collection::getId, dto -> dto));
-//
-//        return ids.stream()
-//                .map(map::get)
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toList());
-//    }
+    public List<CollView> findCollsWithTag(String query, String userid) {
+        int tagid = libTagRepository.findByTagName(query).getTagid(); // 검색된 태그의 아이디 찾기
+        List <CollectionTagEntity> colltags = libCollTagRepository.findByTagid(tagid); // 태그가 달린 컬렉션들
+
+        List<CollView> collViews = new ArrayList<>();
+        for (CollectionTagEntity colltag : colltags) {
+            CollView cv = makeCollectionView(colltag.getCollectionid(), userid);
+            collViews.add(cv);
+        }
+        return collViews;
+    }
 
 }

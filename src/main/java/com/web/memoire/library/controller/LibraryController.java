@@ -312,6 +312,24 @@ public class LibraryController {
         }
     }
 
+    @GetMapping("/search/tag")
+    public ResponseEntity<?> searchTags(
+            @RequestParam("query") String query,
+            @RequestParam("userid") String userid) {
+        log.info("📨 tag 검색어 요청: {}", query);
+
+        try {
+            List<CollView> result = libraryService.findCollsWithTag(query, userid);
+
+            // ✅ JSON 배열 그대로 클라이언트에 반환
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("🚨 태그로 컬렉션 검색 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("검색 중 오류 발생");
+        }
+    }
+
 
 
     // 유저 검색 (검색어와 userid를 함께 받기)
