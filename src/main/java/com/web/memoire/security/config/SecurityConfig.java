@@ -6,8 +6,8 @@ import com.web.memoire.security.handler.CustomLogoutHandler;
 import com.web.memoire.security.jwt.JWTUtil;
 import com.web.memoire.security.jwt.model.service.TokenService;
 import com.web.memoire.security.model.service.CustomUserDetailsService;
-import com.web.memoire.security.handler.CustomAuthenticationSuccessHandler; // ✅ 추가
-import com.web.memoire.security.oauth2.CustomOAuth2UserService; // ✅ 추가
+import com.web.memoire.security.handler.CustomAuthenticationSuccessHandler;
+import com.web.memoire.security.oauth2.CustomOAuth2UserService;
 import com.web.memoire.user.jpa.repository.SocialUserRepository;
 import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.service.UserService;
@@ -36,14 +36,14 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final JWTUtil jwtUtil;
     private final UserRepository userRepository;
     private final TokenService tokenService;
-    private final UserService userService; // ✅ UserService 주입 추가
+    private final UserService userService;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService, JWTUtil jwtUtil, UserRepository userRepository, TokenService tokenService, UserService userService) { // ✅ 생성자 인자에 UserService 추가
+    public SecurityConfig(CustomUserDetailsService userDetailsService, JWTUtil jwtUtil, UserRepository userRepository, TokenService tokenService, UserService userService) {
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.tokenService = tokenService;
-        this.userService = userService; // ✅ UserService 초기화
+        this.userService = userService;
     }
 
     @Bean
@@ -70,13 +70,11 @@ public class SecurityConfig implements WebMvcConfigurer {
         return daoAuthenticationProvider;
     }
 
-    // ✅ CustomOAuth2UserService 빈 등록
     @Bean
     public CustomOAuth2UserService customOAuth2UserService(UserRepository userRepository, SocialUserRepository socialUserRepository) {
         return new CustomOAuth2UserService(userRepository, socialUserRepository);
     }
 
-    // ✅ CustomAuthenticationSuccessHandler 빈 등록
     @Bean
     public CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler(JWTUtil jwtUtil, TokenService tokenService, UserRepository userRepository, SocialUserRepository socialUserRepository) {
         return new CustomAuthenticationSuccessHandler(jwtUtil, tokenService, userRepository, socialUserRepository);
@@ -100,9 +98,9 @@ public class SecurityConfig implements WebMvcConfigurer {
             JWTUtil jwtUtil,
             UserRepository userRepository,
             TokenService tokenService,
-            UserService userService, // LoginFilter에 전달하기 위함
-            CustomOAuth2UserService customOAuth2UserService, // ✅ 추가
-            CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler // ✅ 추가
+            UserService userService,
+            CustomOAuth2UserService customOAuth2UserService,
+            CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler
     ) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -110,7 +108,9 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/atelier/**").permitAll() // ✅ 아뜰리에꺼! 요거만 하나 추가!
+                        .requestMatchers("/atelier/**").permitAll()
+                        // ✅ /user/face-login 경로를 명시적으로 permitAll로 설정
+                        .requestMatchers("/user/face-login").permitAll()
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
                                 "/css/**", "/js/**").permitAll()
                         .requestMatchers("/api/**").permitAll()
@@ -122,9 +122,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                // JWTFilter 생성자 인자에 userDetailsService 추가 (수정)
                 .addFilterBefore(new JWTFilter(jwtUtil, userDetailsService), UsernamePasswordAuthenticationFilter.class)
-                // LoginFilter 생성자 인자는 이미 올바르게 설정되어 있습니다. (확인)
                 .addFilterAt(new LoginFilter(authenticationManager, jwtUtil, userRepository, tokenService, userService),
                         UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
@@ -138,19 +136,18 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
                 )
-                // ✅ OAuth2 로그인 설정 추가
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(endpoint -> endpoint
-                                .baseUri("/oauth2/authorization") // 클라이언트가 소셜 로그인 시작 시 요청할 기본 URI
+                                .baseUri("/oauth2/authorization")
                         )
                         .redirectionEndpoint(endpoint -> endpoint
-                                .baseUri("/login/oauth2/code/*") // IdP로부터 인가 코드를 받는 콜백 URI
+                                .baseUri("/login/oauth2/code/*")
                         )
                         .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService) // ✅ CustomOAuth2UserService 등록
+                                .userService(customOAuth2UserService)
                         )
-                        .successHandler(customAuthenticationSuccessHandler) // ✅ CustomAuthenticationSuccessHandler 등록
-                        .failureHandler((request, response, exception) -> { // ✅ 실패 핸들러 추가
+                        .successHandler(customAuthenticationSuccessHandler)
+                        .failureHandler((request, response, exception) -> {
                             log.error("OAuth2 Login Failed: {}", exception.getMessage(), exception);
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json; charset=utf-8");
