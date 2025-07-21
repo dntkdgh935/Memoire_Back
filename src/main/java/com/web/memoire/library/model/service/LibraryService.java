@@ -1,9 +1,7 @@
 package com.web.memoire.library.model.service;
 
-import com.web.memoire.common.dto.CollView;
-import com.web.memoire.common.dto.FollowRequest;
-import com.web.memoire.common.dto.Tag;
-import com.web.memoire.common.dto.UserCardView;
+import com.web.memoire.common.dto.*;
+import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.library.jpa.repository.*;
 import com.web.memoire.user.jpa.entity.UserEntity;
@@ -11,11 +9,16 @@ import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.nio.file.AccessDeniedException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -32,6 +35,8 @@ public class LibraryService {
     private final LibUserRepository libUserRepository;
     private final LibRelationshipRepository libRelationshipRepository;
     private final LibCollTagRepository libCollTagRepository;
+
+    private final WebClient webClient;
 
     // 모든 태그 가져오기
     public List<Tag> getAllTags() {
@@ -385,6 +390,13 @@ public class LibraryService {
         int likeCount = countLikesByCollectionId(collection.getId());
         int bookmarkCount = countBookmarksByCollectionId(collection.getId());
 
+        // 컬렉션에 달린 태그들
+        List<String> collTags = new ArrayList<>();
+        libCollTagRepository.findByCollectionid(collectionId).forEach(colltag -> {
+            collTags.add(libTagRepository.findByTagid(colltag.getTagid()).getTagName());
+        });
+        log.info("컬렉션에 달린 태그: "+collTags);
+
         // CollView 객체 생성 및 반환
         return CollView.builder()
                 .collectionid(collection.getId())
@@ -404,6 +416,7 @@ public class LibraryService {
                 .thumbType(thumbType)
                 .likeCount(likeCount)
                 .bookmarkCount(bookmarkCount)
+                .collTags(collTags)
                 .build();
     }
 
@@ -459,14 +472,17 @@ public class LibraryService {
     }
 
     private UserCardView makeUserView(String targetId, String loginUserid) {
-        //User테이블에서 정보 조회
-        //TB_TAG에서 정보 조회
-        //TB_RELATIONSHIP에서 정보 조회
-
         UserEntity user = libUserRepository.findByUserId(targetId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-        String loginId = user.getLoginId();
+        String userId = user.getUserId();
+        String loginId;
+        if (user.getLoginId() == null) {
+            loginId = "소셜로그인";
+        } else {
+            loginId = user.getLoginId();
+        }
+
         String nickname = user.getNickname();
         String profileImagePath= user.getProfileImagePath();
         String statusMessage=user.getStatusMessage();
@@ -476,7 +492,6 @@ public class LibraryService {
                 .map(RelationshipEntity::getStatus)  // 존재할 경우 상태 가져오기
                 .orElse("3");
 
-        List<String> userFreqTags = new ArrayList<>();
         List <CollectionEntity> userColls= libCollectionRepository.findByAuthoridAndVisibility(targetId,1);
         List <CollectionTagEntity> userCollTags = new ArrayList<>();
 
@@ -488,16 +503,18 @@ public class LibraryService {
         log.info("user tags: " + userCollTags);
 
         Map<String, Long> tagFrequencyMap = new HashMap<>();
-        for (CollectionTagEntity tag : userCollTags) {
+        for (CollectionTagEntity colltag : userCollTags) {
             // 각 태그에 대해 TagEntity를 가져옵니다.
-            TagEntity tagEntity = libTagRepository.findByTagid(tag.getTagid());
+            log.info("태그: " + Integer.toString(colltag.getTagid()));
+            TagEntity tagEntity = libTagRepository.findByTagid(colltag.getTagid());
+            log.info("태그 엔티티: " + tagEntity);
             if (tagEntity != null) {
                 String tagName = tagEntity.getTagName();
+                log.info("태그이름: " + tagName);
                 // 기존에 있는 태그라면 빈도수를 1 증가, 없다면 새로 추가
                 tagFrequencyMap.put(tagName, tagFrequencyMap.getOrDefault(tagName, 0L) + 1);
             }
         }
-
         // 빈도수 높은 3개의 태그를 추출 (내림차순 정렬 후 최대 3개 선택)
         List<String> mostFrequentTags = tagFrequencyMap.entrySet().stream()
                 .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))  // 빈도수 내림차순 정렬
@@ -506,65 +523,110 @@ public class LibraryService {
                 .collect(Collectors.toList());  // 리스트로 반환
 
         return UserCardView.builder()
+                .userId(userId)
                 .loginId(loginId)
                 .nickname(nickname)
                 .profileImagePath(profileImagePath)
                 .statusMessage(statusMessage)
                 .relStatusWLoginUser(relStatusWLoginUser)
-//                .userFreqTags()
+                .userFreqTags(mostFrequentTags)
                 .build();
     }
+
+    public Object getUserTopTags(String userid) {
+        List <CollectionEntity> userColls= libCollectionRepository.findByAuthoridAndVisibility(userid,1);
+        List <CollectionTagEntity> userCollTags = new ArrayList<>();
+
+        log.info("user colls: " + userColls);
+        for (CollectionEntity coll : userColls) {
+            userCollTags.addAll(libCollTagRepository.findByCollectionid(coll.getCollectionid()));
+            // coll에들어있는 모든 tagid들을 set으로 저장
+        }
+        log.info("user tags: " + userCollTags);
+
+        Map<String, Long> tagFrequencyMap = new HashMap<>();
+        for (CollectionTagEntity colltag : userCollTags) {
+            // 각 태그에 대해 TagEntity를 가져옵니다.
+            log.info("태그: " + Integer.toString(colltag.getTagid()));
+            TagEntity tagEntity = libTagRepository.findByTagid(colltag.getTagid());
+            log.info("태그 엔티티: " + tagEntity);
+            if (tagEntity != null) {
+                String tagName = tagEntity.getTagName();
+                log.info("태그이름: " + tagName);
+                // 기존에 있는 태그라면 빈도수를 1 증가, 없다면 새로 추가
+                tagFrequencyMap.put(tagName, tagFrequencyMap.getOrDefault(tagName, 0L) + 1);
+            }
+        }
+        // 빈도수 높은 3개의 태그를 추출 (내림차순 정렬 후 최대 3개 선택)
+        List<String> mostFrequentTags = tagFrequencyMap.entrySet().stream()
+                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))  // 빈도수 내림차순 정렬
+                .limit(3)  // 상위 3개 태그만 추출
+                .map(Map.Entry::getKey)  // 태그 이름만 추출
+                .collect(Collectors.toList());  // 리스트로 반환
+        return mostFrequentTags;
+
+    }
+
+    // List<String>으로 바꿔야 함
+    public List<CollView> hello(String query, String loginUserid) {
+        String fastApiUrl = "http://localhost:8000/library/search";
+
+        //1. 쿼리에 대한 응답 리스트 fastAPI에 받아오기
+        Mono<List<Integer>> responseMono = webClient.post()
+                .uri(fastApiUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("query", query))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<Integer>>() {});
+        List<Integer> orderedIds = responseMono.block();  // 예: [5, 3, 9]
+        if (orderedIds == null || orderedIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 해당 ID로 모든 컬렉션 조회
+        List<CollectionEntity> collections = libCollectionRepository.findAllById(orderedIds);
+
+        // 3. Map<Integer, CollectionEntity> 으로 수동 변환
+        Map<Integer, CollView> collViewMap = new HashMap<>();
+        for (CollectionEntity collection : collections) {
+            collViewMap.put(collection.getId(),makeCollectionView(collection.getId(), loginUserid));
+        }
+
+        // 4. 순서를 유지하여 List<CollectionEntity> 구성
+        List<CollView> result = new ArrayList<>();
+        for (Integer id : orderedIds) {
+            if (collViewMap.containsKey(id)) {
+                result.add(collViewMap.get(id));
+            }
+        }
+        return result;
+    }
+
+    public List<String> fetchCollectionIdsByQuery(String query) {
+        String fastApiUrl = "http://localhost:8000/library/search";
+
+        Mono<List<String>> responseMono = webClient.post()
+                .uri(fastApiUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("query", query))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<String>>() {
+                });
+
+        // 블로킹 방식으로 결과 반환
+        return responseMono.block();
+    }
+
+    public List<CollView> findCollsWithTag(String query, String userid) {
+        int tagid = libTagRepository.findByTagName(query).getTagid(); // 검색된 태그의 아이디 찾기
+        List <CollectionTagEntity> colltags = libCollTagRepository.findByTagid(tagid); // 태그가 달린 컬렉션들
+
+        List<CollView> collViews = new ArrayList<>();
+        for (CollectionTagEntity colltag : colltags) {
+            CollView cv = makeCollectionView(colltag.getCollectionid(), userid);
+            collViews.add(cv);
+        }
+        return collViews;
+    }
+
 }
-/*
- // 컬렉션 정보 조회
-        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
-
-        // Memory 정보 조회 (memory_order = 1인 첫 번째 메모리)
-        MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
-        String thumbnailPath = memory != null ? memory.getFilepath() : null;
-        String thumbType = memory != null ? memory.getMemoryType() : null;
-        String textContent = memory != null ? memory.getContent() : null;
-
-        // 작성자 정보 조회
-        Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
-        String authorName = author.isPresent() ? author.get().getName() : null;
-        String authorProfileImage = author.get().getProfileImagePath();
-        LikeEntity like;
-        BookmarkEntity bookmark;
-
-        // TODO: userid 가 없는 경우(비로그인시) 따로 처리
-        if (userId!=null) {
-            // 로그인 유저의 좋아요 및 북마크 여부 확인
-            like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
-            bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
-        }
-        else{
-            like=null;
-            bookmark=null;
-        }
-        // 컬렉션의 좋아요 수, 북마크 수
-        int likeCount = countLikesByCollectionId(collection.getId());
-        int bookmarkCount = countBookmarksByCollectionId(collection.getId());
-
-        // CollView 객체 생성 및 반환
-        return CollView.builder()
-                .collectionid(collection.getId())
-                .authorid(collection.getAuthorid())
-                .authorname(authorName)
-                .collectionTitle(collection.getCollectionTitle())
-                .readCount(collection.getReadCount())
-                .visibility(collection.getVisibility())
-                .createdDate(collection.getCreatedDate())
-                .titleEmbedding(collection.getTitleEmbedding())
-                .color(collection.getColor())
-                .thumbnailPath(thumbnailPath)
-                .textContent(textContent)
-                .userlike(like != null)
-                .userbookmark(bookmark != null)
-                .authorProfileImage(authorProfileImage)
-                .thumbType(thumbType)
-                .likeCount(likeCount)
-                .bookmarkCount(bookmarkCount)
-                .build();
- */
-

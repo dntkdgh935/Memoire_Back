@@ -1,7 +1,10 @@
 package com.web.memoire.library.controller;
 
 
+import com.web.memoire.common.dto.CollView;
+import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.dto.FollowRequest;
+import com.web.memoire.common.entity.CollectionEntity;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,8 +278,8 @@ public class LibraryController {
 
 
     // 컬렉션 검색 (검색어와 userid를 함께 받기)
-    @GetMapping("/search/collection")
-    public ResponseEntity<?> searchCollections(
+    @GetMapping("/search/imsi/collection")
+    public ResponseEntity<?> IsearchCollections(
             @RequestParam("query") String query,
             @RequestParam("userid") String userid) {
         log.info("LibraryController.searchCollections... 검색어: {}, userid: {}", query, userid);
@@ -289,6 +292,45 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 검색 실패");
         }
     }
+
+    @GetMapping("/search/collection")
+    public ResponseEntity<?> searchCollections(
+            @RequestParam("query") String query,
+            @RequestParam("userid") String userid) {
+        log.info("📨 검색어 요청: {}", query);
+
+        try {
+            List<CollView> result = libraryService.hello(query, userid);
+            log.info("🟢 FastAPI 응답 결과: {}", result);
+
+            // ✅ JSON 배열 그대로 클라이언트에 반환
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("🚨 컬렉션 검색 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("검색 중 오류 발생");
+        }
+    }
+
+    @GetMapping("/search/tag")
+    public ResponseEntity<?> searchTags(
+            @RequestParam("query") String query,
+            @RequestParam("userid") String userid) {
+        log.info("📨 tag 검색어 요청: {}", query);
+
+        try {
+            List<CollView> result = libraryService.findCollsWithTag(query, userid);
+
+            // ✅ JSON 배열 그대로 클라이언트에 반환
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("🚨 태그로 컬렉션 검색 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("검색 중 오류 발생");
+        }
+    }
+
+
 
     // 유저 검색 (검색어와 userid를 함께 받기)
     @GetMapping("/search/user")
@@ -346,6 +388,15 @@ public class LibraryController {
         catch (Exception e) {
             log.error("error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collections 에러");
+        }
+    }
+
+    @GetMapping("/userTopTags")
+    public ResponseEntity<?> userTopTags(@RequestParam("userid") String userid){
+        try {
+            return ResponseEntity.ok(libraryService.getUserTopTags(userid));
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("유저 top tags 리턴 실패");
         }
     }
 

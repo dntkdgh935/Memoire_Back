@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class UserCardView {
-
+    private String userId;
     private String loginId;
     private String nickname;
     private String profileImagePath;
