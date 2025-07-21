@@ -34,4 +34,16 @@ public interface ChatUsersRepository extends JpaRepository<ChatUsersEntity, Chat
             """, nativeQuery = true)
     String findByUserIdAndOtherUserId(@Param("userid") String userid, @Param("otherUserid") String otherUserid);
 
+    // 관리자와의 채팅방이 있는지 확인
+    @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.userid = :userid AND c.chatroomid LIKE 'admin%'")
+    ChatUsersEntity findAdminChatroom(@Param("userid") String userid);
+
+    // 관리자의 채팅방 조회
+    @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.chatroomid LIKE 'admin%'")
+    List<ChatUsersEntity> findAdminChatrooms();
+
+    // 특정유저가 채팅방에 있는지 조회
+    @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.userid = :userid AND c.chatroomid = :chatroomid")
+    ChatUsersEntity findByUserIdAndChatroomid(@Param("userid") String userid, @Param("chatroomid") String chatroomid);
+
 }

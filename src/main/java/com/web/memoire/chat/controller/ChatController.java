@@ -84,6 +84,111 @@ public class ChatController {
 
     }
 
+    @PostMapping("/admin/check")
+    public ResponseEntity<?> checkAdminChatroom(@RequestParam String user) {
+        log.info("ChatController.checkAdminChatroom...");
+        try {
+            log.info("userid : " + user);
+            return ResponseEntity.ok(chatService.findAdminChatroom(user));
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/admin/check 에러");
+        }
+    }
+
+    @PostMapping("/admin/new")
+    public ResponseEntity<?> createAdminChatroom(@RequestParam String user) {
+        log.info("ChatController.createAdminChatroom...");
+        String chatroomid = "admin-" + UUID.randomUUID().toString();
+        ArrayList<String> users = new ArrayList<>();
+        users.add(user);
+        if (chatService.insertChatUsers(chatroomid, users) > 0) {
+            return ResponseEntity.ok(chatroomid);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/admin/new 에러");
+
+    }
+
+
+//     log.info("ChatController.getChatrooms...");
+//        try {
+//        List<ChatRoomWithUsers> list = new ArrayList<>();
+//        ArrayList<ChatUsers> userChatrooms = chatService.findAllByUserId(userid);
+//        for (ChatUsers userChatroom : userChatrooms) {
+//            ArrayList<ChatUsers> usersInChatroom = chatService.findAllByChatroomid(userChatroom.getChatroomid());
+//            List<User> users = new ArrayList<>();
+//            for (ChatUsers chatUser : usersInChatroom) {
+//
+//                // 본인이면 스킵
+//                if (chatUser.getUserid().equals(userid)) {
+//                    continue;
+//                }
+//                // 유저 상세 정보 가져오기
+//                User user = chatService.findUserById(chatUser.getUserid());
+//
+//                // 필요한 정보만 추출
+//                User temp = new User();
+//                temp.setUserId(user.getUserId());
+//                temp.setLoginId(user.getLoginId());
+//                temp.setName(user.getName());
+//                users.add(temp);
+//            }
+//            list.add(new ChatRoomWithUsers(userChatroom.getChatroomid(), users));
+//
+//        }
+//        return ResponseEntity.ok(list);
+//    } catch (Exception e) {
+//        log.error("error", e);
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/chatrooms 에러");
+//    }
+    @GetMapping("/admin/chatrooms")
+    public ResponseEntity<?> getAdminChatrooms(@RequestParam String userid) {
+        log.info("ChatController.getAdminChatrooms...");
+        try {
+            List<ChatRoomWithUsers> list = new ArrayList<>();
+
+            ArrayList<ChatUsers> chatUsers = chatService.findAdminChatrooms();
+            for (ChatUsers chatUser : chatUsers) {
+                ArrayList<User> usersInChatroom = new ArrayList<>();
+                // 관리자 본인은 스킵
+                if (chatUser.getUserid().equals(userid)) {
+                    continue;
+                }
+                User user = chatService.findUserById(chatUser.getUserid());
+                User temp = new User();
+                temp.setUserId(user.getUserId());
+                temp.setLoginId(user.getLoginId());
+                temp.setName(user.getName());
+                usersInChatroom.add(temp);
+                ChatRoomWithUsers chatRoomWithUsers = new ChatRoomWithUsers(chatUser.getChatroomid(), usersInChatroom);
+                list.add(chatRoomWithUsers);
+
+            }
+            return ResponseEntity.ok(list);
+
+        } catch (Exception e) {
+        log.error("error", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/chatrooms 에러");
+
+        }
+    }
+
+    @GetMapping("/admin/start")
+    public ResponseEntity<?> addAdminToChatroom(@RequestParam String userid, @RequestParam String chatroomid) {
+        try {
+            if (!chatService.checkChatroom(userid, chatroomid)) {
+                ArrayList<String> users = new ArrayList<>();
+                users.add(userid);
+                chatService.insertChatUsers(chatroomid, users);
+            }
+            return ResponseEntity.ok("사용자 추가 완료");
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/admin/start 에러");
+
+        }
+    }
+
 
 
 

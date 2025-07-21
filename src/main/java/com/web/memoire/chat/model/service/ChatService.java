@@ -83,6 +83,10 @@ public class ChatService {
         return chatUsersRepository.findByUserIdAndOtherUserId(userid, otherUserid);
     }
 
+    public String findAdminChatroom(String userid) {
+        return chatUsersRepository.findAdminChatroom(userid) == null ? null : chatUsersRepository.findAdminChatroom(userid).getChatroomid();
+    }
+
     @Transactional
     public int insertChatUsers(String chatroomid, ArrayList<String> users) {
         ChatUsersEntity entity = new ChatUsersEntity();
@@ -95,6 +99,19 @@ public class ChatService {
         }
         return 1;
 
+    }
+
+    public ArrayList<ChatUsers> findAdminChatrooms() {
+        List<ChatUsersEntity> entityList = chatUsersRepository.findAdminChatrooms();
+        ArrayList<ChatUsers> list = new ArrayList<>();
+        for (ChatUsersEntity entity : entityList) {
+            list.add(entity.toDto());
+        }
+        return list;
+    }
+
+    public boolean checkChatroom(String userid, String chatroomid) {
+        return chatUsersRepository.findByUserIdAndChatroomid(userid, chatroomid) != null;
     }
 
 }
