@@ -27,11 +27,12 @@ public class JWTFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
-    // ✅ 인증이 필요 없는 정확한 경로 목록 (추가: /user/social, /user/socialSignUp)
+    // ✅ 인증이 필요 없는 정확한 경로 목록 (수정: user//face-login -> user/face-login)
     private static final List<String> PERMIT_ALL_PATHS_EXACT = Arrays.asList(
             "/", "/login", "/reissue", "/user/signup", "/user/idcheck","/user/findid","/user/findpwd", "/favicon.ico", "/manifest.json",
             "/user/social", "/user/socialSignUp",
-            "/user/social", "/user/social/complete-signup",
+            "/user/social/complete-signup",
+            "/user/face-login", // 이중 슬래시 제거
             "/oauth2/authorization/", "/oauth2/callback/success"
     );
     // ✅ 인증이 필요 없는 특정 문자열로 시작하는 경로 목록
@@ -41,24 +42,38 @@ public class JWTFilter extends OncePerRequestFilter {
 
 
     private boolean isExcludedUrl(String url) {
+        log.info("isExcludedUrl 호출됨 - 검사할 URL: '{}'", url);
         // 정확히 일치하는 경로 확인
         if (PERMIT_ALL_PATHS_EXACT.contains(url)) {
+            log.info("isExcludedUrl: 정확히 일치하는 PermitAll 경로 발견: '{}'", url);
             return true;
         }
+        log.info("isExcludedUrl: 정확히 일치하는 경로 없음. PERMIT_ALL_PATHS_EXACT: {}", PERMIT_ALL_PATHS_EXACT);
+
         // 특정 문자열로 시작하는 경로 확인
         for (String prefix : PERMIT_ALL_PATHS_START_WITH) {
             if (url.startsWith(prefix)) {
+                log.info("isExcludedUrl: 시작 부분이 일치하는 PermitAll 경로 발견: '{}' (프리픽스: '{}')", url, prefix);
                 return true;
             }
         }
+        log.info("isExcludedUrl: 시작 부분이 일치하는 경로 없음. PERMIT_ALL_PATHS_START_WITH: {}", PERMIT_ALL_PATHS_START_WITH);
+
 
         // ✅ 재열
-        if (url.startsWith("/atelier/")) return true;
+        if (url.startsWith("/atelier/")) {
+            log.info("isExcludedUrl: /atelier/ 시작 부분이 일치하는 PermitAll 경로 발견: '{}'", url);
+            return true;
+        }
+
 
         // .png, .jpg 파일과 같은 확장자 처리 (기존 로직 유지)
         if (url.endsWith(".png") || url.endsWith(".jpg")) { // .jpg도 추가
+            log.info("isExcludedUrl: 이미지 파일 확장자 PermitAll 경로 발견: '{}'", url);
             return true;
         }
+
+        log.info("isExcludedUrl: '{}'는 PermitAll 경로에 해당하지 않습니다.", url);
         return false;
     }
 
