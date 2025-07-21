@@ -1,5 +1,7 @@
 package com.web.memoire.atelier.ImTIm.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,8 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ImTImGenerationRequest {
-    private String imageUrl;
+    @JsonAlias("prompt")
     private String stylePrompt;
-    private String extraPrompt;
-    private String title;
+    @JsonAlias("image_url")
+    private String imageUrl;
 }

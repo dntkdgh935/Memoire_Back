@@ -9,6 +9,7 @@ import com.web.memoire.atelier.ImTIm.model.service.ImTImPythonApiService;
 import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.dto.Memory;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.text.ParseException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/atelier/imtim")
 @RequiredArgsConstructor
@@ -42,6 +44,7 @@ public class ImTImController {
     public ResponseEntity<ImTImResultDto> generateImage(
             @RequestBody ImTImGenerationRequest request
     ) {
+        log.info("Generate image request: {}", request);
         ImTImResultDto result = imtimPythonApiService.generateImage(request);
         return ResponseEntity.ok(result);
     }
