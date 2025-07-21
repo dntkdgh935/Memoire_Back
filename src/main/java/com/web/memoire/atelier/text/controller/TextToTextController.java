@@ -1,7 +1,9 @@
 package com.web.memoire.atelier.text.controller;
 
 import com.web.memoire.atelier.text.jpa.repository.MemoryRepository;
+import com.web.memoire.atelier.jpa.repository.CollectionRepository;
 import com.web.memoire.common.entity.MemoryEntity;
+import com.web.memoire.common.entity.CollectionEntity;
 import com.web.memoire.atelier.text.model.dto.TextGenerationRequest;
 import com.web.memoire.atelier.text.model.dto.TextResultDto;
 import com.web.memoire.atelier.text.model.service.TextToTextService;
@@ -20,6 +22,7 @@ public class TextToTextController {
 
     private final TextToTextService textToTextService;
     private final MemoryRepository memoryRepository;
+    private final CollectionRepository collectionRepository;
 
     // ✅ 1) 특정 컬렉션의 메모리 목록 조회
     @GetMapping("/memories/{collectionId}")
@@ -30,7 +33,7 @@ public class TextToTextController {
         return ResponseEntity.ok(memories);
     }
 
-    // ✅ 2) 단일 메모리 조회
+    // ✅ 3) 단일 메모리 조회
     @GetMapping("/memory/{memoryId}")
     public ResponseEntity<MemoryEntity> getMemoryById(@PathVariable Integer memoryId) {
         return memoryRepository.findById(memoryId)
@@ -38,7 +41,7 @@ public class TextToTextController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ 3) GPT 텍스트 생성
+    // ✅ 4) GPT 텍스트 생성
     @PostMapping("/generate")
     public ResponseEntity<TextResultDto> generateText(@RequestBody TextGenerationRequest request) {
         System.out.println("DEBUG: inputText = " + request.getInputText());
@@ -47,14 +50,10 @@ public class TextToTextController {
         return ResponseEntity.ok(result);
     }
 
-    // ✅ 4) 새 메모리로 저장
+    // ✅ 5) 새 메모리로 저장 - 자동 ID 전략에 맞게 수정
     @PostMapping("/save")
     public ResponseEntity<String> saveNewMemory(@RequestBody TextResultDto dto) {
-        // 메모리ID는 auto increment가 아니라면 수동으로 관리 필요
-        int newId = memoryRepository.findMaxMemoryId() + 1;
-
         MemoryEntity memory = MemoryEntity.builder()
-                .memoryid(newId)
                 .title(dto.getTitle())
                 .content(dto.getContent())
                 .collectionid(dto.getCollectionId())
@@ -67,7 +66,7 @@ public class TextToTextController {
         return ResponseEntity.ok("메모리 저장 완료");
     }
 
-    // ✅ 5) 기존 메모리 덮어쓰기
+    // ✅ 6) 기존 메모리 덮어쓰기
     @PutMapping("/update/{memoryId}")
     public ResponseEntity<String> updateMemory(@PathVariable int memoryId, @RequestBody TextResultDto dto) {
         return memoryRepository.findById(memoryId)

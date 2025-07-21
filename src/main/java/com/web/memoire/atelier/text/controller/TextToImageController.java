@@ -20,13 +20,6 @@ public class TextToImageController {
     private final TextToImageService textToImageService;
     private final MemoryRepository memoryRepository;
 
-    // 1) 특정 컬렉션의 메모리 목록 조회
-    @GetMapping("/memories/{collectionId}")
-    public ResponseEntity<List<MemoryEntity>> getMemories(@PathVariable int collectionId) {
-        List<MemoryEntity> memories = memoryRepository.findByCollectionid(collectionId);
-        return ResponseEntity.ok(memories);
-    }
-
     // 2) 단일 메모리 조회
     @GetMapping("/memory/{memoryId}")
     public ResponseEntity<MemoryEntity> getMemoryById(@PathVariable int memoryId) {
