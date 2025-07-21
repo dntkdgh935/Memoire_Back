@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -215,7 +216,7 @@ public class ArchiveController {
 
 //    오류 가능성: transactional처리가 따로따로 됨 (insertCollection -> insertMemory)
     @PostMapping(value = "/newColl", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file) {
+    public ResponseEntity<?> insertNewCollection(@ModelAttribute Collection collection, @ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file, @RequestParam(name = "tags", required = false) List<String> tags) {
         log.info("ArchiveController.insertNewCollection...");
         log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
         log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
@@ -232,7 +233,11 @@ public class ArchiveController {
                 memory.setFilename(null);
                 memory.setFilepath(null);
                 if (archiveService.insertMemory(memory) > 0) {
-                    return ResponseEntity.ok("저장 성공");
+                    if (archiveService.addTags(tags, collectionid) > 0) {
+                        return ResponseEntity.ok("저장 성공");
+                    } else {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+                    }
                 } else {
                     // 텍스트 메모리 저장 실패
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
@@ -253,7 +258,11 @@ public class ArchiveController {
                     if (archiveService.insertMemory(memory) > 0) {
                         try {
                             file.transferTo(new File(savePath, memory.getFilename()));
-                            return ResponseEntity.ok("저장 성공");
+                            if (archiveService.addTags(tags, collectionid) > 0) {
+                                return ResponseEntity.ok("저장 성공");
+                            } else {
+                                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
+                            }
                         } catch (Exception e) {
                             // 파일 저장 실패
                             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newColl 에러");
@@ -278,7 +287,7 @@ public class ArchiveController {
     }
 
     @PostMapping(value = "/newMemory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> insertNewMemory(@ModelAttribute Memory memory, @RequestParam String authorid, @RequestParam(name = "file", required = false) MultipartFile file) {
+    public ResponseEntity<?> insertNewMemory(@ModelAttribute Memory memory, @RequestParam String authorid, @RequestParam(name = "file", required = false) MultipartFile file, @RequestParam(name = "tags", required = false) List<String> tags) {
         log.info("ArchiveController.insertNewMemory...");
         log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
 
@@ -292,7 +301,11 @@ public class ArchiveController {
             memory.setFilename(null);
             memory.setFilepath(null);
             if (archiveService.insertMemory(memory) > 0) {
-                return ResponseEntity.ok("저장 성공");
+                if (archiveService.addTags(tags, memory.getCollectionid()) > 0) {
+                    return ResponseEntity.ok("저장 성공");
+                } else {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+                }
             } else {
                 // 텍스트 메모리 저장 실패
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
@@ -313,7 +326,13 @@ public class ArchiveController {
                 if (archiveService.insertMemory(memory) > 0) {
                     try {
                         file.transferTo(new File(savePath, memory.getFilename()));
-                        return ResponseEntity.ok("저장 성공");
+                        if (archiveService.addTags(tags, memory.getCollectionid()) > 0) {
+                            return ResponseEntity.ok("저장 성공");
+                        } else {
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
+                        }
+
+
                     } catch (Exception e) {
                         // 파일 저장 실패
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/newMemory 에러");
@@ -333,7 +352,7 @@ public class ArchiveController {
     }
 
     @PostMapping("/editColl")
-    public ResponseEntity<?> editCollection(@ModelAttribute Collection collection) {
+    public ResponseEntity<?> editCollection(@ModelAttribute Collection collection, @RequestParam(name = "tags", required = false) List<String> tags) {
         log.info("ArchiveController.editCollection...");
         log.info("collection : " + collection); // collection : Collection(collectionid=null, authorid=blabla, collectionTitle=blabla, readCount=0, visibility=1, createdDate=null, titleEmbedding=null, color=#000000)
 //        TODO: 여긴 추가하거나 말거나 (컬렉션을 편집하면 임베딩을 새로고침)
@@ -348,7 +367,11 @@ public class ArchiveController {
 //        컬렉션 수정하면 날짜 초기화
         collection.setCreatedDate(new Date());
         if (archiveService.insertCollection(collection) > 0) {
-            return ResponseEntity.ok("저장 성공");
+            if (archiveService.addTags(tags, collection.getCollectionid()) > 0) {
+                return ResponseEntity.ok("저장 성공");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+            }
         } else {
             // 컬렉션 저장 실패
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editColl 에러");
@@ -365,9 +388,6 @@ public class ArchiveController {
                 } else if (memory.getMemoryType().equals("video")) {
                     new File(uploadDir + "\\memory_video\\" + memory.getFilename()).delete();
                 }
-                if (archiveService.deleteMemory(memory.getMemoryid()) <= 0) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/collection/{collectionid} 에러");
-                }
             }
             if (archiveService.deleteCollection(collectionid) > 0) {
                 return ResponseEntity.ok("삭제 성공");
@@ -381,7 +401,7 @@ public class ArchiveController {
     }
 
     @PostMapping(value = "/editMemory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> editMemory(@ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file, @RequestParam String previousFileType, @RequestParam String previousFileName) {
+    public ResponseEntity<?> editMemory(@ModelAttribute Memory memory, @RequestParam(name = "file", required = false) MultipartFile file, @RequestParam String previousFileType, @RequestParam String previousFileName, @RequestParam(name = "tags", required = false) List<String> tags) {
         log.info("ArchiveController.editMemory...");
         log.info("memory: " + memory); // memory: Memory(memoryid=0, memoryType=text, collectionid=0, title=123123123123123, content=1231231135161, filename=null, filepath=null, createdDate=null, memoryOrder=0)
         memory.setCreatedDate(new Date());
@@ -398,7 +418,11 @@ public class ArchiveController {
                 } catch (Exception e) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
                 }
-                return ResponseEntity.ok("저장 성공");
+                if (archiveService.addTags(tags, memory.getCollectionid()) > 0) {
+                    return ResponseEntity.ok("저장 성공");
+                } else {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+                }
             } else {
                 // 텍스트 메모리 저장 실패
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
@@ -424,7 +448,11 @@ public class ArchiveController {
                         } else if (previousFileType.equals("video")) {
                             new File(uploadDir + "\\memory_video\\" + previousFileName).delete();
                         }
-                        return ResponseEntity.ok("저장 성공");
+                        if (archiveService.addTags(tags, memory.getCollectionid()) > 0) {
+                            return ResponseEntity.ok("저장 성공");
+                        } else {
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
+                        }
                     } catch (Exception e) {
                         // 파일 저장 실패
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/editMemory 에러");
@@ -467,6 +495,29 @@ public class ArchiveController {
             return ResponseEntity.ok("썸네일 설정 성공");
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/setThumbnail/{memoryid} 에러");
+    }
+
+    @GetMapping("/tags")
+    public ResponseEntity<?> getTags(@RequestParam int collectionid) {
+        log.info("ArchiveController.getTags");
+        try {
+            return ResponseEntity.ok(archiveService.findAllTagsByCollectionid(collectionid));
+
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/tags 에러");
+        }
+    }
+
+    @GetMapping("/tags/search")
+    public ResponseEntity<?> searchTags(@RequestParam String keyword) {
+        log.info("ArchiveController.searchTags...");
+        try {
+            return ResponseEntity.ok(archiveService.findTop20TagsWithKeyword(keyword));
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/tags/search 에러");
+        }
     }
 
 

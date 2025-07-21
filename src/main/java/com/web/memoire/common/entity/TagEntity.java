@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 public class TagEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tag_seq")
+    @SequenceGenerator(name = "tag_seq", sequenceName = "SEQ_TB_TAG_TAGID", allocationSize = 1)
     @Column(name = "TAGID", nullable = false)
     private int tagid;
 

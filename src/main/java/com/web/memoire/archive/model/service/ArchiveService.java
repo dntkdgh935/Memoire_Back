@@ -14,6 +14,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
@@ -41,7 +42,12 @@ public class ArchiveService {
     @Autowired
     private final ArchiveRelationshipRepository archiveRelationshipRepository;
     @Autowired
+    private final ArchiveTagRepository archiveTagRepository;
+    @Autowired
     private OpenAIService openAIService;
+    @Autowired
+    private ArchiveCollectionTagRepository archiveCollectionTagRepository;
+
 
     // UserRepository
     public User findUserById(String userid) {
@@ -124,6 +130,50 @@ public class ArchiveService {
     }
 
     // ArchiveCollectionTagRepository
+    public ArrayList<String> findAllTagsByCollectionid(int collectionid) {
+        List<CollectionTagEntity> entityList = archiveCollectionTagRepository.findCollectionTagByCollectionId(collectionid);
+        ArrayList<String> list = new ArrayList<>();
+        for (CollectionTagEntity entity : entityList) {
+            list.add(archiveTagRepository.findTagById(entity.getTagid()).getTagName());
+        }
+        return list;
+    }
+
+    @Transactional
+    public int addTags(List<String> tags, int collectionid) {
+        try {
+            archiveCollectionTagRepository.deleteByCollectionid(collectionid);
+            if (tags == null || tags.isEmpty()) {
+                return 1;
+            }
+        } catch (Exception e) {
+            return 0;
+        }
+        for (String tag : tags) {
+            TagEntity tagEntity = archiveTagRepository.findTagByName(tag);
+            if (tagEntity == null) {
+                TagEntity newTag = new TagEntity();
+                newTag.setTagName(tag);
+                newTag.setSearchCount(0);
+                newTag.setLikeCount(0);
+//                TODO: tagEmbedding is set here
+                newTag.setTagEmbedding(null);
+                TagEntity t = archiveTagRepository.save(newTag);
+                if (t == null) {
+                    return 0;
+                }
+                if (archiveCollectionTagRepository.save(new CollectionTagEntity(collectionid, t.getTagid())) == null) {
+                    return 0;
+                }
+            } else {
+                if (archiveCollectionTagRepository.save(new CollectionTagEntity(collectionid, tagEntity.getTagid())) == null) {
+                    return 0;
+                }
+            }
+        }
+        return 1;
+
+    }
 
     // ArchiveLikeRepository
     public ArrayList<Like> findAllUserLikes(String userid) {
@@ -257,6 +307,14 @@ public class ArchiveService {
     // ArchiveReportRepository
 
     // ArchiveTagRepository
+    public ArrayList<String> findTop20TagsWithKeyword(String keyword) {
+        List<TagEntity> entityList = archiveTagRepository.findTop20TagsWithKeyword(keyword, PageRequest.of(0, 20));
+        ArrayList<String> list = new ArrayList<>();
+        for (TagEntity entity : entityList) {
+            list.add(entity.getTagName());
+        }
+        return list;
+    }
 
     // 기타 메소드
     private List<CollView> collectionArrayToCollViewArray(String userid, ArrayList<CollectionEntity> collection) {
@@ -381,4 +439,6 @@ public class ArchiveService {
     public Collection getCollectionById(@NotNull int collectionid) {
         return archiveCollectionRepository.findCollectionById(collectionid).toDto();
     }
+
+
 }
