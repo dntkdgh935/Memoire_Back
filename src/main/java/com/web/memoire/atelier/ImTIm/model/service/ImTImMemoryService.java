@@ -51,7 +51,6 @@ public class ImTImMemoryService {
         MemoryEntity m = imtimmemoryRepository.findById(memoryId)
                 .orElseThrow(() -> new EntityNotFoundException("Memory not found: " + memoryId));
 
-        m.setTitle(dto.getTitle());
         m.setFilename(dto.getFilename());
         m.setFilepath(dto.getFilepath());
 
