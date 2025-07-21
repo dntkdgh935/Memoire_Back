@@ -30,9 +30,6 @@ public class Tag {
 
     private String tagEmbedding;
 
-    public String getTagName() {
-        return tagName;
-    }
 
     public TagEntity toEntity() {
         return TagEntity.builder()

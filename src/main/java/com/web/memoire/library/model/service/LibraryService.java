@@ -466,7 +466,14 @@ public class LibraryService {
         UserEntity user = libUserRepository.findByUserId(targetId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-        String loginId = user.getLoginId();
+        String userId = user.getUserId();
+        String loginId;
+        if (user.getLoginId() == null) {
+            loginId = "소셜로그인";
+        } else {
+            loginId = user.getLoginId();
+        }
+
         String nickname = user.getNickname();
         String profileImagePath= user.getProfileImagePath();
         String statusMessage=user.getStatusMessage();
@@ -476,7 +483,6 @@ public class LibraryService {
                 .map(RelationshipEntity::getStatus)  // 존재할 경우 상태 가져오기
                 .orElse("3");
 
-        List<String> userFreqTags = new ArrayList<>();
         List <CollectionEntity> userColls= libCollectionRepository.findByAuthoridAndVisibility(targetId,1);
         List <CollectionTagEntity> userCollTags = new ArrayList<>();
 
@@ -488,11 +494,14 @@ public class LibraryService {
         log.info("user tags: " + userCollTags);
 
         Map<String, Long> tagFrequencyMap = new HashMap<>();
-        for (CollectionTagEntity tag : userCollTags) {
+        for (CollectionTagEntity colltag : userCollTags) {
             // 각 태그에 대해 TagEntity를 가져옵니다.
-            TagEntity tagEntity = libTagRepository.findByTagid(tag.getTagid());
+            log.info("태그: " + Integer.toString(colltag.getTagid()));
+            TagEntity tagEntity = libTagRepository.findByTagid(colltag.getTagid());
+            log.info("태그 엔티티: " + tagEntity);
             if (tagEntity != null) {
                 String tagName = tagEntity.getTagName();
+                log.info("태그이름: " + tagName);
                 // 기존에 있는 태그라면 빈도수를 1 증가, 없다면 새로 추가
                 tagFrequencyMap.put(tagName, tagFrequencyMap.getOrDefault(tagName, 0L) + 1);
             }
@@ -506,65 +515,13 @@ public class LibraryService {
                 .collect(Collectors.toList());  // 리스트로 반환
 
         return UserCardView.builder()
+                .userId(userId)
                 .loginId(loginId)
                 .nickname(nickname)
                 .profileImagePath(profileImagePath)
                 .statusMessage(statusMessage)
                 .relStatusWLoginUser(relStatusWLoginUser)
-//                .userFreqTags()
+                .userFreqTags(mostFrequentTags)
                 .build();
     }
 }
-/*
- // 컬렉션 정보 조회
-        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
-
-        // Memory 정보 조회 (memory_order = 1인 첫 번째 메모리)
-        MemoryEntity memory = libMemoryRepository.findByCollectionidAndMemoryOrder(collection.getId(), 1);
-        String thumbnailPath = memory != null ? memory.getFilepath() : null;
-        String thumbType = memory != null ? memory.getMemoryType() : null;
-        String textContent = memory != null ? memory.getContent() : null;
-
-        // 작성자 정보 조회
-        Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
-        String authorName = author.isPresent() ? author.get().getName() : null;
-        String authorProfileImage = author.get().getProfileImagePath();
-        LikeEntity like;
-        BookmarkEntity bookmark;
-
-        // TODO: userid 가 없는 경우(비로그인시) 따로 처리
-        if (userId!=null) {
-            // 로그인 유저의 좋아요 및 북마크 여부 확인
-            like = libLikeRepository.findByUseridAndCollectionid(userId, collection.getId());
-            bookmark = libBookmarkRepository.findByUseridAndCollectionid(userId, collection.getId());
-        }
-        else{
-            like=null;
-            bookmark=null;
-        }
-        // 컬렉션의 좋아요 수, 북마크 수
-        int likeCount = countLikesByCollectionId(collection.getId());
-        int bookmarkCount = countBookmarksByCollectionId(collection.getId());
-
-        // CollView 객체 생성 및 반환
-        return CollView.builder()
-                .collectionid(collection.getId())
-                .authorid(collection.getAuthorid())
-                .authorname(authorName)
-                .collectionTitle(collection.getCollectionTitle())
-                .readCount(collection.getReadCount())
-                .visibility(collection.getVisibility())
-                .createdDate(collection.getCreatedDate())
-                .titleEmbedding(collection.getTitleEmbedding())
-                .color(collection.getColor())
-                .thumbnailPath(thumbnailPath)
-                .textContent(textContent)
-                .userlike(like != null)
-                .userbookmark(bookmark != null)
-                .authorProfileImage(authorProfileImage)
-                .thumbType(thumbType)
-                .likeCount(likeCount)
-                .bookmarkCount(bookmarkCount)
-                .build();
- */
-
