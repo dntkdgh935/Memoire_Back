@@ -459,10 +459,6 @@ public class LibraryService {
     }
 
     private UserCardView makeUserView(String targetId, String loginUserid) {
-        //User테이블에서 정보 조회
-        //TB_TAG에서 정보 조회
-        //TB_RELATIONSHIP에서 정보 조회
-
         UserEntity user = libUserRepository.findByUserId(targetId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
 
@@ -506,7 +502,6 @@ public class LibraryService {
                 tagFrequencyMap.put(tagName, tagFrequencyMap.getOrDefault(tagName, 0L) + 1);
             }
         }
-
         // 빈도수 높은 3개의 태그를 추출 (내림차순 정렬 후 최대 3개 선택)
         List<String> mostFrequentTags = tagFrequencyMap.entrySet().stream()
                 .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))  // 빈도수 내림차순 정렬
@@ -523,5 +518,39 @@ public class LibraryService {
                 .relStatusWLoginUser(relStatusWLoginUser)
                 .userFreqTags(mostFrequentTags)
                 .build();
+    }
+
+    public Object getUserTopTags(String userid) {
+        List <CollectionEntity> userColls= libCollectionRepository.findByAuthoridAndVisibility(userid,1);
+        List <CollectionTagEntity> userCollTags = new ArrayList<>();
+
+        log.info("user colls: " + userColls);
+        for (CollectionEntity coll : userColls) {
+            userCollTags.addAll(libCollTagRepository.findByCollectionid(coll.getCollectionid()));
+            // coll에들어있는 모든 tagid들을 set으로 저장
+        }
+        log.info("user tags: " + userCollTags);
+
+        Map<String, Long> tagFrequencyMap = new HashMap<>();
+        for (CollectionTagEntity colltag : userCollTags) {
+            // 각 태그에 대해 TagEntity를 가져옵니다.
+            log.info("태그: " + Integer.toString(colltag.getTagid()));
+            TagEntity tagEntity = libTagRepository.findByTagid(colltag.getTagid());
+            log.info("태그 엔티티: " + tagEntity);
+            if (tagEntity != null) {
+                String tagName = tagEntity.getTagName();
+                log.info("태그이름: " + tagName);
+                // 기존에 있는 태그라면 빈도수를 1 증가, 없다면 새로 추가
+                tagFrequencyMap.put(tagName, tagFrequencyMap.getOrDefault(tagName, 0L) + 1);
+            }
+        }
+        // 빈도수 높은 3개의 태그를 추출 (내림차순 정렬 후 최대 3개 선택)
+        List<String> mostFrequentTags = tagFrequencyMap.entrySet().stream()
+                .sorted((entry1, entry2) -> entry2.getValue().compareTo(entry1.getValue()))  // 빈도수 내림차순 정렬
+                .limit(3)  // 상위 3개 태그만 추출
+                .map(Map.Entry::getKey)  // 태그 이름만 추출
+                .collect(Collectors.toList());  // 리스트로 반환
+        return mostFrequentTags;
+
     }
 }

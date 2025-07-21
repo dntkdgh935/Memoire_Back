@@ -349,4 +349,13 @@ public class LibraryController {
         }
     }
 
+    @GetMapping("/userTopTags")
+    public ResponseEntity<?> userTopTags(@RequestParam("userid") String userid){
+        try {
+            return ResponseEntity.ok(libraryService.getUserTopTags(userid));
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("유저 top tags 리턴 실패");
+        }
+    }
+
 }
