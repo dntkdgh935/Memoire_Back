@@ -1,6 +1,7 @@
 package com.web.memoire.library.model.service;
 
 import com.web.memoire.common.dto.CollView;
+import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.dto.FollowRequest;
 import com.web.memoire.common.dto.Tag;
 import com.web.memoire.common.dto.UserCardView;
@@ -11,11 +12,16 @@ import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.nio.file.AccessDeniedException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -32,6 +38,8 @@ public class LibraryService {
     private final LibUserRepository libUserRepository;
     private final LibRelationshipRepository libRelationshipRepository;
     private final LibCollTagRepository libCollTagRepository;
+
+    private final WebClient webClient;
 
     // 모든 태그 가져오기
     public List<Tag> getAllTags() {
@@ -385,6 +393,13 @@ public class LibraryService {
         int likeCount = countLikesByCollectionId(collection.getId());
         int bookmarkCount = countBookmarksByCollectionId(collection.getId());
 
+        // 컬렉션에 달린 태그들
+        List<String> collTags = new ArrayList<>();
+        libCollTagRepository.findByCollectionid(collectionId).forEach(colltag -> {
+            collTags.add(libTagRepository.findByTagid(colltag.getTagid()).getTagName());
+        });
+        log.info("컬렉션에 달린 태그: "+collTags);
+
         // CollView 객체 생성 및 반환
         return CollView.builder()
                 .collectionid(collection.getId())
@@ -404,6 +419,7 @@ public class LibraryService {
                 .thumbType(thumbType)
                 .likeCount(likeCount)
                 .bookmarkCount(bookmarkCount)
+                .collTags(collTags)
                 .build();
     }
 
@@ -553,4 +569,68 @@ public class LibraryService {
         return mostFrequentTags;
 
     }
+
+    // List<String>으로 바꿔야 함
+    public List<CollView> hello(String query, String loginUserid) {
+        String fastApiUrl = "http://localhost:8000/library/search";
+
+        //1. 쿼리에 대한 응답 리스트 fastAPI에 받아오기
+        Mono<List<Integer>> responseMono = webClient.post()
+                .uri(fastApiUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("query", query))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<Integer>>() {});
+        List<Integer> orderedIds = responseMono.block();  // 예: [5, 3, 9]
+        if (orderedIds == null || orderedIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 해당 ID로 모든 컬렉션 조회
+        List<CollectionEntity> collections = libCollectionRepository.findAllById(orderedIds);
+
+        // 3. Map<Integer, CollectionEntity> 으로 수동 변환
+        Map<Integer, CollView> collViewMap = new HashMap<>();
+        for (CollectionEntity collection : collections) {
+            collViewMap.put(collection.getId(),makeCollectionView(collection.getId(), loginUserid));
+        }
+
+        // 4. 순서를 유지하여 List<CollectionEntity> 구성
+        List<CollView> result = new ArrayList<>();
+        for (Integer id : orderedIds) {
+            if (collViewMap.containsKey(id)) {
+                result.add(collViewMap.get(id));
+            }
+        }
+        return result;
+    }
+
+    public List<String> fetchCollectionIdsByQuery(String query) {
+        String fastApiUrl = "http://localhost:8000/library/search";
+
+        Mono<List<String>> responseMono = webClient.post()
+                .uri(fastApiUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("query", query))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<String>>() {
+                });
+
+        // 블로킹 방식으로 결과 반환
+        return responseMono.block();
+    }
+
+//    public List<Collection> getCollectionsByIdsInOrder(List<String> ids) {
+//        List<Collection> unordered = libCollectionRepository.findByIdIn(ids);
+//
+//        // 정렬
+//        Map<String, Collection> map = unordered.stream()
+//                .collect(Collectors.toMap(Collection::getId, dto -> dto));
+//
+//        return ids.stream()
+//                .map(map::get)
+//                .filter(Objects::nonNull)
+//                .collect(Collectors.toList());
+//    }
+
 }
