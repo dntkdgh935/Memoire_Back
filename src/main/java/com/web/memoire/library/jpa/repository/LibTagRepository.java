@@ -18,4 +18,5 @@ public interface LibTagRepository extends JpaRepository<TagEntity, Integer> {
     """, nativeQuery = true)
     List<TagEntity> findTop5TagsByRownum();
 
+    TagEntity findByTagid(int tagid);
 }
