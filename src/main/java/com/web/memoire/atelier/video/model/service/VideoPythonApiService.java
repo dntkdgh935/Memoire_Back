@@ -67,7 +67,6 @@ public class VideoPythonApiService {
             );
         }
 
-        // 2) 자연음 생성 (옵션)
         String musicUrl = null;
 
         AudioRequest audioReq = AudioRequest.builder()

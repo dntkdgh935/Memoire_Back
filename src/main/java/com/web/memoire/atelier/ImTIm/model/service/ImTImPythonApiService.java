@@ -58,26 +58,13 @@ public class ImTImPythonApiService {
         String filename = UUID.randomUUID().toString() + ".png";
         log.info("filename is {}", filename);
 
-        Map<String,String> refineReq = Map.of(
-                "tts_raw",        "",
-                "video_person_raw","",
-                "video_noperson_raw","",
-                "image_raw",      request.getStylePrompt()
-        );
-        ResponseEntity<PromptRefinementResponse> refResp = restTemplate.postForEntity(
-                pythonBaseUrl + "/atelier/openai/refine-prompts",
-                refineReq,
-                PromptRefinementResponse.class
-        );
-        log.info("Refine response: {}", refResp.getBody());
-        if (!refResp.getStatusCode().is2xxSuccessful() || refResp.getBody() == null) {
-            throw new ImageGenerationException("프롬프트 정제 실패");
-        }
-        String refinedPrompt = refResp.getBody().getImagePrompt();
+        String url = pythonBaseUrl + "/atelier/image-1/generate";
+        log.info("▶️ Calling Python at URL: {}", url);
+
 
         try {
             Map<String, String> fastApiPayload = Map.of(
-                    "prompt",     refinedPrompt,
+                    "prompt",     request.getStylePrompt(),
                     "image_url",  request.getImageUrl()
             );
             ResponseEntity<Map<String, String>> respEntity = restTemplate.exchange(
@@ -93,9 +80,17 @@ public class ImTImPythonApiService {
             }
             String generatedUrl = fastResp.get("generated_image_url");
 
-            byte[] imageBytes = restTemplate.getForObject(generatedUrl, byte[].class);
-            if (imageBytes == null || imageBytes.length == 0) {
-                throw new ImageGenerationException("다운로드된 이미지가 없습니다");
+            byte[] imageBytes;
+            if (generatedUrl.startsWith("http://") || generatedUrl.startsWith("https://")) {
+                // 진짜 HTTP URL 이면 RestTemplate 으로 다운로드
+                imageBytes = restTemplate.getForObject(generatedUrl, byte[].class);
+            } else {
+                // 로컬 파일 경로면 Java NIO 로 직접 읽기
+                Path path = Paths.get(generatedUrl);
+                if (!Files.exists(path)) {
+                    throw new ImageGenerationException("다운로드할 파일이 없습니다: " + generatedUrl);
+                }
+                imageBytes = Files.readAllBytes(path);
             }
 
             // 파일 저장
