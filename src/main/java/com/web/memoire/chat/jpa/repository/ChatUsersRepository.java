@@ -46,4 +46,5 @@ public interface ChatUsersRepository extends JpaRepository<ChatUsersEntity, Chat
     @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.userid = :userid AND c.chatroomid = :chatroomid")
     ChatUsersEntity findByUserIdAndChatroomid(@Param("userid") String userid, @Param("chatroomid") String chatroomid);
 
+    void deleteAllByChatroomid(String chatroomid);
 }

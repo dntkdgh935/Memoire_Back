@@ -331,7 +331,7 @@ public class ArchiveService {
             // 작성자 프로필 이미지 가져오기
             String authorProfileImage = userRepository.findByUserId(c.getAuthorid())
                     .map(UserEntity::getProfileImagePath)
-                    .orElse("/default_profile.jpg");
+                    .orElse(null);
 
             // ✅ 좋아요, 북마크 엔티티 가져오기
             LikeEntity like = archiveLikeRepository.findLikeById(userid, c.getCollectionid());
@@ -378,7 +378,7 @@ public class ArchiveService {
         // 작성자 프로필 이미지 가져오기
         String authorProfileImage = userRepository.findByUserId(collection.getAuthorid())
                 .map(UserEntity::getProfileImagePath)
-                .orElse("/default_profile.jpg");
+                .orElse(null);
 
         //✅ 로그인 유저의 좋아요, 북마크 여부 가져오기
         LikeEntity like = archiveLikeRepository.findLikeById(userid, collection.getCollectionid());

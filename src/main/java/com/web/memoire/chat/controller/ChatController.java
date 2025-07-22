@@ -109,38 +109,6 @@ public class ChatController {
 
     }
 
-
-//     log.info("ChatController.getChatrooms...");
-//        try {
-//        List<ChatRoomWithUsers> list = new ArrayList<>();
-//        ArrayList<ChatUsers> userChatrooms = chatService.findAllByUserId(userid);
-//        for (ChatUsers userChatroom : userChatrooms) {
-//            ArrayList<ChatUsers> usersInChatroom = chatService.findAllByChatroomid(userChatroom.getChatroomid());
-//            List<User> users = new ArrayList<>();
-//            for (ChatUsers chatUser : usersInChatroom) {
-//
-//                // 본인이면 스킵
-//                if (chatUser.getUserid().equals(userid)) {
-//                    continue;
-//                }
-//                // 유저 상세 정보 가져오기
-//                User user = chatService.findUserById(chatUser.getUserid());
-//
-//                // 필요한 정보만 추출
-//                User temp = new User();
-//                temp.setUserId(user.getUserId());
-//                temp.setLoginId(user.getLoginId());
-//                temp.setName(user.getName());
-//                users.add(temp);
-//            }
-//            list.add(new ChatRoomWithUsers(userChatroom.getChatroomid(), users));
-//
-//        }
-//        return ResponseEntity.ok(list);
-//    } catch (Exception e) {
-//        log.error("error", e);
-//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/chatrooms 에러");
-//    }
     @GetMapping("/admin/chatrooms")
     public ResponseEntity<?> getAdminChatrooms(@RequestParam String userid) {
         log.info("ChatController.getAdminChatrooms...");
@@ -167,8 +135,8 @@ public class ChatController {
             return ResponseEntity.ok(list);
 
         } catch (Exception e) {
-        log.error("error", e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/chatrooms 에러");
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/chatrooms 에러");
 
         }
     }
@@ -189,8 +157,56 @@ public class ChatController {
         }
     }
 
+    @GetMapping("/users")
+    public ResponseEntity<?> getUsers(@RequestParam String chatroomid) {
+        log.info("ChatController.getUsers...");
+        try {
+            ArrayList<ChatUsers> users = chatService.findAllByChatroomid(chatroomid);
+            ArrayList<User> userList = new ArrayList<>();
+            for (ChatUsers user : users) {
+                User real = chatService.findUserById(user.getUserid());
+                User temp = new User();
+                temp.setUserId(real.getUserId());
+                temp.setLoginId(real.getLoginId());
+                temp.setName(real.getName());
+                userList.add(temp);
+            }
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/users 에러");
+        }
+    }
 
+    @PostMapping("/leave")
+    public ResponseEntity<?> leaveChatroom(@RequestParam String userid, @RequestParam String chatroomid) {
+        log.info("ChatController.leaveChatroom...");
+        try {
+            if (chatService.leaveChatroom(userid, chatroomid) > 0) {
+                return ResponseEntity.ok("채팅방 나가기 완료");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/leave 에러");
 
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/leave 에러");
 
+        }
+    }
+
+    @PostMapping("/invite")
+    public ResponseEntity<?> inviteChatroom(@RequestParam List<String> users, @RequestParam String chatroomid) {
+        log.info("ChatController.inviteChatroom...");
+        try {
+            if (chatService.insertChatUsers(chatroomid, (ArrayList<String>) users) > 0) {
+                return ResponseEntity.ok("초대 완료");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/invite 에러");
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/invite 에러");
+
+        }
+    }
 
 }

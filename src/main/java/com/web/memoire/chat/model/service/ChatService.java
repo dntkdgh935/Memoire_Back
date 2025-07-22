@@ -114,4 +114,18 @@ public class ChatService {
         return chatUsersRepository.findByUserIdAndChatroomid(userid, chatroomid) != null;
     }
 
+    @Transactional
+    public int leaveChatroom(String userid, String chatroomid) {
+        if (chatUsersRepository.findAllByChatroomid(chatroomid).size() == 2) {
+            chatUsersRepository.deleteAllByChatroomid(chatroomid);
+            return 1;
+        }
+        ChatUsersEntity entity = chatUsersRepository.findByUserIdAndChatroomid(userid, chatroomid);
+        if (entity == null) {
+            return 0;
+        }
+        chatUsersRepository.delete(entity);
+        return 1;
+    }
+
 }
