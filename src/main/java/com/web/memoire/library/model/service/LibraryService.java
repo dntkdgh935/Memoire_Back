@@ -35,6 +35,7 @@ public class LibraryService {
     private final LibUserRepository libUserRepository;
     private final LibRelationshipRepository libRelationshipRepository;
     private final LibCollTagRepository libCollTagRepository;
+    private final LibUserCollScoreRepository libUserCollScoreRepository;
 
     private final WebClient webClient;
 
@@ -48,10 +49,10 @@ public class LibraryService {
 
     // 상위 5개 태그 가져오기
     public List<Tag> getTopTags() {
-        List<TagEntity> tagEntities = libTagRepository.findTop5TagsByRownum();
+        List<TagEntity> tagEntities = libTagRepository.findTop5BySearchCountPlusLikeCount();
         return tagEntities.stream()
                 .map(TagEntity::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     // 비로그인 유저에게 public Collection Return
@@ -107,6 +108,7 @@ public class LibraryService {
 
     @Transactional
     public void addLike(String userid, int collectionId) {
+        //TB_Like에 적용
         LikeEntity like = LikeEntity.builder()
                 .userid(userid)
                 .collectionid(collectionId)
@@ -114,6 +116,46 @@ public class LibraryService {
                 .build(); // likedDate는 자동으로 저장됨
 
         libLikeRepository.save(like);
+
+        log.info("좋아요 아이디: "+ userid);
+        log.info("좋아요 컬렉션: "+ collectionId);
+
+        //TB_TAG에 적용 (좋아요된 태그들에 적용)
+        List<CollectionTagEntity> colltags = libCollTagRepository.findByCollectionid(collectionId);
+        for (CollectionTagEntity colltag : colltags) {
+            TagEntity tag = libTagRepository.findById(colltag.getTagid()).get();
+            // 태그의 like_count에 +1 적용해 저장
+            int currentLikeCount = tag.getLikeCount();
+            tag.setLikeCount(currentLikeCount + 1);
+            libTagRepository.save(tag);
+        }
+
+        // TB_USER_COLL_SCORES에 적용 (userid, collectionId에 해당하는 row 만들거나 수정 - interacted=1)
+        // 존재하지 않으면 새로 만들어 저장
+        // TODO: 컬렉션이나 유저 생성시 ... 이거 처리 로직 만들어야 함.
+        UserCollScoreEntity userColl = libUserCollScoreRepository.findByUserAndCollection(userid, collectionId);
+        if (userColl== null) {
+            //없으면 새로 만듦
+            UserCollScoreEntity userCollScoreEntity = UserCollScoreEntity.builder()
+                    .userid(userid)
+                    .collectionid(collectionId)
+                    .interacted(1)
+                    .recAt(new Date())
+                    .seen(1)
+                    .score(8) // 좋아요 했으므로 기본값 줄어듦
+                    .build();
+            libUserCollScoreRepository.save(userCollScoreEntity);
+        }
+        //존재하면 일부 수정
+        else{
+            userColl.setInteracted(1);
+            userColl.setSeen(1);
+            userColl.setScore(userColl.getScore()-2);
+            if (userColl.getScore()<0) {
+                userColl.setScore(10);
+            }
+        }
+
     }
     @Transactional
     public void removeLike(String userid, int collectionId) {
@@ -127,7 +169,56 @@ public class LibraryService {
                 .collectionid(collectionId)
                 .build();
         libBookmarkRepository.save(BM);
+
+        // TB_USER_COLL_SCORES에 적용 (userid, collectionId에 해당하는 row 만들거나 수정 - interacted=1)
+        // 존재하지 않으면 새로 만들어 저장
+        // TODO: 컬렉션이나 유저 생성시 ... 이거 처리 로직 만들어야 함.
+        UserCollScoreEntity userColl = libUserCollScoreRepository.findByUserAndCollection(userid, collectionId);
+        if (userColl== null) {
+            //없으면 새로 만듦
+            UserCollScoreEntity userCollScoreEntity = UserCollScoreEntity.builder()
+                    .userid(userid)
+                    .collectionid(collectionId)
+                    .interacted(1)
+                    .recAt(new Date())
+                    .seen(1)
+                    .score(5) // 북마크 했으므로 기본값 줄어든 채로 초기화
+                    .build();
+            libUserCollScoreRepository.save(userCollScoreEntity);
+        }
+        //존재하면 일부 수정
+        else{
+            userColl.setInteracted(1);
+            userColl.setSeen(1);
+            userColl.setScore(userColl.getScore()-5);
+            if (userColl.getScore()<0) {
+                userColl.setScore(10);
+            }
+        }
+
     }
+
+    //TODO: 컬렉션이나 태그 추천에 사용
+    private int getTagBMCount(int tagid){
+
+        // 1. tagid로 CollectionTagEntity 조회
+        List<CollectionTagEntity> colltags = libCollTagRepository.findByTagid(tagid);
+
+        // 2. collectionid 목록 추출 (중복 제거)
+        Set<Integer> collectionIds = colltags.stream()
+                .map(CollectionTagEntity::getCollectionid)
+                .collect(Collectors.toSet());
+
+        // 3. collectionid로 CollectionEntity 일괄 조회
+        if (collectionIds.isEmpty()) {
+            log.warn("No collections found for tagid: {}", tagid);
+            return 0;
+        }
+        List<CollectionEntity> colls = libCollectionRepository.findByCollectionidIn(collectionIds);
+        return colls.size();
+
+    }
+
     @Transactional
     public void removeBM(String userid, int collectionId) {
         libBookmarkRepository.deleteByUseridAndCollectionid(userid, collectionId );
@@ -148,8 +239,35 @@ public class LibraryService {
             throw new IllegalArgumentException("컬렉션을 찾을 수 없습니다.");
         }
 
+        //컬렉션 seen - 1로 세팅
+        log.info(userId);
+        log.info(String.valueOf(userId.length()));
+        log.info("접근 시도 유저:"+userId.getClass()); // 결과:
+
+        log.info("why me?");
+        UserCollScoreEntity userColl = libUserCollScoreRepository.findByUserAndCollection(userId, collectionId);
+        if (userColl == null) {
+            //없으면 새로 만듦
+            UserCollScoreEntity userCollScoreEntity = UserCollScoreEntity.builder()
+                    .userid(userId)
+                    .collectionid(collectionId)
+                    .recAt(new Date())
+                    .seen(1)
+                    .score(9) // 좋아요 했으므로 기본값 줄어듦
+                    .build();
+            libUserCollScoreRepository.save(userCollScoreEntity);
+        }
+        //존재하면 일부 수정
+        else {
+            userColl.setSeen(1);
+            userColl.setScore(userColl.getScore() - 1);
+            if (userColl.getScore() < 0) {
+                userColl.setScore(10);
+            }
+        }
+
         //유저가 자신의 컬렉션은 그냥 접근 가능
-        if (userId.equals(collection.getAuthorid())){
+        if (userId.equals(collection.getAuthorid())) {
             return makeCollectionView(collectionId, userId);
         }
         // 공개 범위가 1 (공개)일 때
@@ -158,11 +276,10 @@ public class LibraryService {
             Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
             Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
             if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus()))
-                    ||(relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
-                 log.info("user: " + userId+", author: " + collection.getAuthorid());
+                    || (relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+                log.info("user: " + userId + ", author: " + collection.getAuthorid());
                 throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
-            }
-            else {
+            } else {
                 // 그 외의 경우 접근 가능
                 log.info("공개 컬렉션 뷰 만들기");
                 return makeCollectionView(collectionId, userId);
@@ -189,6 +306,21 @@ public class LibraryService {
             throw new Exception("이 컬렉션에 접근할 권한이 없습니다.");
         }
 
+    }
+
+
+    public CollView getCollectionDetail4Anon(int collectionId) throws Exception {
+        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+        log.info("getCollectionDetail 서비스 작동중");
+        if (collection.getVisibility() == 1) {
+            log.info("공개 컬렉션 뷰 만들기");
+            return makeCollectionView(collectionId, null);
+
+        }
+        // 그 외의 경우 접근 불가
+        else {
+            throw new Exception("이 컬렉션에 접근할 권한이 없습니다.");
+        }
     }
 
     public Object findByCollectionid(int collectionid) {
@@ -238,6 +370,7 @@ public class LibraryService {
             }
         }
     }
+
 
     public Object getRelationshipStatus(String userid, String targetid) {
         RelationshipId id = new RelationshipId(userid, targetid);
@@ -617,11 +750,19 @@ public class LibraryService {
         return responseMono.block();
     }
 
-    public List<CollView> findCollsWithTag(String query, String userid) {
-        int tagid = libTagRepository.findByTagName(query).getTagid(); // 검색된 태그의 아이디 찾기
+    public List<CollView> findCollViewsWithTag(String query, String userid) {
+        //int tagid = libTagRepository.findByTagName(query).getTagid(); // 검색된 태그의 아이디 찾기
+        Optional<TagEntity> tagOpt = Optional.ofNullable(libTagRepository.findByTagName(query));
+        if (tagOpt.isEmpty()) {
+            log.warn("No tag found for tagname: {}", query);
+            return Collections.emptyList();
+        }
+        int tagid = tagOpt.get().getTagid();
+
         List <CollectionTagEntity> colltags = libCollTagRepository.findByTagid(tagid); // 태그가 달린 컬렉션들
 
         List<CollView> collViews = new ArrayList<>();
+
         for (CollectionTagEntity colltag : colltags) {
             CollView cv = makeCollectionView(colltag.getCollectionid(), userid);
             collViews.add(cv);
@@ -629,4 +770,106 @@ public class LibraryService {
         return collViews;
     }
 
+    private List<CollectionEntity> findCollsWithTag(String query) {
+        //int tagid = libTagRepository.findByTagName(query).getTagid(); // 검색된 태그의 아이디 찾기
+        Optional<TagEntity> tagOpt = Optional.ofNullable(libTagRepository.findByTagName(query));
+        if (tagOpt.isEmpty()) {
+            log.warn("No tag found for tagname: {}", query);
+            return Collections.emptyList();
+        }
+        int tagid = tagOpt.get().getTagid();
+
+        List <CollectionTagEntity> colltags = libCollTagRepository.findByTagid(tagid); // 태그가 달린 컬렉션들
+
+//        List<CollView> collViews = new ArrayList<>();
+        List <CollectionEntity> colls = new ArrayList<>();
+        for (CollectionTagEntity colltag : colltags) {
+            colls.add(libCollectionRepository.findByCollectionid(colltag.getCollectionid()));
+        }
+        return colls;
+    }
+
+    @Transactional
+    public void addTagSearchCount(String tagname) {
+        log.info("검색된 태그:"+tagname);
+
+        // tagname이 null이거나 빈 문자열이면 아무것도 하지 않음
+        if (tagname == null || tagname.trim().isEmpty()) {
+            log.warn("Invalid tagname: {}", tagname);
+            return;
+        }
+
+        // tagname에 해당하는 TagEntity 조회
+        Optional<TagEntity> tagEntityOpt = Optional.ofNullable(libTagRepository.findByTagName(tagname.trim()));
+        if (tagEntityOpt.isEmpty()) {
+            log.warn("No TagEntity found for tagname: {}", tagname);
+            return;
+        }
+
+        // TagEntity의 검색 횟수 증가
+        TagEntity tagEntity = tagEntityOpt.get();
+        log.info("이전에 검색된 수: {}", tagEntity.getSearchCount());
+        tagEntity.setSearchCount(tagEntity.getSearchCount() + 1);
+        libTagRepository.save(tagEntity); // 변경 사항 저장
+        log.info("수정 후: {}", tagEntity.getSearchCount());
+
+
+    }
+
+    public Object getTopicColls4LoginUser(String userId, String selectedTag) {
+        List<CollectionEntity> colls= findCollsWithTag(selectedTag);
+        log.info(selectedTag+ "태그 달린 컬렉션: ");
+        log.info(colls.toString());
+
+        List <CollView> collViews = new ArrayList<>();
+
+        //접근권한에 따라 리턴해야 함
+        for (CollectionEntity collection : colls) {
+            Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
+            Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
+
+            // 1. 자신의 컬렉션은 보이지 않게 (authorid == userId인 경우 제외)
+            if (collection.getAuthorid().equals(userId)) {
+                continue; // 자신의 컬렉션은 제외
+            }
+            // 2. 서로가 차단된 경우 보이지 않게
+            if ((userToOtherRel.isPresent() && userToOtherRel.get().getStatus().equals("2") )
+                    || (OtherToUserRel.isPresent() && OtherToUserRel.get().getStatus().equals("2"))) {
+                continue;
+            }
+            // 2. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
+            if (collection.getVisibility()==2) {
+                // 팔로우 상태이면 추가
+                if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
+                    collViews.add(makeCollectionView(collection.getId(), userId));
+                } else {
+                    // 팔로우하지 않으면 접근 불가
+                    log.info("user: " + userId + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
+                }
+            }
+            // 4. 이외의 전체 공개 컬렉션 추가
+            else if (collection.getVisibility()==1) {
+                collViews.add(makeCollectionView(collection.getId(), userId));
+            }
+        }
+        return collViews;
+
+    }
+
+    public Object getTopicColls4Anon(String selectedTag) {
+        List<CollectionEntity> colls= findCollsWithTag(selectedTag);
+
+        List <CollView> collViews = new ArrayList<>();
+        for (CollectionEntity coll : colls) {
+            if (coll.getVisibility() == 1) {
+                log.info("공개 컬렉션 뷰 만들기");
+                collViews.add(makeCollectionView(coll.getId(), null));
+            }
+            // 그 외의 경우 접근 불가
+            else {
+                log.info("접근 불가 컬렉션");
+            }
+        }
+        return collViews;
+    }
 }

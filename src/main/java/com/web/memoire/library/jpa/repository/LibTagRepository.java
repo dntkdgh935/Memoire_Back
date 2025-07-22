@@ -21,4 +21,7 @@ public interface LibTagRepository extends JpaRepository<TagEntity, Integer> {
     TagEntity findByTagid(int tagid);
 
     TagEntity findByTagName(String query);
+
+    @Query(value = "SELECT * FROM (SELECT t.* FROM TB_TAG t ORDER BY (t.SEARCH_COUNT + t.LIKE_COUNT) DESC) WHERE ROWNUM <= 5", nativeQuery = true)
+    List<TagEntity> findTop5BySearchCountPlusLikeCount();
 }
