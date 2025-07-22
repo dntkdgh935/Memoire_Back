@@ -192,6 +192,9 @@ public class UserService {
 
         // 1. FastAPI를 통해 이미지에서 임베딩 추출
         List<Float> embedding = faceRecognitionService.getFaceEmbedding(imageData);
+        log.info("saveUserFaceEmbedding: FastAPI에서 추출된 임베딩 (첫 5개): {}", embedding.subList(0, Math.min(embedding.size(), 5)));
+        log.info("saveUserFaceEmbedding: FastAPI에서 추출된 임베딩 (마지막 5개): {}", embedding.subList(Math.max(0, embedding.size() - 5), embedding.size()));
+        log.info("saveUserFaceEmbedding: 추출된 임베딩 길이: {}", embedding.size());
 
         if (embedding.isEmpty()) {
             // 얼굴을 찾지 못했거나 임베딩 추출에 실패한 경우
@@ -305,5 +308,9 @@ public class UserService {
             log.info("authenticateUserByFace: 얼굴 인식에 실패했거나 일치하는 사용자가 없습니다. (distance: {})", comparisonResult.get("distance"));
             return null; // 일치하는 사용자 없음
         }
+    }
+
+    public boolean isPhoneExists(String phone) {
+        return userRepository.existsByPhone(phone);
     }
 }

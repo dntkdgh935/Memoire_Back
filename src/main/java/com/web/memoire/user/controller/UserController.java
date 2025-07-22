@@ -57,6 +57,12 @@ public class UserController {
         return ResponseEntity.ok(exists ? "duplicated" : "ok");
     }
 
+    @GetMapping("/check-phone")
+    public ResponseEntity<?> checkPhoneExists(@RequestParam("phone") String phone) {
+        boolean exists = userService.isPhoneExists(phone); // 전화번호 존재 여부 확인 로직
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
     @PostMapping("/signup")
     public ResponseEntity<?> userInsertMethod(@RequestBody User user){
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
