@@ -239,6 +239,29 @@ public class LibraryService {
             throw new IllegalArgumentException("컬렉션을 찾을 수 없습니다.");
         }
 
+        //컬렉션 seen - 1로 세팅
+        UserCollScoreEntity userColl = libUserCollScoreRepository.findByUserAndCollection(userId, collectionId);
+        if (userColl== null) {
+            //없으면 새로 만듦
+            UserCollScoreEntity userCollScoreEntity = UserCollScoreEntity.builder()
+                    .userid(userId)
+                    .collectionid(collectionId)
+                    .recAt(new Date())
+                    .seen(1)
+                    .score(9) // 좋아요 했으므로 기본값 줄어듦
+                    .build();
+            libUserCollScoreRepository.save(userCollScoreEntity);
+        }
+        //존재하면 일부 수정
+        else{
+//            userColl.setInteracted(1);
+            userColl.setSeen(1);
+            userColl.setScore(userColl.getScore()-1);
+            if (userColl.getScore()<0) {
+                userColl.setScore(10);
+            }
+        }
+
         //유저가 자신의 컬렉션은 그냥 접근 가능
         if (userId.equals(collection.getAuthorid())){
             return makeCollectionView(collectionId, userId);
