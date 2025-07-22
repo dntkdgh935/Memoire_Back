@@ -35,6 +35,7 @@ public class LibraryService {
     private final LibUserRepository libUserRepository;
     private final LibRelationshipRepository libRelationshipRepository;
     private final LibCollTagRepository libCollTagRepository;
+    private final LibUserCollScoreRepository libUserCollScoreRepository;
 
     private final WebClient webClient;
 
@@ -107,6 +108,7 @@ public class LibraryService {
 
     @Transactional
     public void addLike(String userid, int collectionId) {
+        //TB_Like에 적용
         LikeEntity like = LikeEntity.builder()
                 .userid(userid)
                 .collectionid(collectionId)
@@ -114,6 +116,32 @@ public class LibraryService {
                 .build(); // likedDate는 자동으로 저장됨
 
         libLikeRepository.save(like);
+
+        log.info("좋아요 아이디: "+ userid);
+        log.info("좋아요 컬렉션: "+ collectionId);
+
+        //TB_TAG에 적용 (좋아요된 태그들에 적용)
+        List<CollectionTagEntity> colltags = libCollTagRepository.findByCollectionid(collectionId);
+        for (CollectionTagEntity colltag : colltags) {
+            TagEntity tag = libTagRepository.findById(colltag.getTagid()).get();
+            // 태그의 like_count에 +1 적용해 저장
+            int currentLikeCount = tag.getLikeCount();
+            tag.setLikeCount(currentLikeCount + 1);
+            libTagRepository.save(tag);
+        }
+
+        // TB_USER_COLL_SCORES에 적용 (userid, collectionId에 해당하는 row 만들거나 수정 - interacted=1)
+        // 먼저 존재하는지 확인
+
+        UserCollScoreEntity userCollScoreEntity = UserCollScoreEntity.builder()
+                .userid(userid)
+                .collectionid(collectionId)
+                .interacted(1)
+                .seen(1)
+                .build();
+        libUserCollScoreRepository.save(userCollScoreEntity);
+
+
     }
     @Transactional
     public void removeLike(String userid, int collectionId) {

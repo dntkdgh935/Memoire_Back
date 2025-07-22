@@ -11,4 +11,6 @@ public interface LibCollTagRepository extends JpaRepository<CollectionTagEntity,
     List<CollectionTagEntity> findByCollectionid(int id);
 
     List <CollectionTagEntity> findByTagid(int tagid);
+
+    List<CollectionTag> getCollectionTagEntitiesByCollectionid(int collectionId);
 }
