@@ -4,6 +4,7 @@ import com.web.memoire.common.entity.CollectionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Set;
 
 public interface LibCollectionRepository extends JpaRepository<CollectionEntity, Integer> {
 
@@ -22,4 +23,6 @@ public interface LibCollectionRepository extends JpaRepository<CollectionEntity,
     List<CollectionEntity> findByAuthoridAndVisibilityIn(String ownerid, List<String> list);
 
     List<CollectionEntity> findByAuthoridAndVisibility(String loginId, int visibility);
+
+    List<CollectionEntity> findByCollectionidIn(Set<Integer> collectionIds);
 }

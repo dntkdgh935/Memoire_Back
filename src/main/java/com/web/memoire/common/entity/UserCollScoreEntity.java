@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicInsert;
 
 import java.util.Date;
 
@@ -15,6 +16,7 @@ import java.util.Date;
 @Builder
 @Table(name="TB_USER_COLL_SCORES")
 @Entity
+@DynamicInsert //엔티티 저장시 null이나 기본값 필드를 insert하지 않도록?
 @IdClass(UserCollScoreId.class)
 public class UserCollScoreEntity {
     @Id

@@ -277,21 +277,21 @@ public class LibraryController {
     }
 
 
-    // 컬렉션 검색 (검색어와 userid를 함께 받기)
-    @GetMapping("/search/imsi/collection")
-    public ResponseEntity<?> IsearchCollections(
-            @RequestParam("query") String query,
-            @RequestParam("userid") String userid) {
-        log.info("LibraryController.searchCollections... 검색어: {}, userid: {}", query, userid);
-
-        try {
-            // 라이브러리 서비스에서 컬렉션 검색 실행
-            return ResponseEntity.ok(libraryService.searchCollections(query, userid));
-        } catch (Exception e) {
-            log.error("컬렉션 검색 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 검색 실패");
-        }
-    }
+//    // 컬렉션 검색 (검색어와 userid를 함께 받기)
+//    @GetMapping("/search/imsi/collection")
+//    public ResponseEntity<?> IsearchCollections(
+//            @RequestParam("query") String query,
+//            @RequestParam("userid") String userid) {
+//        log.info("LibraryController.searchCollections... 검색어: {}, userid: {}", query, userid);
+//
+//        try {
+//            // 라이브러리 서비스에서 컬렉션 검색 실행
+//            return ResponseEntity.ok(libraryService.searchCollections(query, userid));
+//        } catch (Exception e) {
+//            log.error("컬렉션 검색 실패", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 검색 실패");
+//        }
+//    }
 
     @GetMapping("/search/collection")
     public ResponseEntity<?> searchCollections(
@@ -320,8 +320,8 @@ public class LibraryController {
 
         try {
             List<CollView> result = libraryService.findCollsWithTag(query, userid);
-
-            // ✅ JSON 배열 그대로 클라이언트에 반환
+            // tag 검색수 추가
+            libraryService.addTagSearchCount(query);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("🚨 태그로 컬렉션 검색 실패", e);

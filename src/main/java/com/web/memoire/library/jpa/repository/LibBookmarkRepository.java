@@ -29,4 +29,6 @@ public interface LibBookmarkRepository extends JpaRepository<BookmarkEntity, Boo
     void deleteByUseridAndCollectionid(String userid, int collectionId);
 
     int countBookmarkEntitiesByCollectionid(int collectionId);
+
+    BookmarkEntity findByCollectionid(int collectionid);
 }
