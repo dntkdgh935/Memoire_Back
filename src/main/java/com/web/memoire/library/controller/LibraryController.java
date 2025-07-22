@@ -50,17 +50,31 @@ public class LibraryController {
     // 비로그인시 전체 public collection 리턴
     // TODO:
     @GetMapping("/discover/{selectedTag}")
-    public ResponseEntity<?> getAllColls() {
+    public ResponseEntity<?> getAllColls(@PathVariable String selectedTag) {
         log.info("LibraryController.getAllColls...");
         log.info("비로그인 유저 전체 컬렉션 조회");
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        //Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        try {
-            return ResponseEntity.ok(libraryService.getAllPublicCollectionView());//(userid));//("user001"));
-        } catch (Exception e) {
-            log.error("Error while fetching colls", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+        //비로그인 유저가 '전체' 선택한 경우
+        if (selectedTag.equals("전체")) {
+            try {
+                return ResponseEntity.ok(libraryService.getAllPublicCollectionView());//(userid));//("user001"));
+            } catch (Exception e) {
+                log.error("Error while fetching colls", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+            }
         }
+        //비로그인 유저가 다른 태그 선택한 경우
+        else if (selectedTag.length()>0 &&(selectedTag instanceof String)){
+            try{
+                return ResponseEntity.ok(libraryService.getTopicColls4Anon(selectedTag));
+            }
+            catch (Exception e){
+                log.error("Error while fetching colls", e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("비로그인 유저 태그 컬렉션 조회 실패");
+            }
+        }
+        return null;
     }
 
     // 로그인 유저에게 selectedTag(전체, 팔로잉, 기타)에 대한 추천 진행
@@ -89,9 +103,10 @@ public class LibraryController {
         // 기타 태그 선택시
         else if (selectedTag.length()>0 &&(selectedTag instanceof String))
         {
+            log.info("선택된 태그: "+selectedTag);
             try{
-//                return ResponseEntity.ok(libraryService.getTopicColls4LoginUser(userid, selectedTag));
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("미개발 단계");
+                return ResponseEntity.ok(libraryService.getTopicColls4LoginUser(userid, selectedTag));
+//                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("미개발 단계");
             }catch (Exception e) {
                 log.error("Error while fetching 팔로잉 중인 colls", e);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
@@ -112,6 +127,18 @@ public class LibraryController {
         log.info("LibraryController.getCollectionDetail...");
         try {
             return ResponseEntity.ok(libraryService.getCollectionDetail(collectionId, userid));
+        } catch (Exception e) {
+            log.error("Error while fetching collection detail", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
+        }
+    }
+
+    @GetMapping("/collection/{collectionId}")
+    public ResponseEntity<?> getCollectionDetail4Anon(@PathVariable int collectionId) {
+
+        log.info("LibraryController.getCollectionDetail...");
+        try {
+            return ResponseEntity.ok(libraryService.getCollectionDetail4Anon(collectionId));
         } catch (Exception e) {
             log.error("Error while fetching collection detail", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 상세 조회 실패");
@@ -319,7 +346,7 @@ public class LibraryController {
         log.info("📨 tag 검색어 요청: {}", query);
 
         try {
-            List<CollView> result = libraryService.findCollsWithTag(query, userid);
+            List<CollView> result = libraryService.findCollViewsWithTag(query, userid);
             // tag 검색수 추가
             libraryService.addTagSearchCount(query);
             return ResponseEntity.ok(result);
