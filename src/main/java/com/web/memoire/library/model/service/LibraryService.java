@@ -49,10 +49,10 @@ public class LibraryService {
 
     // 상위 5개 태그 가져오기
     public List<Tag> getTopTags() {
-        List<TagEntity> tagEntities = libTagRepository.findTop5TagsByRownum();
+        List<TagEntity> tagEntities = libTagRepository.findTop5BySearchCountPlusLikeCount();
         return tagEntities.stream()
                 .map(TagEntity::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     // 비로그인 유저에게 public Collection Return
@@ -254,7 +254,6 @@ public class LibraryService {
         }
         //존재하면 일부 수정
         else{
-//            userColl.setInteracted(1);
             userColl.setSeen(1);
             userColl.setScore(userColl.getScore()-1);
             if (userColl.getScore()<0) {
@@ -750,6 +749,7 @@ public class LibraryService {
         return collViews;
     }
 
+    @Transactional
     public void addTagSearchCount(String tagname) {
         log.info("검색된 태그:"+tagname);
 
