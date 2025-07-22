@@ -31,7 +31,7 @@ public class VideoMemoryService {
 
     @Transactional
     public void createMemory(int CollectionId, VideoResultDto result) throws ParseException {
-        int nextOrder = memoryRepository.findByCollectionid(CollectionId).size() + 1;
+        int nextOrder = memoryRepository.findMaxMemoryOrderByCollectionid(CollectionId) + 1;
 
         // 파일명 추출 (URL에서 마지막 경로)
         String videoUrl = result.getVideoUrl();
