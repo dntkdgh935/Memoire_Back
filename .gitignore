@@ -69,20 +69,8 @@ __pycache__/
 *.pkl
 *.joblib
 
-# Python 가상 환경 디렉토리 (FastAPI)
-venv/
-env/
-
-# QueryDSL 자동 생성 코드 (Spring Boot)
-src/main/generated/
-
-# Spring 설정 파일
-# 일반적으로 application.properties/yml은 Git에 포함합니다.
-# 민감한 정보가 있는 경우에만 아래처럼 로컬 전용 파일을 무시하거나, 환경변수를 사용하세요.
-application-local.properties
-application-local.yml
-application.properties # 공통 설정 파일을 무시하고 싶다면 주석 해제
-# application.yml # 공통 설정 파일을 무시하고 싶다면 주석 해제
+# Pytho보
+google.json
 
 # ----------------------------------------
 # 📂 특정 경로 예외 처리
