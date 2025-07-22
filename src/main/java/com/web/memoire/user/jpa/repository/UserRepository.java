@@ -25,4 +25,6 @@ public interface UserRepository
     UserEntity updateUserPassword(@NotNull String userId, String encode);
 
     Optional<UserEntity> findByLoginIdAndPhone(@NotNull String loginId, String phone);
+    
+    boolean existsByPhone(String phone);
 }
