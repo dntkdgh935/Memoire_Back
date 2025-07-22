@@ -12,10 +12,9 @@ import java.util.List;
 @RequestMapping("/api/collections")
 @RequiredArgsConstructor
 public class CollectionController {
-
     private final CollectionRepository collectionRepository;
 
-    // ✅ 사용자 ID로 필터링된 컬렉션 목록 반환
+    // 💡여기를 수정했습니다. (중복된 /collections 삭제)
     @GetMapping("/{userId}")
     public ResponseEntity<List<CollectionEntity>> getCollections(@PathVariable String userId) {
         List<CollectionEntity> collections = collectionRepository.findByAuthorid(userId);
