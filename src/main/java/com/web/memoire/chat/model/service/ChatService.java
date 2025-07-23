@@ -12,6 +12,7 @@ import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,6 +69,14 @@ public class ChatService {
         return list;
     }
 
+    public Chat findLatestChat(String chatroomid) {
+        PageRequest pageRequest = PageRequest.of(0, 1); // first page, 1 result
+        List<ChatEntity> latest = chatRepository.findLatestChatInRoom(chatroomid, pageRequest);
+        if (latest.isEmpty() || latest.get(0) == null) {
+            return null;
+        }
+        return latest.get(0).toDto();
+    }
 
     // chatUsersRepository
     public ArrayList<ChatUsers> findAllByUserId(String userid) {
@@ -79,8 +88,8 @@ public class ChatService {
         return list;
     }
 
-    public String findByUserIdAndOtherUserId(String userid, String otherUserid) {
-        return chatUsersRepository.findByUserIdAndOtherUserId(userid, otherUserid);
+    public String findByUserIdAndOtherUserIdPrivate(String userid, String otherUserid) {
+        return chatUsersRepository.findByUserIdAndOtherUserIdPrivate(userid, otherUserid);
     }
 
     public String findAdminChatroom(String userid) {
@@ -93,12 +102,26 @@ public class ChatService {
         entity.setChatroomid(chatroomid);
         for (String user : users) {
             entity.setUserid(user);
+            entity.setIsPrivate('N');
             if (chatUsersRepository.save(entity) == null) {
                 return 0;
             }
         }
         return 1;
+    }
 
+    @Transactional
+    public int insertChatUsersPrivate(String chatroomid, ArrayList<String> users) {
+        ChatUsersEntity entity = new ChatUsersEntity();
+        entity.setChatroomid(chatroomid);
+        for (String user : users) {
+            entity.setUserid(user);
+            entity.setIsPrivate('Y');
+            if (chatUsersRepository.save(entity) == null) {
+                return 0;
+            }
+        }
+        return 1;
     }
 
     public ArrayList<ChatUsers> findAdminChatrooms() {
@@ -114,6 +137,10 @@ public class ChatService {
         return chatUsersRepository.findByUserIdAndChatroomid(userid, chatroomid) != null;
     }
 
+    public boolean checkIsPrivate(String userid, String chatroomid) {
+        return chatUsersRepository.findByChatroomidAndIsPrivate(userid, chatroomid) == 'Y';
+    }
+
     @Transactional
     public int leaveChatroom(String userid, String chatroomid) {
         if (chatUsersRepository.findAllByChatroomid(chatroomid).size() == 2) {
@@ -127,5 +154,4 @@ public class ChatService {
         chatUsersRepository.delete(entity);
         return 1;
     }
-
 }

@@ -2,6 +2,7 @@ package com.web.memoire.chat.model.dto;
 
 import com.web.memoire.chat.jpa.entity.ChatUsersEntity;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,10 +22,14 @@ public class ChatUsers {
     @NotBlank
     private String userid;
 
+    @NotNull
+    private char isPrivate;
+
     public ChatUsersEntity toEntity() {
         return ChatUsersEntity.builder()
                 .chatroomid(chatroomid)
                 .userid(userid)
+                .isPrivate(isPrivate)
                 .build();
     }
 

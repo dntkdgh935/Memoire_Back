@@ -50,7 +50,6 @@ public class WebSocketChatHandler extends TextWebSocketHandler {
 
         String messagesJson = mapper.writeValueAsString(previousMessages);
         session.sendMessage(new TextMessage(messagesJson));
-        session.sendMessage(new TextMessage("채팅방 [" + chatroomid + "]에 연결되었습니다."));
     }
 
     // 소켓 메세지 처리
