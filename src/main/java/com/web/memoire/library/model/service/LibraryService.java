@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -231,6 +232,7 @@ public class LibraryService {
         return libBookmarkRepository.countBookmarkEntitiesByCollectionid(collectionId);
     }
 
+    @Transactional
     public CollView getCollectionDetail(int collectionId, String userId) throws Exception {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
         log.info("getCollectionDetail 서비스 작동중");
@@ -238,6 +240,8 @@ public class LibraryService {
         if (collection == null) {
             throw new IllegalArgumentException("컬렉션을 찾을 수 없습니다.");
         }
+        collection.setReadCount(collection.getReadCount()+1);
+        libCollectionRepository.save(collection);
 
         //컬렉션 seen - 1로 세팅
         log.info(userId);
@@ -265,6 +269,8 @@ public class LibraryService {
                 userColl.setScore(10);
             }
         }
+
+
 
         //유저가 자신의 컬렉션은 그냥 접근 가능
         if (userId.equals(collection.getAuthorid())) {
@@ -347,18 +353,25 @@ public class LibraryService {
     public void toggleFollowRequest(String userid, String targetid, String nextRel) {
         RelationshipId id = new RelationshipId(userid, targetid);
 
+        //요청한 유저로부터의 관계 검색
         Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
         log.info("✅ toggleFollowRequest: " + optional.isPresent());
 
         if ("3".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
             libRelationshipRepository.deleteById(id);  // 관계 삭제
-        } else {
+        }
+        else {
             // 상태가 3이 아니면 관계가 존재하므로 상태 변경
-
             if (optional.isPresent()) {
                 RelationshipEntity relationship = optional.get();
                 relationship.setStatus(nextRel);  // 상태 변경
                 libRelationshipRepository.save(relationship);  // 업데이트된 관계 저장
+
+                // 요청한 관계가 "2"였다면, 반대 관계 삭제
+                if ("2".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
+                    RelationshipId oppoid = new RelationshipId(targetid, userid);
+                    libRelationshipRepository.deleteById(oppoid);
+                }
             } else {
                 // 관계가 없을 경우 새로 관계를 추가 (상태 0: 요청됨으로)
                 RelationshipEntity newRelationship = new RelationshipEntity();
@@ -367,6 +380,13 @@ public class LibraryService {
                 newRelationship.setStatus(nextRel);
                 newRelationship.setFollowDate(new Date());
                 libRelationshipRepository.save(newRelationship);  // 새 관계 추가
+
+                // 요청한 관계가 "2"였다면, 반대 관계 삭제
+                // 요청한 관계가 "2"였다면, 반대 관계 삭제
+                if ("2".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
+                    RelationshipId oppoid = new RelationshipId(targetid, userid);
+                    libRelationshipRepository.deleteById(oppoid);
+                }
             }
         }
     }
@@ -871,5 +891,73 @@ public class LibraryService {
             }
         }
         return collViews;
+    }
+
+
+    /*
+    interaction score 높은 순+ 같은 순위면 컬렉션이 받은 좋아요+북마크(readCount) 개수순으로 추천
+    30(topN)개씩 무한번 요청해 아래에 붙일 수 있음
+    단 프론트가 너무 무거워지면 페이지 새로고침하기? 또는 다른 전략?
+    * */
+    public List<CollView> getTopNRec4LoginUser(String userid, int topN) {
+        List <CollView> recColls = new ArrayList<>();
+
+        // 유저와 상호작용한 이력이 있는 컬렉션 불러오기
+        // List<UserCollScores> userCollScore: userid에 해당하는 TB_USER_COLL_SCORES를 score이 큰 순서로 불러옴 (추천은 나중에)
+        // userCollScore를 돌면서 userCollScore.getCollectionid()에 해당하는 likeEntity 개수 + bookmarkentity 개수 카운트 + coll.getReadCount()를 구함
+        // 구한 합계값 순위대로 interactedColls에 add함.
+        List<UserCollScoreEntity> userScores = libUserCollScoreRepository.findByUseridOrderByScoreDesc(userid); // 사용자 상호작용 점수 내림차순
+        List <CollView> interactedColls = userScores.stream()
+                .map(score -> {
+                    CollectionEntity coll = libCollectionRepository.findByCollectionid(score.getCollectionid());
+                    if (coll == null) return null;
+
+                    int likeCount = libLikeRepository.countByCollectionid(coll.getCollectionid());
+                    int bookmarkCount = libBookmarkRepository.countByCollectionid(coll.getCollectionid());
+                    int readCount = coll.getReadCount();
+                    int totalScore = likeCount + bookmarkCount + readCount;
+
+                    CollView view = makeCollectionView(coll.getCollectionid(), userid);
+                    return view == null ? null : new AbstractMap.SimpleEntry<>(view, totalScore); // 💡 CollView와 점수 한 쌍
+                })
+                .filter(Objects::nonNull)
+                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())) // 💡 totalScore 기준 내림차순
+                .map(Map.Entry::getKey) // 💡 CollView만 추출
+                .toList();
+
+        // 유저와 상호작용한 이력이 "없는" 컬렉션 불러오기
+        // List<CollectionEntity> pureColls: userid에 해당하는 TB_USER_COLL_SCORES가 없는 컬렉션 불러오기
+        // coll 하나씩 돌면서 coll.collectionid를 가진 likeEntity 개수 + bookmarkentity 개수 카운트 + coll.getReadCount()를 구함
+        // 구한 합계값 순위대로 RecColl에 add함.
+        List<CollectionEntity> allCollections = libCollectionRepository.findAll(); // 공개된 컬렉션 전체
+
+        Set<Integer> interactedIds = userScores.stream()
+                .map(UserCollScoreEntity::getCollectionid)
+                .collect(Collectors.toSet());
+
+        List <CollView> pureColls = allCollections.stream()
+                .filter(coll -> !interactedIds.contains(coll.getCollectionid()))
+                .map(coll -> {
+                    int likeCount = libLikeRepository.countByCollectionid(coll.getCollectionid());
+                    int bookmarkCount = libBookmarkRepository.countByCollectionid(coll.getCollectionid());
+                    int readCount = coll.getReadCount();
+
+                    int totalScore = likeCount + bookmarkCount + readCount;
+                    CollView view = makeCollectionView(coll.getCollectionid(), userid);
+                    return view == null ? null : new AbstractMap.SimpleEntry<>(view, totalScore);
+                })
+                .filter(Objects::nonNull)
+                .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())) // 💡 totalScore 기준 내림차순
+                .map(Map.Entry::getKey) // 💡 CollView만 추출
+                .toList();
+
+        // 상호작용 이력 없는  PureColl먼저 추천하도록 결과값 만듦
+        recColls.addAll(pureColls);
+        recColls.addAll(interactedColls);
+
+        // recColls 중 topN 개만 추출해 리턴해야 함
+        return recColls.stream()
+                .limit(topN)
+                .toList();
     }
 }
