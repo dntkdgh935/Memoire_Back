@@ -16,6 +16,11 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.LinkedMultiValueMap;
+
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,10 +66,30 @@ public class ImTImPythonApiService {
         String url = pythonBaseUrl + "/atelier/image-1/generate";
         log.info("▶️ Calling Python at URL: {}", url);
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    // 2. 폼 데이터 (form-urlencoded 형식)
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("image_raw", request.getStylePrompt());
+
+    // 3. HttpEntity로 포장
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+
+    // 4. postForEntity 사용 (반환값은 ResponseEntity<Map>)
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                pythonBaseUrl + "/atelier/openai/generate-image-prompt",
+                entity,
+                Map.class
+        );
+
+        String refinedPrompt = (String) response.getBody().get("prompt");
+        log.info("refinedPrompt is {}", refinedPrompt);
+
 
         try {
             Map<String, String> fastApiPayload = Map.of(
-                    "prompt",     request.getStylePrompt(),
+                    "prompt",     refinedPrompt,
                     "image_url",  request.getImageUrl()
             );
             ResponseEntity<Map<String, String>> respEntity = restTemplate.exchange(

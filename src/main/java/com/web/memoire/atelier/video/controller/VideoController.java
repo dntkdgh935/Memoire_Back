@@ -12,10 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.text.ParseException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/atelier/video")
 public class VideoController {
@@ -57,8 +59,9 @@ public class VideoController {
 
 
     @PostMapping("/generate-video")
-    public ResponseEntity<VideoResultDto> generateVideo(@RequestBody VideoGenerationRequest requestDto) {
-        VideoResultDto result = videopythonApiService.generateVideo(requestDto);
+    public ResponseEntity<VideoResultDto> generateVideo(@RequestBody VideoGenerationRequest req) {
+        log.info(req.getImageUrl());
+        VideoResultDto result = videopythonApiService.generateVideo(req);
         return ResponseEntity.ok(result);
     }
 
