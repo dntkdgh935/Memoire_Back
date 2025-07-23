@@ -353,18 +353,25 @@ public class LibraryService {
     public void toggleFollowRequest(String userid, String targetid, String nextRel) {
         RelationshipId id = new RelationshipId(userid, targetid);
 
+        //요청한 유저로부터의 관계 검색
         Optional<RelationshipEntity> optional = libRelationshipRepository.findById(id);
         log.info("✅ toggleFollowRequest: " + optional.isPresent());
 
         if ("3".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
             libRelationshipRepository.deleteById(id);  // 관계 삭제
-        } else {
+        }
+        else {
             // 상태가 3이 아니면 관계가 존재하므로 상태 변경
-
             if (optional.isPresent()) {
                 RelationshipEntity relationship = optional.get();
                 relationship.setStatus(nextRel);  // 상태 변경
                 libRelationshipRepository.save(relationship);  // 업데이트된 관계 저장
+
+                // 요청한 관계가 "2"였다면, 반대 관계 삭제
+                if ("2".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
+                    RelationshipId oppoid = new RelationshipId(targetid, userid);
+                    libRelationshipRepository.deleteById(oppoid);
+                }
             } else {
                 // 관계가 없을 경우 새로 관계를 추가 (상태 0: 요청됨으로)
                 RelationshipEntity newRelationship = new RelationshipEntity();
@@ -373,6 +380,13 @@ public class LibraryService {
                 newRelationship.setStatus(nextRel);
                 newRelationship.setFollowDate(new Date());
                 libRelationshipRepository.save(newRelationship);  // 새 관계 추가
+
+                // 요청한 관계가 "2"였다면, 반대 관계 삭제
+                // 요청한 관계가 "2"였다면, 반대 관계 삭제
+                if ("2".equals(nextRel)) {  // 관계 없음으로 설정하려면, 해당 관계 삭제
+                    RelationshipId oppoid = new RelationshipId(targetid, userid);
+                    libRelationshipRepository.deleteById(oppoid);
+                }
             }
         }
     }
