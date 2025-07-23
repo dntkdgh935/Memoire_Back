@@ -76,7 +76,7 @@ public class TextToImageServiceImpl implements TextToImageService {
         // 4) MemoryEntity 생성 & 저장 (content 필드에 filepath 저장)
         MemoryEntity mem = MemoryEntity.builder()
                 .title(finalTitle)
-                .content(filepath)
+                .content(null)
                 .collectionid(req.getCollectionId())
                 .memoryType("image")
                 .memoryOrder(nextOrder)
