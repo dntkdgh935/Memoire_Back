@@ -4,11 +4,19 @@ import com.web.memoire.atelier.video.exception.TtsSyncException;
 import com.web.memoire.atelier.video.model.dto.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
+@Slf4j
 @Service
 public class VideoPythonApiService {
 
@@ -16,7 +24,7 @@ public class VideoPythonApiService {
     private final String pythonBaseUrl;
 
     public VideoPythonApiService(@Qualifier("videoRestTemplate") RestTemplate restTemplate,
-                                 @Value("${python.api.base-url:}") String pythonBaseUrl) {
+                                 @Value("${fastapi.base-url:}") String pythonBaseUrl) {
         this.restTemplate = restTemplate;
         this.pythonBaseUrl = pythonBaseUrl;
     }
@@ -41,9 +49,9 @@ public class VideoPythonApiService {
     }
 
     public VideoResultDto generateVideo(VideoGenerationRequest req) {
-        // 1) raw 비디오 생성
         String rawVideoUrl;
-        if (req.getTtsUrl() != null && !req.getTtsUrl().isBlank()) {
+
+        if (Boolean.TRUE.equals(req.getLipSyncEnabled())) {
             String imageAssetId = uploadImageAsset(req.getImageUrl());
             String audioAssetId = uploadAudioAsset(req.getTtsUrl());
             rawVideoUrl = restTemplate.postForObject(
@@ -52,45 +60,75 @@ public class VideoPythonApiService {
                     String.class
             );
         } else {
-            String prompt = req.getVideoPrompt()
-                    + (req.getExtraPrompt() != null ? " " + req.getExtraPrompt() : "");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            // 2. 폼 데이터 (form-urlencoded 형식)
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+            map.add("video_noperson_raw", req.getVideoPrompt());
+
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    pythonBaseUrl + "/atelier/openai/generate-video-background-prompt",
+                    entity,
+                    Map.class
+            );
+
+            String refinedVideoPrompt = (String) response.getBody().get("prompt");
+            log.info("refinedVideoPrompt is {}", refinedVideoPrompt);
+
+            log.info("imageUrl: {}", req.getImageUrl());
             rawVideoUrl = restTemplate.postForObject(
-                    pythonBaseUrl + "/runway/generate-image-video",
+                    pythonBaseUrl + "/atelier/runway/generate-image-video",
                     Map.of(
-                            "image_data_uri", req.getImageUrl(),
-                            "prompt_text", prompt,
-                            "model", "gen3a_turbo",
-                            "ratio", "1280:720",
-                            "duration", 10
+                            "image_url", req.getImageUrl(),
+                            "prompt", refinedVideoPrompt
                     ),
                     String.class
             );
         }
 
-        String musicUrl = null;
+        // Vision 호출
+        String imageDescription = restTemplate.postForObject(
+                pythonBaseUrl + "/atelier/vision/analyze-image",
+                Map.of("imageUrl", req.getImageUrl()),
+                String.class
+        );
+        log.info("imageDescription is {}", imageDescription);
+
+        // 자연음 프롬프트 생성(GPT)
+        String soundPrompt = restTemplate.postForObject(
+                pythonBaseUrl + "/atelier/openai/generate-sound-prompt",
+                Map.of("imageDescription", imageDescription),
+                String.class
+        );
+        log.info("soundPrompt is {}", soundPrompt);
 
         AudioRequest audioReq = AudioRequest.builder()
-                .prompt(req.getVideoPrompt())
+                .prompt(soundPrompt)
                 .duration(15)
                 .numSteps(25)
                 .build();
-        musicUrl = restTemplate.postForObject(
-                pythonBaseUrl + "/audio/stable-generate",
+        String musicUrl = restTemplate.postForObject(
+                pythonBaseUrl + "/atelier/stable/generate",
                 audioReq,
                 String.class
         );
-
+        log.info("musicUrl is {}", musicUrl);
 
         FfmpegGenerationRequest ffmpegReq = FfmpegGenerationRequest.builder()
                 .videoUrl(rawVideoUrl)
-                .ttsUrl(req.getTtsUrl())
+                .ttsUrl(req.getLipSyncEnabled() ? null : req.getTtsUrl())
                 .musicUrl(musicUrl)
                 .build();
+
         FfmpegGenerationResponse ffmpegRes = restTemplate.postForObject(
-                pythonBaseUrl + "/ffmpeg/generate",
+                pythonBaseUrl + "/atelier/ffmpeg/generate",
                 ffmpegReq,
                 FfmpegGenerationResponse.class
         );
+        log.info("ffmpegRes is {}", ffmpegRes);
 
         return VideoResultDto.builder()
                 .videoUrl(ffmpegRes.getProcessedVideoUrl())
