@@ -3,6 +3,8 @@ package com.web.memoire.user.jpa.repository;
 import com.web.memoire.user.jpa.entity.UserEntity;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -13,4 +15,6 @@ public interface UserRepositoryCustom {
 
 
     UserEntity updateUserPassword(@NotNull String userId, String encode);
+
+    List<Map<String, Object>> findDailyNewUserCounts(String startDateStr, String endDateStr);
 }

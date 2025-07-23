@@ -53,19 +53,25 @@ public class UserController {
 
     @PostMapping(value = "/idcheck")
     public ResponseEntity<String> dupCheckId(@RequestParam("loginId") String loginId) {
+        log.info("ID 중복 검사 요청: loginId={}", loginId);
         boolean exists = userService.selectCheckId(loginId);
+        log.info("ID 중복 검사 결과: loginId={}, exists={}", loginId, exists);
         return ResponseEntity.ok(exists ? "duplicated" : "ok");
     }
 
     @GetMapping("/check-phone")
     public ResponseEntity<?> checkPhoneExists(@RequestParam("phone") String phone) {
+        log.info("전화번호 존재 여부 확인 요청: phone={}", phone);
         boolean exists = userService.isPhoneExists(phone); // 전화번호 존재 여부 확인 로직
+        log.info("전화번호 존재 여부 확인 결과: phone={}, exists={}", phone, exists);
         return ResponseEntity.ok(Map.of("exists", exists));
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> userInsertMethod(@RequestBody User user){
+        log.info("회원가입 요청: loginId={}, name={}", user.getLoginId(), user.getName());
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            log.warn("회원가입 실패: 비밀번호 누락");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("비밀번호를 입력해주세요.");
         }
 
@@ -75,35 +81,45 @@ public class UserController {
 
         try{
             userService.insertUser(user);
+            log.info("회원가입 성공: loginId={}", user.getLoginId());
             return ResponseEntity.status(HttpStatus.OK).build();
         }catch(Exception e){
+            log.error("회원가입 실패: loginId={}, 오류: {}", user.getLoginId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping("/findid")
     public ResponseEntity<?> findLoginIdByNameAndPhone(@RequestParam("name") String name, @RequestParam("phone") String phone) {
+        log.info("아이디 찾기 요청: name={}, phone={}", name, phone);
         if (name == null || name.trim().isEmpty() || phone == null || phone.trim().isEmpty()) {
+            log.warn("아이디 찾기 실패: 이름 또는 전화번호 누락");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("이름과 전화번호를 입력해주세요.");
         }
 
         try {
             String loginId = userService.findLoginIdByNameAndPhone(name, phone);
             if (loginId != null) {
+                log.info("아이디 찾기 성공: name={}, phone={}, loginId={}", name, phone, loginId);
                 return ResponseEntity.status(HttpStatus.OK).body(loginId);
             } else {
+                log.info("아이디 찾기 실패: 일치하는 사용자 없음 (name={}, phone={})", name, phone);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
             }
         } catch (NoSuchElementException e) {
+            log.warn("아이디 찾기 실패 (NoSuchElementException): name={}, phone={}, 오류: {}", name, phone, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
         } catch (Exception e) {
+            log.error("아이디 찾기 중 서버 오류: name={}, phone={}, 오류: {}", name, phone, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("사용자 ID를 찾는 중 오류가 발생했습니다.");
         }
     }
 
     @PostMapping("/findpwd")
     public ResponseEntity<?> findpwdUpdatePassword(@RequestBody User user) {
+        log.info("비밀번호 찾기 (임시 비밀번호 발급) 요청: loginId={}, phone={}", user.getLoginId(), user.getPhone());
         if (user.getLoginId() == null || user.getLoginId().isEmpty() || user.getPhone() == null || user.getPhone().isEmpty()) {
+            log.warn("비밀번호 찾기 실패: 아이디 또는 전화번호 누락");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("아이디와 전화번호를 입력해주세요.");
         }
 
@@ -117,15 +133,20 @@ public class UserController {
                 Map<String, String> responseBody = new HashMap<>();
                 responseBody.put("message", "임시 비밀번호가 발급되었습니다. 자동으로 로그인합니다.");
                 responseBody.put("temporaryPassword", temporaryPassword);
+                log.info("비밀번호 찾기 성공: loginId={}, 임시 비밀번호 발급", user.getLoginId());
                 return ResponseEntity.status(HttpStatus.OK).body(responseBody);
             } else {
+                log.info("비밀번호 찾기 실패: 일치하는 사용자 없음 (loginId={}, phone={})", user.getLoginId(), user.getPhone());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
             }
         } catch (NoSuchElementException e) {
+            log.warn("비밀번호 찾기 실패 (NoSuchElementException): loginId={}, phone={}, 오류: {}", user.getLoginId(), user.getPhone(), e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입력하신 정보와 일치하는 사용자 ID를 찾을 수 없습니다.");
         } catch (IllegalArgumentException e) {
+            log.warn("비밀번호 찾기 실패 (IllegalArgumentException): loginId={}, 오류: {}", user.getLoginId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
+            log.error("비밀번호 업데이트 중 서버 오류: loginId={}, 오류: {}", user.getLoginId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("비밀번호 업데이트 중 오류가 발생했습니다.");
         }
     }
@@ -133,12 +154,15 @@ public class UserController {
     @PostMapping("/social")
     public ResponseEntity<?> requestSocialAuthorization(@RequestBody Map<String, String> payload) {
         String socialType = payload.get("socialType");
+        log.info("소셜 로그인 인증 요청: socialType={}", socialType);
         if (socialType == null) {
+            log.warn("소셜 로그인 인증 실패: socialType 누락");
             return ResponseEntity.badRequest().body("{\"error\":\"socialType is required\"}");
         }
 
         ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(socialType);
         if (clientRegistration == null) {
+            log.warn("소셜 로그인 인증 실패: 유효하지 않은 socialType={}", socialType);
             return ResponseEntity.badRequest().body("{\"error\":\"Invalid socialType: " + socialType + "\"}");
         }
 
@@ -148,11 +172,13 @@ public class UserController {
         Map<String, String> responseBody = new HashMap<>();
         responseBody.put("authorizationUrl", authorizationUrl);
 
+        log.info("소셜 로그인 인증 URL 반환: socialType={}, url={}", socialType, authorizationUrl);
         return ResponseEntity.ok(responseBody);
     }
 
     @PostMapping("/social/complete-signup")
     public ResponseEntity<?> completeSocialSignUp(@RequestBody SocialSignUpRequest request, HttpServletResponse response) {
+        log.info("소셜 회원가입 완료 요청: userId={}", request.getUserId());
         try {
             UserEntity userEntity = userRepository.findByUserId(request.getUserId())
                     .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
@@ -171,6 +197,7 @@ public class UserController {
             User userDto = userEntity.toDto();
 
             if (userDto.getRole().equals("BAD") || userDto.getRole().equals("EXIT")) {
+                log.warn("소셜 회원가입 완료 실패: 접근 제한된 사용자 (userId={})", request.getUserId());
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "접근이 제한된 사용자입니다."));
             }
@@ -189,10 +216,13 @@ public class UserController {
             responseBody.put("autoLoginFlag", userDto.getAutoLoginFlag());
             responseBody.put("nickname", userDto.getNickname());
 
+            log.info("소셜 회원가입 완료 및 로그인 성공: userId={}", userDto.getUserId());
             return ResponseEntity.ok(responseBody);
         } catch (IllegalArgumentException | ParseException e) {
+            log.warn("소셜 회원가입 완료 실패 (잘못된 요청): userId={}, 오류: {}", request.getUserId(), e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
+            log.error("소셜 회원가입 완료 중 서버 오류: userId={}, 오류: {}", request.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "회원가입 완료 중 서버 오류가 발생했습니다."));
         }
     }
@@ -200,22 +230,28 @@ public class UserController {
     @GetMapping("/myinfo-detail")
     public ResponseEntity<?> getMyInfoDetail(@AuthenticationPrincipal UserDetails userDetails) {
         String userId = userDetails.getUsername();
+        log.info("내 정보 상세 조회 요청: userId={}", userId);
 
         try {
             User userDto = userService.findUserByUserId(userId);
             if (userDto != null) {
+                log.info("내 정보 상세 조회 성공: userId={}", userId);
                 return ResponseEntity.ok(userDto);
             } else {
+                log.warn("내 정보 상세 조회 실패: 사용자 정보 없음 (userId={})", userId);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "사용자 정보를 찾을 수 없습니다."));
             }
         } catch (Exception e) {
+            log.error("내 정보 상세 조회 중 서버 오류: userId={}, 오류: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "사용자 정보를 불러오는 중 오류가 발생했습니다."));
         }
     }
 
     @PatchMapping("/myinfo")
     public ResponseEntity<?> updateMyInfo(@RequestBody MyInfoUpdateRequest request) {
+        log.info("내 정보 업데이트 요청: userId={}, nickname={}, phone={}", request.getUserId(), request.getNickname(), request.getPhone());
         if (request.getUserId() == null || request.getUserId().trim().isEmpty()) {
+            log.warn("내 정보 업데이트 실패: 사용자 ID 누락");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("사용자 ID는 필수입니다.");
         }
 
@@ -234,21 +270,27 @@ public class UserController {
             responseBody.put("nickname", updatedUser.getNickname());
             responseBody.put("phone", updatedUser.getPhone());
 
+            log.info("내 정보 업데이트 성공: userId={}", request.getUserId());
             return ResponseEntity.ok().body(responseBody);
         } catch (IllegalArgumentException e) {
+            log.warn("내 정보 업데이트 실패 (IllegalArgumentException): userId={}, 오류: {}", request.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (ParseException e) {
+            log.warn("내 정보 업데이트 실패 (잘못된 생년월일 형식): userId={}, 오류: {}", request.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("잘못된 생년월일 형식입니다. YYYY-MM-DD 형식으로 입력해주세요.");
         } catch (Exception e) {
+            log.error("내 정보 업데이트 중 서버 오류: userId={}, 오류: {}", request.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("내 정보 변경 중 오류가 발생했습니다.");
         }
     }
 
     @PatchMapping("/update/password")
     public ResponseEntity<?> updatePassword(@RequestBody Pwd pwdRequest) {
+        log.info("비밀번호 변경 요청: userId={}", pwdRequest.getUserId());
         if (pwdRequest.getUserId() == null || pwdRequest.getUserId().trim().isEmpty() ||
                 pwdRequest.getPrevPwd() == null || pwdRequest.getPrevPwd().isEmpty() ||
                 pwdRequest.getCurrPwd() == null || pwdRequest.getCurrPwd().isEmpty()) {
+            log.warn("비밀번호 변경 실패: 필수 정보 누락 (userId={})", pwdRequest.getUserId());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "필수 정보가 누락되었습니다."));
         }
 
@@ -257,44 +299,58 @@ public class UserController {
                     .orElseThrow(() -> new NoSuchElementException("사용자 정보를 찾을 수 없습니다."));
 
             if (!bcryptPasswordEncoder.matches(pwdRequest.getPrevPwd(), userEntity.getPassword())) {
+                log.warn("비밀번호 변경 실패: 현재 비밀번호 불일치 (userId={})", pwdRequest.getUserId());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "현재 비밀번호가 일치하지 않습니다."));
             }
 
             userService.updateUserPassword(pwdRequest.getUserId(), pwdRequest.getCurrPwd());
+            log.info("비밀번호 변경 성공: userId={}", pwdRequest.getUserId());
             return ResponseEntity.ok().body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
         } catch (NoSuchElementException e) {
+            log.warn("비밀번호 변경 실패 (NoSuchElementException): userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
         } catch (IllegalArgumentException e) {
+            log.warn("비밀번호 변경 실패 (IllegalArgumentException): userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
+            log.error("비밀번호 변경 중 서버 오류: userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "비밀번호 변경 중 서버 오류가 발생했습니다."));
         }
     }
 
     @PostMapping("/images/check-safety")
     public ResponseEntity<Map<String, Object>> checkImageSafety(@RequestParam("image") MultipartFile file) {
+        log.info("[Server] 이미지 안전성 검사 요청 수신: fileName={}, size={} bytes", file.getOriginalFilename(), file.getSize()); // 요청 수신 로그 추가
         if (file.isEmpty()) {
+            log.warn("[Server] 이미지 안전성 검사 실패: 파일 없음");
             return ResponseEntity.badRequest().body(Map.of("safe", false, "message", "이미지 파일이 없습니다."));
         }
         boolean isSafe = imageService.isImageSafe(file);
+        log.info("[Server] 이미지 안전성 검사 결과 전송: fileName={}, isSafe={}", file.getOriginalFilename(), isSafe); // 응답 전 로그 추가
         return ResponseEntity.ok(Map.of("safe", isSafe));
     }
 
     @PostMapping("/{userId}/profile-image")
     public ResponseEntity<Map<String, String>> uploadProfileImage(@PathVariable String userId, @RequestParam("image") MultipartFile file) {
+        log.info("[Server] 프로필 이미지 업로드 요청 수신: userId={}, fileName={}, size={} bytes", userId, file.getOriginalFilename(), file.getSize()); // 요청 수신 로그 추가
         if (file.isEmpty()) {
+            log.warn("[Server] 프로필 이미지 업로드 실패: 파일 없음 (userId={})", userId);
             return ResponseEntity.badRequest().body(Map.of("message", "이미지 파일이 없습니다."));
         }
         try {
             if (!imageService.isImageSafe(file)) {
+                log.warn("[Server] 프로필 이미지 업로드 실패: 유해성 감지 (userId={}, fileName={})", userId, file.getOriginalFilename());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "유해성이 감지된 이미지는 저장할 수 없습니다."));
             }
 
             String filePath = imageService.storeProfileImage(userId, file);
+            log.info("[Server] 프로필 이미지 업로드 성공 및 경로 전송: userId={}, filePath={}", userId, filePath); // 응답 전 로그 추가
             return ResponseEntity.ok(Map.of("message", "프로필 이미지가 성공적으로 업로드되었습니다.", "filePath", filePath));
         } catch (RuntimeException e) {
+            log.error("[Server] 프로필 이미지 업로드 실패 (RuntimeException): userId={}, fileName={}, 오류: {}", userId, file.getOriginalFilename(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
+            log.error("[Server] 프로필 이미지 업로드 중 서버 오류: userId={}, fileName={}, 오류: {}", userId, file.getOriginalFilename(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "이미지 업로드 중 서버 오류가 발생했습니다."));
         }
     }
@@ -309,25 +365,29 @@ public class UserController {
      */
     @PostMapping("/{userId}/face-embedding")
     public ResponseEntity<Map<String, String>> registerFaceEmbedding(@PathVariable String userId, @RequestParam("file") MultipartFile file) {
+        log.info("얼굴 임베딩 등록 요청: userId={}, fileName={}", userId, file.getOriginalFilename());
         if (file.isEmpty()) {
+            log.warn("얼굴 임베딩 등록 실패: 파일 없음 (userId={})", userId);
             return ResponseEntity.badRequest().body(Map.of("message", "이미지 파일이 없습니다."));
         }
         try {
             byte[] imageData = file.getBytes();
             boolean success = userService.saveUserFaceEmbedding(userId, imageData);
             if (success) {
+                log.info("얼굴 임베딩 등록 성공: userId={}", userId);
                 return ResponseEntity.ok(Map.of("message", userId + "의 얼굴 임베딩이 성공적으로 등록/업데이트되었습니다."));
             } else {
+                log.warn("얼굴 임베딩 등록 실패: 처리 오류 (userId={})", userId);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", userId + "의 얼굴 임베딩 등록/업데이트 실패."));
             }
         } catch (NoSuchElementException e) {
-            log.error("사용자 ID를 찾을 수 없습니다: {}", e.getMessage());
+            log.error("얼굴 임베딩 등록 실패 (사용자 ID를 찾을 수 없음): userId={}, 오류: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "사용자 정보를 찾을 수 없습니다."));
         } catch (IllegalArgumentException e) {
-            log.error("얼굴 임베딩 추출 오류: {}", e.getMessage());
+            log.error("얼굴 임베딩 등록 실패 (추출 오류): userId={}, 오류: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (IOException e) {
-            log.error("얼굴 임베딩 등록 중 파일 처리 또는 통신 오류: {}", e.getMessage());
+            log.error("얼굴 임베딩 등록 중 파일 처리 또는 통신 오류: userId={}, 오류: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "얼굴 임베딩 등록 중 서버 오류가 발생했습니다."));
         }
     }
@@ -342,7 +402,9 @@ public class UserController {
      */
     @PostMapping("/face-login")
     public ResponseEntity<?> loginByFace(@RequestParam("file") MultipartFile file, HttpServletResponse response) {
+        log.info("얼굴 로그인 요청: fileName={}", file.getOriginalFilename());
         if (file.isEmpty()) {
+            log.warn("얼굴 로그인 실패: 파일 없음");
             return ResponseEntity.badRequest().body(Map.of("message", "이미지 파일이 없습니다."));
         }
         try {
@@ -353,6 +415,7 @@ public class UserController {
                 // 인증 성공: JWT 토큰 발급 및 사용자 정보 반환
                 User userDto = userService.findUserByUserId(authenticatedUserId);
                 if (userDto == null) {
+                    log.warn("얼굴 로그인 성공 후 사용자 정보 찾기 실패: userId={}", authenticatedUserId);
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "인증된 사용자 정보를 찾을 수 없습니다."));
                 }
 
@@ -370,19 +433,21 @@ public class UserController {
                 responseBody.put("autoLoginFlag", userDto.getAutoLoginFlag());
                 responseBody.put("nickname", userDto.getNickname());
 
+                log.info("얼굴 로그인 성공: userId={}", userDto.getUserId());
                 return ResponseEntity.ok(responseBody);
             } else {
                 // 인증 실패
+                log.info("얼굴 로그인 실패: 일치하는 사용자 없음");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "얼굴 인식에 실패했거나 일치하는 사용자가 없습니다."));
             }
         } catch (IllegalArgumentException e) {
-            log.error("얼굴 임베딩 추출 오류 (로그인 시도): {}", e.getMessage());
+            log.error("얼굴 임베딩 추출 오류 (로그인 시도): 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (IOException e) {
-            log.error("얼굴 로그인 중 파일 처리 또는 통신 오류: {}", e.getMessage());
+            log.error("얼굴 로그인 중 파일 처리 또는 통신 오류: 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "얼굴 로그인 중 서버 오류가 발생했습니다."));
         } catch (Exception e) {
-            log.error("얼굴 로그인 처리 중 예기치 않은 오류: {}", e.getMessage());
+            log.error("얼굴 로그인 처리 중 예기치 않은 오류: 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "얼굴 로그인 처리 중 오류가 발생했습니다."));
         }
     }
