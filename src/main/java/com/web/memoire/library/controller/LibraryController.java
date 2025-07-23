@@ -275,51 +275,6 @@ public class LibraryController {
         }
     }
 
-    // TODO: Natural Recommendation
-    @PostMapping("/get-recommendations/{userid}")
-    public ResponseEntity<?> getRecommendations(@PathVariable String userid) {
-        log.info("LibraryController.getRecommendations... for userId: {}", userid);
-
-        try {
-            // WebClient를 사용하여 FastAPI 서버에 GET 요청 보내기
-            WebClient webClient = WebClient.builder()
-                                            .baseUrl("http://localhost:8000")
-                                            .build();
-
-            // FastAPI에 POST 요청 보내기
-            List<Map<String, Object>> response = webClient.post()
-                    .uri("/library/recommend")  // FastAPI의 /library/recommend 엔드포인트로
-                    .bodyValue(Map.of("userid", userid))  // 유저 ID를 전달
-                    .retrieve()
-                    .bodyToMono(List.class)
-                    .block();
-
-            log.info("Received recommendations from FastAPI: {}", response);
-            return ResponseEntity.ok(response);  // 추천 아이템 목록 반환
-
-        } catch (Exception e) {
-            log.error("Error while fetching recommendations", e);
-            return ResponseEntity.status(500).body("추천 요청 실패");
-        }
-    }
-
-
-//    // 컬렉션 검색 (검색어와 userid를 함께 받기)
-//    @GetMapping("/search/imsi/collection")
-//    public ResponseEntity<?> IsearchCollections(
-//            @RequestParam("query") String query,
-//            @RequestParam("userid") String userid) {
-//        log.info("LibraryController.searchCollections... 검색어: {}, userid: {}", query, userid);
-//
-//        try {
-//            // 라이브러리 서비스에서 컬렉션 검색 실행
-//            return ResponseEntity.ok(libraryService.searchCollections(query, userid));
-//        } catch (Exception e) {
-//            log.error("컬렉션 검색 실패", e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("컬렉션 검색 실패");
-//        }
-//    }
-
     @GetMapping("/search/collection")
     public ResponseEntity<?> searchCollections(
             @RequestParam("query") String query,
@@ -424,6 +379,36 @@ public class LibraryController {
             return ResponseEntity.ok(libraryService.getUserTopTags(userid));
         }catch(Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("유저 top tags 리턴 실패");
+        }
+    }
+
+    // TODO: 추후 "전체" 대체
+    // TODO: 로그인추천 30개씩 리턴
+    @GetMapping("/recommend/{userid}")
+    public ResponseEntity<?> topNRec4LoginUser (@PathVariable String userid) {
+        log.info("LibraryController.getRecommendations... for userId: {}", userid);
+
+        try {
+            return ResponseEntity.ok(libraryService.getTopNRec4LoginUser(userid, 30));
+        }
+        catch (Exception e) {
+            log.error("Error while fetching recommendations", e);
+            return ResponseEntity.status(500).body("추천 요청 실패");
+        }
+    }
+
+    // TODO: 비로그인 추천 30개씩 리턴.. 비로그인은 그냥 좋아요+북마크 순서대로?
+    @GetMapping("/recommend/guest")
+    public ResponseEntity<?> topNRec4AnonUser () {
+        log.info("LibraryController.getRecommendations for ANON user");
+
+        try {
+            //TODO: getAllPublicCollectionView에 정렬 로직 추가하기
+            return ResponseEntity.ok(libraryService.getAllPublicCollectionView());
+        }
+        catch (Exception e) {
+            log.error("Error while fetching recommendations", e);
+            return ResponseEntity.status(500).body("추천 요청 실패");
         }
     }
 

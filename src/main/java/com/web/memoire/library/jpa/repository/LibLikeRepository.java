@@ -10,4 +10,6 @@ public interface LibLikeRepository extends JpaRepository<LikeEntity, LikeId> {
     void deleteByUseridAndCollectionid(String userid, int collectionId);
 
     int countLikeEntitiesByCollectionid(int collectionId);
+
+    int countByCollectionid(int collectionid);
 }
