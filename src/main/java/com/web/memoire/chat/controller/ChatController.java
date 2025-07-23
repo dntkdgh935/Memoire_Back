@@ -1,5 +1,6 @@
 package com.web.memoire.chat.controller;
 
+import com.web.memoire.chat.model.dto.Chat;
 import com.web.memoire.chat.model.dto.ChatRoomWithUsers;
 import com.web.memoire.chat.model.dto.ChatUsers;
 import com.web.memoire.chat.model.service.ChatService;
@@ -10,9 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -48,9 +47,15 @@ public class ChatController {
                     temp.setName(user.getName());
                     users.add(temp);
                 }
-                list.add(new ChatRoomWithUsers(userChatroom.getChatroomid(), users));
+                //여기서 채팅방의 마지막 대화를 확인
+                Chat chat = chatService.findLatestChat(userChatroom.getChatroomid());
+                if (chat == null) {
+                    continue;
+                }
+                list.add(new ChatRoomWithUsers(userChatroom.getChatroomid(), users, chat.getUserid(), chat.getMessageContent(), chat.getSentTime()));
 
             }
+            list.sort((a, b) -> b.getLastMessageTime().compareTo(a.getLastMessageTime()));
             return ResponseEntity.ok(list);
         } catch (Exception e) {
             log.error("error", e);
@@ -58,18 +63,18 @@ public class ChatController {
         }
     }
 
-    @PostMapping("/check")
-    public ResponseEntity<?> checkChatroom(@RequestParam List<String> users) {
+    @PostMapping("/private/check")
+    public ResponseEntity<?> checkPrivateChatroom(@RequestParam List<String> users) {
         log.info("ChatController.checkChatroom...");
         try {
             String userid = users.get(0);
             String otherUserid = users.get(1);
             log.info("userid : " + userid);
             log.info("otherUserid : " + otherUserid);
-            return ResponseEntity.ok(chatService.findByUserIdAndOtherUserId(userid, otherUserid));
+            return ResponseEntity.ok(chatService.findByUserIdAndOtherUserIdPrivate(userid, otherUserid));
         } catch (Exception e) {
             log.error("error", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/check 에러");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/private/check 에러");
         }
     }
 
@@ -82,6 +87,19 @@ public class ChatController {
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/new 에러");
 
+    }
+
+    @PostMapping("/private/new")
+    public ResponseEntity<?> createPrivateChatroom(@RequestParam List<String> users) {
+        log.info("ChatController.createChatroom...");
+        String chatroomid = UUID.randomUUID().toString();
+        if (users.size() != 2) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/private/new 에러");
+        }
+        if (chatService.insertChatUsersPrivate(chatroomid, (ArrayList<String>) users) > 0) {
+            return ResponseEntity.ok(chatroomid);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/private/new 에러");
     }
 
     @PostMapping("/admin/check")
@@ -102,13 +120,14 @@ public class ChatController {
         String chatroomid = "admin-" + UUID.randomUUID().toString();
         ArrayList<String> users = new ArrayList<>();
         users.add(user);
-        if (chatService.insertChatUsers(chatroomid, users) > 0) {
+        if (chatService.insertChatUsersPrivate(chatroomid, users) > 0) {
             return ResponseEntity.ok(chatroomid);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/admin/new 에러");
 
     }
 
+    // Assumption: only one user in an admin chatroom (could be multiple admins)
     @GetMapping("/admin/chatrooms")
     public ResponseEntity<?> getAdminChatrooms(@RequestParam String userid) {
         log.info("ChatController.getAdminChatrooms...");
@@ -116,6 +135,7 @@ public class ChatController {
             List<ChatRoomWithUsers> list = new ArrayList<>();
 
             ArrayList<ChatUsers> chatUsers = chatService.findAdminChatrooms();
+            // This loop should only complete once for each admin chatroom
             for (ChatUsers chatUser : chatUsers) {
                 ArrayList<User> usersInChatroom = new ArrayList<>();
                 // 관리자 본인은 스킵
@@ -123,15 +143,23 @@ public class ChatController {
                     continue;
                 }
                 User user = chatService.findUserById(chatUser.getUserid());
+                if (user.getRole().equals("admin")) {
+                    continue;
+                }
                 User temp = new User();
                 temp.setUserId(user.getUserId());
                 temp.setLoginId(user.getLoginId());
                 temp.setName(user.getName());
                 usersInChatroom.add(temp);
-                ChatRoomWithUsers chatRoomWithUsers = new ChatRoomWithUsers(chatUser.getChatroomid(), usersInChatroom);
+                Chat chat = chatService.findLatestChat(chatUser.getChatroomid());
+                if (chat == null) {
+                    continue;
+                }
+                ChatRoomWithUsers chatRoomWithUsers = new ChatRoomWithUsers(chatUser.getChatroomid(), usersInChatroom, chat.getUserid(), chat.getMessageContent(), chat.getSentTime());
                 list.add(chatRoomWithUsers);
 
             }
+            list.sort((a, b) -> b.getLastMessageTime().compareTo(a.getLastMessageTime()));
             return ResponseEntity.ok(list);
 
         } catch (Exception e) {
@@ -147,7 +175,7 @@ public class ChatController {
             if (!chatService.checkChatroom(userid, chatroomid)) {
                 ArrayList<String> users = new ArrayList<>();
                 users.add(userid);
-                chatService.insertChatUsers(chatroomid, users);
+                chatService.insertChatUsersPrivate(chatroomid, users);
             }
             return ResponseEntity.ok("사용자 추가 완료");
         } catch (Exception e) {
@@ -158,11 +186,12 @@ public class ChatController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<?> getUsers(@RequestParam String chatroomid) {
+    public ResponseEntity<?> getUsers(@RequestParam String userid, @RequestParam String chatroomid) {
         log.info("ChatController.getUsers...");
         try {
             ArrayList<ChatUsers> users = chatService.findAllByChatroomid(chatroomid);
             ArrayList<User> userList = new ArrayList<>();
+            Map<String, Object> map = new HashMap<>();
             for (ChatUsers user : users) {
                 User real = chatService.findUserById(user.getUserid());
                 User temp = new User();
@@ -171,7 +200,9 @@ public class ChatController {
                 temp.setName(real.getName());
                 userList.add(temp);
             }
-            return ResponseEntity.ok(userList);
+            map.put("users", userList);
+            map.put("isPrivate", chatService.checkIsPrivate(userid, chatroomid));
+            return ResponseEntity.ok(map);
         } catch (Exception e) {
             log.error("error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/users 에러");

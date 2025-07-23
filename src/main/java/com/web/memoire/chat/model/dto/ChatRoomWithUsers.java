@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -17,4 +18,7 @@ import java.util.List;
 public class ChatRoomWithUsers {
     private String chatroomid;
     private List<User> users;
+    private String lastmessageUserId;
+    private String lastMessage;
+    private LocalDateTime lastMessageTime;
 }

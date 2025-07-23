@@ -20,10 +20,25 @@ public interface ChatUsersRepository extends JpaRepository<ChatUsersEntity, Chat
     @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.chatroomid = :chatroomid")
     List<ChatUsersEntity> findAllByChatroomid(@Param("chatroomid") String chatroomid);
 
+//    // 1:1 채팅할 때 userid와 otherUserid가 있는지 확인
+//    @Query(value = """
+//            SELECT chatroomid
+//            FROM TB_CHAT_USERS
+//            GROUP BY chatroomid
+//                    HAVING COUNT(*) = 2
+//                       AND SUM(CASE
+//                               WHEN userid = :userid THEN 1
+//                               WHEN userid = :otherUserid THEN 1
+//                               ELSE 0
+//                           END) = 2
+//            """, nativeQuery = true)
+//    String findByUserIdAndOtherUserId(@Param("userid") String userid, @Param("otherUserid") String otherUserid);
+
     // 1:1 채팅할 때 userid와 otherUserid가 있는지 확인
     @Query(value = """
             SELECT chatroomid
             FROM TB_CHAT_USERS
+            WHERE IS_PRIVATE = 'Y'
             GROUP BY chatroomid
                     HAVING COUNT(*) = 2
                        AND SUM(CASE 
@@ -32,7 +47,7 @@ public interface ChatUsersRepository extends JpaRepository<ChatUsersEntity, Chat
                                ELSE 0 
                            END) = 2
             """, nativeQuery = true)
-    String findByUserIdAndOtherUserId(@Param("userid") String userid, @Param("otherUserid") String otherUserid);
+    String findByUserIdAndOtherUserIdPrivate(@Param("userid") String userid, @Param("otherUserid") String otherUserid);
 
     // 관리자와의 채팅방이 있는지 확인
     @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.userid = :userid AND c.chatroomid LIKE 'admin%'")
@@ -45,6 +60,10 @@ public interface ChatUsersRepository extends JpaRepository<ChatUsersEntity, Chat
     // 특정유저가 채팅방에 있는지 조회
     @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.userid = :userid AND c.chatroomid = :chatroomid")
     ChatUsersEntity findByUserIdAndChatroomid(@Param("userid") String userid, @Param("chatroomid") String chatroomid);
+
+    // 해당 채팅방이 개인방인지 아닌지 조회
+    @Query(value = "SELECT c.isPrivate FROM ChatUsersEntity c WHERE c.userid = :userid AND c.chatroomid = :chatroomid")
+    char findByChatroomidAndIsPrivate(@Param("userid") String userid, @Param("chatroomid") String chatroomid);
 
     void deleteAllByChatroomid(String chatroomid);
 }

@@ -24,10 +24,14 @@ public class ChatUsersEntity {
     @Column(name = "USERID", nullable = false)
     private String userid;
 
+    @Column(name = "IS_PRIVATE", nullable = false, columnDefinition = "CHAR(1) DEFAULT 'N'")
+    private char isPrivate;
+
     public ChatUsers toDto() {
         return ChatUsers.builder()
                 .chatroomid(chatroomid)
                 .userid(userid)
+                .isPrivate(isPrivate)
                 .build();
     }
 
