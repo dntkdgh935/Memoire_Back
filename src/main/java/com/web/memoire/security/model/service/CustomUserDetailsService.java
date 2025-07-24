@@ -1,7 +1,9 @@
 package com.web.memoire.security.model.service;
 
+import com.web.memoire.user.jpa.entity.PwdEntity;
 import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.entity.SocialUserEntity; // SocialUserEntity 임포트
+import com.web.memoire.user.jpa.repository.PwdRepository;
 import com.web.memoire.user.jpa.repository.SocialUserRepository;
 import com.web.memoire.user.jpa.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -19,10 +21,12 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final SocialUserRepository socialUserRepository;
+    private final PwdRepository pwdRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository, SocialUserRepository socialUserRepository) {
+    public CustomUserDetailsService(UserRepository userRepository, SocialUserRepository socialUserRepository, PwdRepository pwdRepository) {
         this.userRepository = userRepository;
         this.socialUserRepository = socialUserRepository;
+        this.pwdRepository = pwdRepository;
     }
 
     @Override
@@ -65,13 +69,24 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + identifier);
         }
 
-        // UserDetails 객체 반환
-        // 소셜 로그인 사용자의 경우 password 필드가 null일 수 있으므로 빈 문자열로 처리
-        String password = userEntity.getPassword() != null ? userEntity.getPassword() : "";
+        // 4. 비밀번호 조회 (TB_PWD_HISTORY에서 최신 비밀번호 가져오기)
+        String password = ""; // 기본값은 빈 문자열
+        Optional<PwdEntity> latestPwdOpt = pwdRepository.findLatestByUserId(userEntity.getUserId());
 
+        if (latestPwdOpt.isPresent()) {
+            password = latestPwdOpt.get().getCurrPwd();
+            log.info("비밀번호 이력에서 비밀번호 조회 성공: userId={}", userEntity.getUserId());
+        } else {
+            // 비밀번호 이력이 없는 경우 (예: 소셜 로그인 사용자)
+            log.warn("사용자 {}의 비밀번호 이력을 찾을 수 없습니다. (소셜 로그인 사용자일 가능성)", userEntity.getUserId());
+            // 이 경우, password는 기본값인 빈 문자열로 유지됩니다.
+            // 소셜 로그인 사용자는 비밀번호 인증을 거치지 않으므로 빈 문자열이어도 무방합니다.
+        }
+
+        // UserDetails 객체 반환
         return User.builder()
                 .username(userEntity.getUserId()) // Spring Security UserDetails의 username은 우리 서비스의 userId
-                .password(password)
+                .password(password) // TB_PWD_HISTORY에서 조회된 비밀번호 사용
                 .roles(userEntity.getRole()) // role은 UserEntity에 직접 Role이 있다면 String으로 반환 (ADMIN, USER 등)
                 .build();
     }

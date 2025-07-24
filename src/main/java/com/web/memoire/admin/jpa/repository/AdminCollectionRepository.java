@@ -5,8 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface AdminCollectionRepository extends JpaRepository<CollectionEntity, Integer> {
+public interface AdminCollectionRepository extends JpaRepository<CollectionEntity, Integer>, AdminCollectionRepositoryCustom {
 
     // 컬렉션 조회
     CollectionEntity findByCollectionid(int collectionid);
+
 }

@@ -48,7 +48,7 @@ public class UserService {
 
 
     public boolean selectCheckId(String loginId) {
-        return userRepository.existsById(loginId);
+        return userRepository.existsByLoginId(loginId);
     }
 
     public User selectUser(String loginId){
@@ -91,46 +91,25 @@ public class UserService {
     }
 
     public String findLoginIdByNameAndPhone(String name, String phone) {
-        UserEntity userEntity = userRepository.findLoginIdByNameAndPhone(name, phone)
+        UserEntity userEntity = userRepository.findByNameAndPhoneAndLoginIdIsNotNull(name, phone)
                 .orElseThrow(() -> new NoSuchElementException("사용자를 찾을 수 없습니다: " + name));
         return userEntity.getLoginId();
     }
 
     @Transactional
-    public UserEntity updateUserPassword(@NotNull String userId, String newRawPassword) { // 파라미터 이름 변경: newRawPassword
-        UserEntity userEntity = userRepository.findByUserId(userId)
+    public void updateUserPassword(@NotNull String userId, @NotNull String prevRawPassword, @NotNull String newRawPassword) {
+        // 1. 사용자 존재 여부 확인 (UserEntity의 다른 정보 업데이트는 없지만, 사용자 존재 확인은 필요할 수 있음)
+        userRepository.findByUserId(userId)
                 .orElseThrow(() -> new NoSuchElementException("비밀번호 변경 대상 사용자를 찾을 수 없습니다: " + userId));
 
-        String currentEncodedPassword = userEntity.getPassword(); // 현재 암호화된 비밀번호
-        String newEncodedPassword = bcryptPasswordEncoder.encode(newRawPassword); // 새로 입력된 비밀번호 암호화
+        // 2. 실제 비밀번호 변경 로직은 PwdService에 위임
+        // PwdService가 이전 비밀번호 확인, 새 비밀번호 암호화, 이력 저장, 과거 비밀번호 재사용 방지 등을 모두 처리합니다.
+        pwdService.changeUserPassword(userId, prevRawPassword, newRawPassword);
 
-        // 1. 새 비밀번호와 현재 비밀번호 비교
-        if (bcryptPasswordEncoder.matches(newRawPassword, currentEncodedPassword)) {
-            log.warn("비밀번호 변경 실패: userId={}, 새 비밀번호가 현재 비밀번호와 동일합니다.", userId);
-            throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
-        }
-
-        // 2. 새 비밀번호와 과거 비밀번호 이력 비교
-        // 최근 3개의 비밀번호를 재사용할 수 없도록 정책 설정 (필요에 따라 숫자 변경)
-        int passwordHistoryLimit = 3;
-        if (pwdService.hasUsedPreviousPassword(userId, newRawPassword, passwordHistoryLimit)) {
-            log.warn("비밀번호 변경 실패: userId={}, 새 비밀번호가 과거에 사용된 비밀번호입니다.", userId);
-            throw new IllegalArgumentException("새 비밀번호는 과거에 사용했던 비밀번호와 달라야 합니다.");
-        }
-
-        // 3. 비밀번호 변경 이력 저장
-        // PwdEntity의 prevPwd는 변경되기 전의 비밀번호, currPwd는 변경될 새 비밀번호를 저장
-        PwdEntity pwdHistoryEntity = PwdEntity.builder()
-                .userId(userId)
-                .chPwd(new Date()) // 변경일은 현재 날짜/시간
-                .prevPwd(currentEncodedPassword) // 이전 암호화된 비밀번호
-                .currPwd(newEncodedPassword)   // 새로 암호화된 비밀번호
-                .build();
-        pwdService.savePasswordHistory(pwdHistoryEntity); // PwdEntity를 직접 전달
-
-        // 4. UserEntity의 비밀번호 업데이트
-        userEntity.setPassword(newEncodedPassword);
-        return userRepository.save(userEntity);
+        log.info("UserService에서 비밀번호 변경 요청 처리 완료: userId={}", userId);
+        // UserEntity 자체에는 비밀번호 필드가 없으므로, UserEntity를 업데이트하거나 반환할 필요가 없습니다.
+        // 만약 UserEntity의 다른 필드(예: 마지막 비밀번호 변경일)를 업데이트해야 한다면 여기서 추가합니다.
+        // 예: userEntity.setLastPasswordChangeDate(new Date()); userRepository.save(userEntity);
     }
 
     @Transactional
@@ -311,6 +290,19 @@ public class UserService {
     }
 
     public boolean isPhoneExists(String phone) {
-        return userRepository.existsByPhone(phone);
+        return userRepository.existsByPhoneAndLoginIdIsNotNull(phone);
+    }
+
+    @Transactional
+    public void resetUserPassword(@NotNull String userId, @NotNull String newRawPassword) {
+        // 1. 사용자 존재 여부 확인
+        userRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("비밀번호 재설정 대상 사용자를 찾을 수 없습니다: " + userId));
+
+        // 2. 실제 비밀번호 재설정 로직은 PwdService에 위임
+        // PwdService가 새 비밀번호 암호화, 이력 저장, 과거 비밀번호 재사용 방지 등을 처리합니다.
+        pwdService.resetPassword(userId, newRawPassword);
+
+        log.info("UserService에서 비밀번호 재설정 요청 처리 완료: userId={}", userId);
     }
 }

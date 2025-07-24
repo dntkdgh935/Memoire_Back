@@ -4,7 +4,7 @@ import com.web.memoire.user.jpa.entity.SocialUserEntity;
 import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.SocialUserRepository;
 import com.web.memoire.user.jpa.repository.UserRepository;
-import com.web.memoire.user.model.dto.User;
+import com.web.memoire.user.model.dto.User; // User DTO는 직접 사용되지 않아 제거될 수 있지만, 현재는 그대로 둡니다.
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -80,7 +80,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // OAuth2User attributes에 우리 서비스의 추가 정보 포함
         attributes.put("appUserId", userEntity.getUserId());
-        boolean needsSignupCompletion = userEntity.getLoginId() == null || userEntity.getPassword() == null;
+        // UserEntity에 password 필드가 없으므로, loginId가 null인 경우 회원가입 완료가 필요하다고 판단
+        boolean needsSignupCompletion = userEntity.getLoginId() == null;
         attributes.put("needsSignupCompletion", needsSignupCompletion);
         attributes.put("socialType", registrationId);
         attributes.put("socialId", socialId); // 추출된 socialId를 다시 attributes에 넣어 CustomAuthenticationSuccessHandler로 전달
@@ -88,7 +89,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         attributes.put("nickname", userEntity.getNickname());
 
         log.info("[CustomOAuth2UserService] Returning OAuth2User with appUserId: {}, needsSignupCompletion: {}", userEntity.getUserId(), needsSignupCompletion);
-        log.info("[CustomOAuth2UserService] UserEntity details: loginId={}, password={}", userEntity.getLoginId(), userEntity.getPassword() != null ? "******" : "null");
+        // UserEntity에 password 필드가 없으므로 관련 로깅 제거
+        log.info("[CustomOAuth2UserService] UserEntity details: loginId={}", userEntity.getLoginId());
 
 
         return new DefaultOAuth2User(
@@ -107,8 +109,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                         log.error("[CustomOAuth2UserService] Error: SocialUserEntity exists but corresponding UserEntity not found for userId: {}", socialUser.getUserId());
                         return new OAuth2AuthenticationException("User not found for existing social account.");
                     });
-            log.info("[CustomOAuth2UserService] Existing social user found: userId={}, socialType={}, socialId={}, loginId={}, password={}",
-                    user.getUserId(), socialType, socialId, user.getLoginId(), user.getPassword() != null ? "******" : "null");
+            log.info("[CustomOAuth2UserService] Existing social user found: userId={}, socialType={}, socialId={}, loginId={}",
+                    user.getUserId(), socialType, socialId, user.getLoginId()); // password 관련 로깅 제거
             return user;
         } else {
             log.info("[CustomOAuth2UserService] New social user. Creating initial account for socialId: {}", socialId);
@@ -116,12 +118,16 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
             UserEntity newUser = UserEntity.builder()
                     .userId(newUserId)
-                    .loginId(null)
-                    .password(null)
+                    .loginId(null) // 초기 소셜 로그인 사용자는 loginId가 없을 수 있음
+                    // .password(null) // password 필드 제거됨
                     .name(name)
                     .nickname(nickname)
                     .role("USER")
                     .autoLoginFlag("N")
+                    .loginType("social") // ✅ 소셜 로그인 사용자로 명시
+                    .registrationDate(new Date()) // 가입일자 추가
+                    .sanctionCount(0) // 제재 횟수 기본값 추가
+                    .statusMessage(null) // 상태 메시지 기본값 추가
                     .build();
             userRepository.save(newUser);
             userRepository.flush(); // 변경 사항을 즉시 DB에 반영
@@ -137,8 +143,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
             log.info("[CustomOAuth2UserService] NEW USER CREATED (initial save): userId={}, socialId={}, socialType={}",
                     newUserId, socialId, socialType); // ✅ 저장된 socialId, socialType 확인
-            log.info("[CustomOAuth2UserService] New UserEntity details: loginId={}, password={}",
-                    newUser.getLoginId(), newUser.getPassword() != null ? "******" : "null");
+            // password 관련 로깅 제거
+            log.info("[CustomOAuth2UserService] New UserEntity details: loginId={}", newUser.getLoginId());
             return newUser;
         }
     }

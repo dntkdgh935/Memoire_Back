@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Date; // Date 클래스 임포트 추가
 
 @Slf4j
 @Component
@@ -119,14 +120,18 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String newUserId = UUID.randomUUID().toString();
             userEntity = UserEntity.builder()
                     .userId(newUserId)
-                    .loginId(null) // ✅ loginId는 null로 유지 (소셜 전용 계정)
-                    .password(null) // ✅ password는 null로 유지 (소셜 전용 계정)
+                    .loginId(null) // loginId는 null로 유지 (소셜 전용 계정)
+                    // .password(null) // password 필드 제거됨
                     .name(name)
                     .nickname(nickname)
-                    .phone(null) // ✅ 초기에는 phone null
-                    .birthday(null) // ✅ 초기에는 birthday null
+                    .phone(null) // 초기에는 phone null
+                    .birthday(null) // 초기에는 birthday null
                     .role("USER")
                     .autoLoginFlag("N")
+                    .loginType("social") // ✅ 소셜 로그인 사용자로 명시
+                    .registrationDate(new Date()) // 가입일자 추가
+                    .sanctionCount(0) // 제재 횟수 기본값 추가
+                    .statusMessage(null) // 상태 메시지 기본값 추가
                     .build();
             userRepository.save(userEntity);
             userRepository.flush();
@@ -162,8 +167,9 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // 기존 사용자 또는 회원가입 완료된 사용자 (JWT 발급)
         User userDto = userEntity.toDto(); // 최종 UserEntity를 DTO로 변환
 
-        log.info("[CustomAuthenticationSuccessHandler] Final UserDto for appUserId: {}. LoginId={}, Password={}",
-                userDto.getUserId(), userDto.getLoginId(), userDto.getPassword() != null ? "******" : "null");
+        // password 필드가 UserDto에서 제거되었으므로 관련 로깅 수정
+        log.info("[CustomAuthenticationSuccessHandler] Final UserDto for appUserId: {}. LoginId={}",
+                userDto.getUserId(), userDto.getLoginId());
 
         if("BAD".equals(userDto.getRole())){
             log.warn("[CustomAuthenticationSuccessHandler] User {} is a BAD user. Denying access.", userDto.getLoginId());

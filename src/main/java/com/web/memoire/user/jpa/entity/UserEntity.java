@@ -27,8 +27,7 @@ public class UserEntity {
     @Column(name="BIRTHDAY")
     private Date birthday;
 
-    @Column(name="PASSWORD", nullable = false, length = 100)
-    private String password;
+    // PASSWORD 컬럼 제거됨
 
     @Column(name="ROLE", length = 20)
     private String role;
@@ -36,8 +35,7 @@ public class UserEntity {
     @Column(name="AUTO_LOGIN_FLAG", length = 2)
     private String autoLoginFlag;
 
-    @Column(name="AUTO_LOGIN_TOKEN", length = 255)
-    private String autoLoginToken;
+    // AUTO_LOGIN_TOKEN 컬럼 제거됨
 
     @Column(name="REGISTRATION_DATE", nullable = false)
     private Date registrationDate;
@@ -60,8 +58,10 @@ public class UserEntity {
     @Column(name="STATUS_MESSAGE", length = 200)
     private String statusMessage;
 
-    @Column(name="FACE_LOGIN_USE", length = 1)
-    private String faceLoginUse;
+    // FACE_LOGIN_USE 컬럼 제거됨
+
+    @Column(name="LOGIN_TYPE", length = 20) // LOGIN_TYPE 컬럼 추가
+    private String loginType;
 
     @PrePersist
     public void prePersist() {
@@ -74,9 +74,8 @@ public class UserEntity {
         if (sanctionCount == null) {
             sanctionCount = 0; // Default 값 설정
         }
-        if (faceLoginUse == null) {
-            faceLoginUse = "N"; // Default 값 설정
-        }
+        // faceLoginUse 관련 로직 제거됨
+        // login_type은 SQL에서 기본값이 없으므로 여기서는 별도 설정하지 않음
     }
 
     public User toDto() {
@@ -84,10 +83,10 @@ public class UserEntity {
                 .userId(userId)
                 .name(name)
                 .birthday(birthday)
-                .password(password)
+                // .password(password) // password 필드 제거됨
                 .role(role)
                 .autoLoginFlag(autoLoginFlag)
-                .autoLoginToken(autoLoginToken)
+                // .autoLoginToken(autoLoginToken) // autoLoginToken 필드 제거됨
                 .registrationDate(registrationDate)
                 .loginId(loginId)
                 .nickname(nickname)
@@ -95,7 +94,8 @@ public class UserEntity {
                 .profileImagePath(profileImagePath)
                 .sanctionCount(sanctionCount)
                 .statusMessage(statusMessage)
-                .faceLoginUse(faceLoginUse)
+                // .faceLoginUse(faceLoginUse) // faceLoginUse 필드 제거됨
+                .loginType(loginType) // loginType 필드 추가
                 .build();
     }
 
