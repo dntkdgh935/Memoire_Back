@@ -8,6 +8,5 @@ import lombok.*;
 @Builder
 public class TtsPreviewRequest {
     private String script;
-    private String ttsStyle;
-    private String tone;
+    private String speech;
 }

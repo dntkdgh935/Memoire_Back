@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,30 +31,41 @@ public class ImTImMemoryService {
     }
 
     @Transactional
-    public void createMemory(int collectionId, ImTImResultDto dto) {
+    public void createMemory(int collectionId, ImTImResultDto dto) throws ParseException {
         int nextOrder = imtimmemoryRepository.findMaxMemoryOrderByCollectionid(collectionId) + 1;
 
+        String fileName = dto.getImageUrl().substring(dto.getImageUrl().lastIndexOf('/') + 1);
+
+        Date now = new Date();
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
+        String dateStr = fmt.format(now);
+        Date dt = fmt.parse(dateStr);
+
         MemoryEntity m = MemoryEntity.builder()
-                .memoryType("image")             // 구분값
-                .collectionid(collectionId)      // FK
-                .title(dto.getTitle())           // 사용자 지정 제목
-                .content(null)       // 설명/내용
-                .filename(dto.getFilename())     // 파일명
-                .filepath(dto.getFilepath())     // 파일 경로 또는 URL
-                .createdDate(new Date())         // 생성 시각
-                .memoryOrder(nextOrder)          // 순서
+                .memoryType("image")
+                .collectionid(collectionId)
+                .title(dto.getTitle())
+                .content(null)
+                .filename(fileName)
+                .filepath("/upload_files/memory_img")
+                .createdDate(dt)
+                .memoryOrder(nextOrder)
                 .build();
 
         imtimmemoryRepository.save(m);
     }
 
     @Transactional
-    public void updateExisting(int memoryId, ImTImResultDto dto) {
+    public void updateExisting(int memoryId, ImTImResultDto dto) throws ParseException {
         MemoryEntity m = imtimmemoryRepository.findById(memoryId)
-                .orElseThrow(() -> new EntityNotFoundException("Memory not found: " + memoryId));
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 메모리 ID: " + memoryId));
+        Date now = new Date();
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
+        String dateStr = fmt.format(now);
+        Date dt = fmt.parse(dateStr);
 
         m.setFilename(dto.getFilename());
-        m.setFilepath(dto.getFilepath());
+        m.setCreatedDate(dt);
 
         imtimmemoryRepository.save(m);
     }
