@@ -30,13 +30,13 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 public class AdminService {
 
+    private final UserRepository userRepository;
     private final AdminUserRepository adminUserRepository;
     private final AdminCollectionRepository adminCollectionRepository;
     private final AdminCollectionLikeRepository adminCollectionLikeRepository;
-
     private final AdminReportRepository adminReportRepository;
     private final AdminMemoryRepository adminMemoryRepository;
-    private final AdminCollectionRepository adminCollectionRepository;
+
 
     /**
      * 특정 기간 동안의 일별 신규 가입자 수 통계를 가져옵니다.
