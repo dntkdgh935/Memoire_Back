@@ -14,7 +14,15 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -48,7 +56,7 @@ public class VideoPythonApiService {
         }
     }
 
-    public VideoResultDto generateVideo(VideoGenerationRequest req) {
+    public VideoResultDto generateVideo(VideoGenerationRequest req) throws IOException {
         String rawVideoUrl;
 
         if (Boolean.TRUE.equals(req.getLipSyncEnabled())) {
@@ -60,72 +68,109 @@ public class VideoPythonApiService {
                     String.class
             );
         } else {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            String imageUrl = req.getImageUrl();
+            String fileName = UUID.randomUUID().toString() + ".png";
+            Path uploadDir = Paths.get("C:", "upload_files");
+            Files.createDirectories(uploadDir);
+            Path filePath = uploadDir.resolve(fileName);
 
-            // 2. 폼 데이터 (form-urlencoded 형식)
-            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-            map.add("video_noperson_raw", req.getVideoPrompt());
+            // 예시: URL에서 다운로드(혹은 메모리에 있는 이미지 byte라면 바로 저장)
+            try (InputStream in = new URL(imageUrl).openStream()) {
+                Files.copy(in, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            // 실제 파일 경로를 파이썬으로 넘길 준비
+            String springImagePath = filePath.toString(); // "C:/upload_files/xxx.png"
 
-            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+
+            HttpHeaders formHeaders  = new HttpHeaders();
+            formHeaders .setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> form  = new LinkedMultiValueMap<>();
+            form.add("video_noperson_raw", req.getVideoPrompt());
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     pythonBaseUrl + "/atelier/openai/generate-video-background-prompt",
-                    entity,
+                    new HttpEntity<>(form, formHeaders),
                     Map.class
             );
 
             String refinedVideoPrompt = (String) response.getBody().get("prompt");
             log.info("refinedVideoPrompt is {}", refinedVideoPrompt);
 
-            log.info("imageUrl: {}", req.getImageUrl());
+            HttpHeaders jsonHeaders = new HttpHeaders();
+            jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, String> jsonBody = Map.of(
+                    "image_path", springImagePath,
+                    "prompt",     refinedVideoPrompt
+            );
+
+            HttpEntity<Map<String,String>> jsonentity = new HttpEntity<>(jsonBody, jsonHeaders);
+
             rawVideoUrl = restTemplate.postForObject(
-                    pythonBaseUrl + "/atelier/runway/generate-image-video",
-                    Map.of(
-                            "image_url", req.getImageUrl(),
-                            "prompt", refinedVideoPrompt
-                    ),
+                pythonBaseUrl + "/atelier/runway/generate-image-video",
+                    jsonentity,
                     String.class
             );
+
+
         }
 
+        HttpHeaders formHeaders = new HttpHeaders();
+        formHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("image_url", req.getImageUrl());
+
         // Vision 호출
-        String imageDescription = restTemplate.postForObject(
+        String description = restTemplate.postForObject(
                 pythonBaseUrl + "/atelier/vision/analyze-image",
-                Map.of("imageUrl", req.getImageUrl()),
+                new LinkedMultiValueMap<String,String>() {{ add("image_url", req.getImageUrl()); }},
                 String.class
         );
-        log.info("imageDescription is {}", imageDescription);
+        log.info("imageDescription is {}", description);
+
 
         // 자연음 프롬프트 생성(GPT)
+        MultiValueMap<String,String> soundForm = new LinkedMultiValueMap<>();
+        soundForm.add("image_description", description);
+
         String soundPrompt = restTemplate.postForObject(
                 pythonBaseUrl + "/atelier/openai/generate-sound-prompt",
-                Map.of("imageDescription", imageDescription),
+                new HttpEntity<>(soundForm, formHeaders),
                 String.class
         );
         log.info("soundPrompt is {}", soundPrompt);
+
+
+        // 자연음 생성
+        HttpHeaders jsonHeaders = new HttpHeaders();
+        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
 
         AudioRequest audioReq = AudioRequest.builder()
                 .prompt(soundPrompt)
                 .duration(15)
                 .numSteps(25)
                 .build();
-        String musicUrl = restTemplate.postForObject(
+
+        Map<String, String> stableResp = restTemplate.postForObject(
                 pythonBaseUrl + "/atelier/stable/generate",
-                audioReq,
-                String.class
+                new HttpEntity<>(audioReq, jsonHeaders),
+                Map.class
         );
+        String musicUrl = stableResp.get("generated_natural_url");
         log.info("musicUrl is {}", musicUrl);
 
+
+        // 합성 (ffmpeg)
         FfmpegGenerationRequest ffmpegReq = FfmpegGenerationRequest.builder()
                 .videoUrl(rawVideoUrl)
-                .ttsUrl(req.getLipSyncEnabled() ? null : req.getTtsUrl())
+                .ttsUrl(req.getLipSyncEnabled()? null : req.getTtsUrl())
                 .musicUrl(musicUrl)
                 .build();
 
         FfmpegGenerationResponse ffmpegRes = restTemplate.postForObject(
                 pythonBaseUrl + "/atelier/ffmpeg/generate",
-                ffmpegReq,
+                new HttpEntity<>(ffmpegReq, jsonHeaders),
                 FfmpegGenerationResponse.class
         );
         log.info("ffmpegRes is {}", ffmpegRes);
