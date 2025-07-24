@@ -42,6 +42,8 @@ public class LibraryService {
     private final LibUserCollScoreRepository libUserCollScoreRepository;
 
     private final WebClient webClient;
+    @Autowired
+    private LibReportRepository libReportRepository;
 
     // 모든 태그 가져오기
     public List<Tag> getAllTags() {
@@ -972,5 +974,34 @@ public class LibraryService {
 
         List<CollView> pagedResult = recColls.subList(start, end);
         return new PageImpl<>(pagedResult, pageable, recColls.size());
+    }
+
+    @Transactional
+    public void reportMemory(int memoryid, String userid, String reportReason) {
+        //libReport
+        ReportEntity reportEntity = new ReportEntity(memoryid, userid, reportReason);
+        libReportRepository.saveAndFlush(reportEntity);
+    }
+
+    public Object getWhoLiked(int collectionid, String loginUser) {
+        List <UserCardView> usersWhoLiked = new ArrayList<>();
+
+        List <LikeEntity> collLikes = libLikeRepository.findByCollectionid(collectionid);
+        for (LikeEntity like : collLikes) {
+            UserCardView likedUser = makeUserView(like.getUserid(), loginUser);
+            usersWhoLiked.add(likedUser);
+        }
+        return usersWhoLiked;
+    }
+
+    public Object getWhoBookmarked(int collectionid, String loginUser) {
+        List <UserCardView> usersWhoBookmarked = new ArrayList<>();
+
+        List <BookmarkEntity> collBMs =  libBookmarkRepository.findByCollectionid(collectionid);
+        for (BookmarkEntity bm : collBMs) {
+            UserCardView bmUser = makeUserView(bm.getUserid(), loginUser);
+            usersWhoBookmarked.add(bmUser);
+        }
+        return usersWhoBookmarked;
     }
 }
