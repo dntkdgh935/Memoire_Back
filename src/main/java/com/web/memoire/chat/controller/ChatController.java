@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -128,7 +129,9 @@ public class ChatController {
     }
 
     // Assumption: only one user in an admin chatroom (could be multiple admins)
+    // Chatting with an admin will create another private chatroom for the user -> creates two private chatrooms for the same users
     @GetMapping("/admin/chatrooms")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAdminChatrooms(@RequestParam String userid) {
         log.info("ChatController.getAdminChatrooms...");
         try {

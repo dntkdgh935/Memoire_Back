@@ -30,7 +30,7 @@ public interface LibBookmarkRepository extends JpaRepository<BookmarkEntity, Boo
 
     int countBookmarkEntitiesByCollectionid(int collectionId);
 
-    BookmarkEntity findByCollectionid(int collectionid);
+    List<BookmarkEntity> findByCollectionid(int collectionid);
 
     int countByCollectionid(int collectionid);
 }

@@ -4,8 +4,10 @@ package com.web.memoire.library.controller;
 import com.web.memoire.common.dto.CollView;
 import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.dto.FollowRequest;
+import com.web.memoire.common.dto.Relationship;
 import com.web.memoire.common.entity.CollectionEntity;
 import com.web.memoire.library.model.service.LibraryService;
+import com.web.memoire.user.model.dto.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -414,5 +416,50 @@ public class LibraryController {
             return ResponseEntity.status(500).body("추천 요청 실패");
         }
     }
+
+    // 메모리 신고 기능
+    @PostMapping("/report/{memoryid}/{userid}")
+    public ResponseEntity<?> reportMemory(
+            @PathVariable("memoryid") int memoryid,
+            @PathVariable("userid") String userid,
+            @RequestBody Map<String, String> body) {
+
+        String reportReason = body.get("content");
+
+        try {
+            libraryService.reportMemory(memoryid, userid, reportReason); // 서비스 계층에서 처리
+            return ResponseEntity.ok().body("메모리 신고 완료");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("🚨 신고 처리 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    // 좋아요한 사람 리스트 불러오기(로그인 유저 = 컬렉션 주인인 경우만 요청 가능)
+    @GetMapping("/whoLiked")
+    public ResponseEntity<?> getWhoLiked(@RequestParam int collectionid,
+                                         @RequestParam String userid) {
+        log.info("LibController.getWhoLiked...");
+        try {
+            return ResponseEntity.ok(libraryService.getWhoLiked(collectionid, userid));
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/follower 에러");
+        }
+    }
+
+    // 북마크한 사람 리스트 불러오기(로그인 유저 = 컬렉션 주인인 경우만 요청 가능)
+    @GetMapping("/whoBookmarked")
+    public ResponseEntity<?> getWhoBookmarked(@RequestParam int collectionid,
+                                         @RequestParam String userid) {
+        log.info("LibController.getWhoBookmarked...");
+        try {
+            return ResponseEntity.ok(libraryService.getWhoBookmarked(collectionid, userid));
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/follower 에러");
+        }
+    }
+
 
 }
