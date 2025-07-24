@@ -8,6 +8,8 @@ import com.web.memoire.common.entity.CollectionEntity;
 import com.web.memoire.library.model.service.LibraryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -385,11 +387,12 @@ public class LibraryController {
     // TODO: 추후 "전체" 대체
     // TODO: 로그인추천 30개씩 리턴
     @GetMapping("/recommend/{userid}")
-    public ResponseEntity<?> topNRec4LoginUser (@PathVariable String userid) {
-        log.info("LibraryController.getRecommendations... for userId: {}", userid);
+    public ResponseEntity<?> topNRec4LoginUser (@PathVariable String userid,
+                                                @PageableDefault(size = 5) Pageable pageable) {
+        log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
         try {
-            return ResponseEntity.ok(libraryService.getTopNRec4LoginUser(userid, 30));
+            return ResponseEntity.ok(libraryService.getTopNRec4LoginUser(userid, pageable));
         }
         catch (Exception e) {
             log.error("Error while fetching recommendations", e);

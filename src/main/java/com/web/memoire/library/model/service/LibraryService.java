@@ -10,6 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -838,7 +841,7 @@ public class LibraryService {
 
     public Object getTopicColls4LoginUser(String userId, String selectedTag) {
         List<CollectionEntity> colls= findCollsWithTag(selectedTag);
-        log.info(selectedTag+ "태그 달린 컬렉션: ");
+        log.info(selectedTag+ "태그 달린 컬렉션 개수: "+colls.size());
         log.info(colls.toString());
 
         List <CollView> collViews = new ArrayList<>();
@@ -850,20 +853,23 @@ public class LibraryService {
 
             // 1. 자신의 컬렉션은 보이지 않게 (authorid == userId인 경우 제외)
             if (collection.getAuthorid().equals(userId)) {
+                log.info("1.메롱~");
                 continue; // 자신의 컬렉션은 제외
             }
             // 2. 서로가 차단된 경우 보이지 않게
             if ((userToOtherRel.isPresent() && userToOtherRel.get().getStatus().equals("2") )
                     || (OtherToUserRel.isPresent() && OtherToUserRel.get().getStatus().equals("2"))) {
+                log.info("2.메롱~");
                 continue;
             }
-            // 2. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
+            // 3. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
             if (collection.getVisibility()==2) {
                 // 팔로우 상태이면 추가
                 if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
                     collViews.add(makeCollectionView(collection.getId(), userId));
                 } else {
                     // 팔로우하지 않으면 접근 불가
+                    log.info("3.메롱~");
                     log.info("user: " + userId + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
                 }
             }
@@ -872,6 +878,7 @@ public class LibraryService {
                 collViews.add(makeCollectionView(collection.getId(), userId));
             }
         }
+        log.info("리턴할 내용: {}", collViews.toString());
         return collViews;
 
     }
@@ -899,7 +906,7 @@ public class LibraryService {
     30(topN)개씩 무한번 요청해 아래에 붙일 수 있음
     단 프론트가 너무 무거워지면 페이지 새로고침하기? 또는 다른 전략?
     * */
-    public List<CollView> getTopNRec4LoginUser(String userid, int topN) {
+    public Page<CollView> getTopNRec4LoginUser(String userid, Pageable pageable) {
         List <CollView> recColls = new ArrayList<>();
 
         // 유저와 상호작용한 이력이 있는 컬렉션 불러오기
@@ -955,9 +962,15 @@ public class LibraryService {
         recColls.addAll(pureColls);
         recColls.addAll(interactedColls);
 
-        // recColls 중 topN 개만 추출해 리턴해야 함
-        return recColls.stream()
-                .limit(topN)
-                .toList();
+        // 4. 페이징 처리
+        int start = (int) pageable.getOffset(); // page * size
+        int end = Math.min(start + pageable.getPageSize(), recColls.size());
+
+        if (start > end) {
+            return new PageImpl<>(List.of(), pageable, recColls.size());
+        }
+
+        List<CollView> pagedResult = recColls.subList(start, end);
+        return new PageImpl<>(pagedResult, pageable, recColls.size());
     }
 }
