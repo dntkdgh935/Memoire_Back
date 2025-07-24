@@ -49,10 +49,11 @@ public class VideoMemoryService {
                 .title(result.getTitle())
                 .content(null)
                 .filename(fileName)
-                .filepath(videoUrl)
+                .filepath("/upload_files/memory_video")
                 .createdDate(dt)
                 .memoryOrder(nextOrder)
                 .build();
+
         memoryRepository.save(entity);
     }
 
@@ -68,8 +69,7 @@ public class VideoMemoryService {
 
         entity.setMemoryType("video");
         entity.setFilename(result.getFileName());
-        entity.setFilepath(result.getVideoUrl());
-        entity.setTitle(result.getTitle());
+        entity.setFilepath("/upload_files/memory_video");
         entity.setCreatedDate(dt);
 
 

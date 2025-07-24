@@ -1,8 +1,6 @@
 package com.web.memoire.atelier.video.controller;
 
-import com.web.memoire.atelier.video.model.dto.TtsPreviewRequest;
-import com.web.memoire.atelier.video.model.dto.VideoGenerationRequest;
-import com.web.memoire.atelier.video.model.dto.VideoResultDto;
+import com.web.memoire.atelier.video.model.dto.*;
 import com.web.memoire.atelier.video.model.service.VideoCollectionService;
 import com.web.memoire.atelier.video.model.service.VideoMemoryService;
 import com.web.memoire.atelier.video.model.service.VideoPythonApiService;
@@ -65,6 +63,12 @@ public class VideoController {
         VideoResultDto result = videopythonApiService.generateVideo(req);
         return ResponseEntity.ok(result);
     }
+
+    @PostMapping("/complete-video")
+    public VideoResultDto completeVideo(@RequestBody FfmpegGenerationRequest req) {
+        return videopythonApiService.completeVideo(req);
+    }
+
 
 
 
