@@ -69,14 +69,11 @@ public class ImTImPythonApiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    // 2. 폼 데이터 (form-urlencoded 형식)
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
         map.add("image_raw", request.getStylePrompt());
 
-    // 3. HttpEntity로 포장
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
 
-    // 4. postForEntity 사용 (반환값은 ResponseEntity<Map>)
         ResponseEntity<Map> response = restTemplate.postForEntity(
                 pythonBaseUrl + "/atelier/openai/generate-image-prompt",
                 entity,

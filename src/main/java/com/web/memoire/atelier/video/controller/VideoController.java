@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 
@@ -59,7 +60,7 @@ public class VideoController {
 
 
     @PostMapping("/generate-video")
-    public ResponseEntity<VideoResultDto> generateVideo(@RequestBody VideoGenerationRequest req) {
+    public ResponseEntity<VideoResultDto> generateVideo(@RequestBody VideoGenerationRequest req) throws IOException {
         log.info(req.getImageUrl());
         VideoResultDto result = videopythonApiService.generateVideo(req);
         return ResponseEntity.ok(result);
