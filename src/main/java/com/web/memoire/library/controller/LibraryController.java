@@ -415,4 +415,23 @@ public class LibraryController {
         }
     }
 
+    // 메모리 신고 기능
+    @PostMapping("/report/{memoryid}/{userid}")
+    public ResponseEntity<?> reportMemory(
+            @PathVariable("memoryid") int memoryid,
+            @PathVariable("userid") String userid,
+            @RequestBody Map<String, String> body) {
+
+        String reportReason = body.get("content");
+
+        try {
+            libraryService.reportMemory(memoryid, userid, reportReason); // 서비스 계층에서 처리
+            return ResponseEntity.ok().body("메모리 신고 완료");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("🚨 신고 처리 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+
 }

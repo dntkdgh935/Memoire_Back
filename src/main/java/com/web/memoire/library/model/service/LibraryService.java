@@ -42,6 +42,8 @@ public class LibraryService {
     private final LibUserCollScoreRepository libUserCollScoreRepository;
 
     private final WebClient webClient;
+    @Autowired
+    private LibReportRepository libReportRepository;
 
     // 모든 태그 가져오기
     public List<Tag> getAllTags() {
@@ -972,5 +974,12 @@ public class LibraryService {
 
         List<CollView> pagedResult = recColls.subList(start, end);
         return new PageImpl<>(pagedResult, pageable, recColls.size());
+    }
+
+    @Transactional
+    public void reportMemory(int memoryid, String userid, String reportReason) {
+        //libReport
+        ReportEntity reportEntity = new ReportEntity(memoryid, userid, reportReason);
+        libReportRepository.saveAndFlush(reportEntity);
     }
 }
