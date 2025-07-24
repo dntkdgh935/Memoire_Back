@@ -1,14 +1,27 @@
 package com.web.memoire.admin.controller; // admin 패키지로 변경
 
+import com.web.memoire.admin.model.dto.MemoryReports;
+import com.web.memoire.admin.model.dto.ReportDetail;
 import com.web.memoire.admin.model.service.AdminService;
+import com.web.memoire.common.dto.Collection;
+import com.web.memoire.common.dto.Memory;
+import com.web.memoire.common.dto.Report;
+import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // 역할 기반 권한 부여를 위해 추가
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,4 +68,131 @@ public class AdminController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/totalUsers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getNumTotalUsers() {
+        log.info("AdminController.getNumTotalUsers...");
+        try {
+            return ResponseEntity.ok(adminService.getNumAllUsers());
+        } catch (Exception e) {
+            log.error("AdminController.getNumTotalUsers error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/totalUsers 에러");
+        }
+    }
+
+    @GetMapping("/reportedPosts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getNumReportedPosts() {
+        log.info("AdminController.getNumReportedPosts...");
+        try {
+            return ResponseEntity.ok(adminService.getNumAllReports());
+        } catch (Exception e) {
+            log.error("AdminController.getNumReportedPosts error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/getNumReportedPosts 에러");
+        }
+    }
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getUsersInformation(@RequestParam(required = false, defaultValue = "") String search, @PageableDefault(size = 50, sort = "loginId", direction = Sort.Direction.DESC) Pageable pageable) {
+        try {
+            Map<String, Object> map = new HashMap<>();
+            Page<User> page = null;
+            if (search == null || search.trim().isEmpty()) {
+                page = adminService.getAllUsers(pageable);
+            } else {
+                page = adminService.getUsers(search, pageable);
+            }
+            log.info(page.getContent().toString());
+            map.put("content", page.getContent());
+            map.put("totalPages", page.getTotalPages());
+            return ResponseEntity.ok(map);
+        } catch (Exception e) {
+            log.error("AdminController.getUsersInformation error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/users 에러");
+
+        }
+    }
+
+    @PostMapping("/banUser")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> banUser(@RequestParam String userid, @RequestParam String role) {
+        log.info("AdminController.banUser...");
+        try {
+            if (adminService.banUser(userid, role) > 0) {
+                return ResponseEntity.ok("저장 성공");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/banUser 에러");
+
+        } catch (Exception e) {
+            log.error("AdminController.banUser: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/banUser 에러");
+        }
+    }
+
+    @PostMapping("/makeAdmin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminUser(@RequestParam String userid, @RequestParam String role) {
+        log.info("AdminController.adminUser...");
+        try {
+            if (adminService.adminUser(userid, role) > 0) {
+                return ResponseEntity.ok("저장 성공");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/makeAdmin 에러");
+
+        } catch (Exception e) {
+            log.error("AdminController.adminUser: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/makeAdmin 에러");
+        }
+    }
+
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getReportsInformation(@PageableDefault(size = 50, direction = Sort.Direction.DESC) Pageable pageable) {
+        log.info("AdminController.getReportsInformation...");
+        try {
+            Map<String, Object> map = new HashMap<>();
+            List<MemoryReports> reportsList = new ArrayList<>();
+            Page<Integer> list = adminService.findMemoryidByNumReports(pageable);
+            for (int memoryid : list) {
+                MemoryReports mr = new MemoryReports();
+                mr.setMemoryid(memoryid);
+                Memory tempOne = adminService.findByMemoryid(memoryid);
+                mr.setCollectionid(tempOne.getCollectionid());
+                mr.setTitle(tempOne.getTitle());
+                mr.setReportcount(adminService.getNumReports(memoryid));
+                Collection tempTwo = adminService.findByCollectionid(tempOne.getCollectionid());
+                mr.setNickname(adminService.findUserById(tempTwo.getAuthorid()).getNickname());
+                reportsList.add(mr);
+            }
+            map.put("content", reportsList);
+            map.put("totalPages", list.getTotalPages());
+            return ResponseEntity.ok(map);
+        } catch (Exception e) {
+            log.error("AdminController.getReportsInformation error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/reports 에러");
+        }
+    }
+
+    @GetMapping("/reportDetail")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getReportDetail(@RequestParam int memoryid) {
+        log.info("AdminController.getReportDetail...");
+        try {
+            List<ReportDetail> reportDetail = new ArrayList<>();
+            List<Report> reportList = adminService.findReportByMemoryid(memoryid);
+            for (Report report : reportList) {
+                ReportDetail rd = new ReportDetail();
+                rd.setReportReason(report.getReportReason());
+                rd.setNickname(adminService.findUserById(report.getUserid()).getNickname());
+                reportDetail.add(rd);
+            }
+            return ResponseEntity.ok(reportDetail);
+        } catch (Exception e) {
+            log.error("AdminController.getReportDetail error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/reportDetail 에러");
+        }
+    }
+
 }
