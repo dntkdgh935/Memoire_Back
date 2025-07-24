@@ -20,11 +20,8 @@ public class User {
     private String name;
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private Date birthday;
-    @NotNull
-    private String password;
     private String role;
     private String autoLoginFlag;
-    private String autoLoginToken;
     private Date registrationDate;
     @NotNull
     private String loginId;
@@ -33,25 +30,23 @@ public class User {
     private String profileImagePath;
     private Integer sanctionCount;
     private String statusMessage;
-    private String faceLoginUse;
+    private String loginType; // loginType 필드 추가
 
     public UserEntity toEntity() {
-            return UserEntity.builder()
-                 .userId(userId)
-                 .name(name)
-                 .birthday(birthday)
-                 .password(password)
-                 .role(role)
-                 .autoLoginFlag(autoLoginFlag)
-                 .autoLoginToken(autoLoginToken)
-                 .registrationDate(registrationDate)
-                 .loginId(loginId)
-                 .nickname(nickname)
-                 .phone(phone)
-                 .profileImagePath(profileImagePath)
-                 .sanctionCount(sanctionCount)
-                 .statusMessage(statusMessage)
-                 .faceLoginUse(faceLoginUse)
+        return UserEntity.builder()
+                .userId(userId)
+                .name(name)
+                .birthday(birthday)
+                .role(role)
+                .autoLoginFlag(autoLoginFlag)
+                .registrationDate(registrationDate)
+                .loginId(loginId)
+                .nickname(nickname)
+                .phone(phone)
+                .profileImagePath(profileImagePath)
+                .sanctionCount(sanctionCount)
+                .statusMessage(statusMessage)
+                .loginType(loginType) // loginType 필드 추가
                 .build();
-         }
+    }
 }

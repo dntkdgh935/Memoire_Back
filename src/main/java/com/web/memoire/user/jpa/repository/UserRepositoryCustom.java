@@ -14,7 +14,4 @@ public interface UserRepositoryCustom {
     Optional<UserEntity> findByUserId(String userId);
 
 
-    UserEntity updateUserPassword(@NotNull String userId, String encode);
-
-    List<Map<String, Object>> findDailyNewUserCounts(String startDateStr, String endDateStr);
 }

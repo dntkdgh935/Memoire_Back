@@ -15,16 +15,14 @@ public interface UserRepository
     boolean existsByLoginId(String loginId);
     Optional<UserEntity> findByUserId(String userId);
 
-    Optional<UserEntity> findLoginIdByNameAndPhone(String name, String phone);
+    Optional<UserEntity> findByNameAndPhoneAndLoginIdIsNotNull(String name, String phone);
 
     User findUserByLoginIdAndPhone(@NotNull String loginId, String phone);
 
     Optional<UserEntity> findPasswordByUserId(@NotNull String password);
 
 
-    UserEntity updateUserPassword(@NotNull String userId, String encode);
-
     Optional<UserEntity> findByLoginIdAndPhone(@NotNull String loginId, String phone);
-    
-    boolean existsByPhone(String phone);
+
+    Boolean existsByPhoneAndLoginIdIsNotNull(String phone);
 }

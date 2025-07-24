@@ -55,14 +55,12 @@ public class ArchiveController {
                 user.setName(null);
                 user.setBirthday(null);
                 user.setPhone(null);
-                user.setPassword(null);
                 user.setRole(null);
                 user.setAutoLoginFlag(null);
-                user.setAutoLoginToken(null);
                 user.setRegistrationDate(null);
                 user.setSanctionCount(null);
                 user.setStatusMessage(null);
-                user.setFaceLoginUse(null);
+                user.setLoginType(null);
                 userList.add(user);
             }
             return ResponseEntity.ok(userList);
@@ -83,14 +81,12 @@ public class ArchiveController {
                 user.setName(null);
                 user.setBirthday(null);
                 user.setPhone(null);
-                user.setPassword(null);
                 user.setRole(null);
                 user.setAutoLoginFlag(null);
-                user.setAutoLoginToken(null);
                 user.setRegistrationDate(null);
                 user.setSanctionCount(null);
                 user.setStatusMessage(null);
-                user.setFaceLoginUse(null);
+                user.setLoginType(null);
                 userList.add(user);
             }
             return ResponseEntity.ok(userList);

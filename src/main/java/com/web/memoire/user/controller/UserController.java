@@ -7,6 +7,8 @@ import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.UserRepository;
 import com.web.memoire.user.model.dto.User;
 import com.web.memoire.user.model.dto.Pwd;
+import com.web.memoire.user.model.dto.UserRegistrationRequest;
+import com.web.memoire.user.model.service.PwdService;
 import com.web.memoire.user.model.service.UserService;
 import com.web.memoire.user.model.service.ImageService;
 import com.web.memoire.user.util.GeneratePassword;
@@ -44,6 +46,7 @@ import java.io.IOException;
 public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
+    private final PwdService pwdService;
     private final BCryptPasswordEncoder bcryptPasswordEncoder;
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final JWTUtil jwtUtil;
@@ -68,23 +71,57 @@ public class UserController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> userInsertMethod(@RequestBody User user){
-        log.info("회원가입 요청: loginId={}, name={}", user.getLoginId(), user.getName());
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+    public ResponseEntity<?> userInsertMethod(@RequestBody UserRegistrationRequest request){
+        log.info("회원가입 요청: loginId={}, name={}", request.getLoginId(), request.getName());
+
+        // 1. 비밀번호 유효성 검사
+        if (request.getPassword() == null || request.getPassword().isEmpty()) {
             log.warn("회원가입 실패: 비밀번호 누락");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("비밀번호를 입력해주세요.");
         }
 
-        user.setUserId(UUID.randomUUID().toString());
-        user.setPassword(bcryptPasswordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
+        // 2. userId 생성 및 기본값 설정
+        String newUserId = UUID.randomUUID().toString();
+        // request DTO에 userId를 설정하여 Pwd DTO 생성 시 사용
+        request.setUserId(newUserId);
+
+        // 3. 비밀번호 암호화 및 Pwd DTO 생성
+        String encodedPassword = bcryptPasswordEncoder.encode(request.getPassword());
+        Pwd pwd = Pwd.builder()
+                .userId(newUserId) // 새로 생성된 userId 사용
+                .currPwd(encodedPassword)
+                // prevPwd는 회원가입 시에는 없으므로 설정하지 않음
+                .build();
+
+        // 4. User DTO 생성 (비밀번호 필드 제외)
+        // User DTO는 UserEntity와 동일하게 비밀번호 필드가 없습니다.
+        User user = User.builder()
+                .userId(newUserId)
+                .name(request.getName())
+                .birthday(request.getBirthday())
+                .role(request.getRole() != null ? request.getRole() : "USER") // 역할 설정 (기본값 USER)
+                .autoLoginFlag(request.getAutoLoginFlag() != null ? request.getAutoLoginFlag() : "N") // 기본값 N
+                .registrationDate(new Date()) // 현재 시간으로 설정
+                .loginId(request.getLoginId())
+                .nickname(request.getNickname())
+                .phone(request.getPhone())
+                .profileImagePath(request.getProfileImagePath())
+                .sanctionCount(request.getSanctionCount() != null ? request.getSanctionCount() : 0) // 기본값 0
+                .statusMessage(request.getStatusMessage())
+                .loginType(request.getLoginType() != null ? request.getLoginType() : "original") // 기본값 original
+                .build();
 
         try{
+            // 5. 사용자 정보 저장
             userService.insertUser(user);
+            // 6. 비밀번호 이력 저장
+            pwdService.savePasswordHistory(pwd.toEntity()); // PwdService의 savePasswordHistory 메서드를 호출합니다.
+
             log.info("회원가입 성공: loginId={}", user.getLoginId());
             return ResponseEntity.status(HttpStatus.OK).build();
         }catch(Exception e){
             log.error("회원가입 실패: loginId={}, 오류: {}", user.getLoginId(), e.getMessage());
+            // TODO: 비밀번호 저장 실패 시 사용자 정보 롤백 또는 트랜잭션 처리 고려
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -128,7 +165,7 @@ public class UserController {
 
             if (foundUser != null) {
                 String temporaryPassword = GeneratePassword.generateRandomPassword(8, 16);
-                userService.updateUserPassword(foundUser.getUserId(), temporaryPassword);
+                userService.resetUserPassword(foundUser.getUserId(), temporaryPassword);
 
                 Map<String, String> responseBody = new HashMap<>();
                 responseBody.put("message", "임시 비밀번호가 발급되었습니다. 자동으로 로그인합니다.");
@@ -287,6 +324,8 @@ public class UserController {
     @PatchMapping("/update/password")
     public ResponseEntity<?> updatePassword(@RequestBody Pwd pwdRequest) {
         log.info("비밀번호 변경 요청: userId={}", pwdRequest.getUserId());
+
+        // 필수 요청 정보 누락 검사
         if (pwdRequest.getUserId() == null || pwdRequest.getUserId().trim().isEmpty() ||
                 pwdRequest.getPrevPwd() == null || pwdRequest.getPrevPwd().isEmpty() ||
                 pwdRequest.getCurrPwd() == null || pwdRequest.getCurrPwd().isEmpty()) {
@@ -295,24 +334,23 @@ public class UserController {
         }
 
         try {
-            UserEntity userEntity = userRepository.findByUserId(pwdRequest.getUserId())
-                    .orElseThrow(() -> new NoSuchElementException("사용자 정보를 찾을 수 없습니다."));
+            // PwdService를 통해 비밀번호 변경 로직 수행
+            // 이 서비스 메서드 내에서 이전 비밀번호 확인, 새 비밀번호 암호화 및 이력 저장까지 처리합니다.
+            pwdService.changeUserPassword(pwdRequest.getUserId(), pwdRequest.getPrevPwd(), pwdRequest.getCurrPwd());
 
-            if (!bcryptPasswordEncoder.matches(pwdRequest.getPrevPwd(), userEntity.getPassword())) {
-                log.warn("비밀번호 변경 실패: 현재 비밀번호 불일치 (userId={})", pwdRequest.getUserId());
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "현재 비밀번호가 일치하지 않습니다."));
-            }
-
-            userService.updateUserPassword(pwdRequest.getUserId(), pwdRequest.getCurrPwd());
             log.info("비밀번호 변경 성공: userId={}", pwdRequest.getUserId());
             return ResponseEntity.ok().body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
+
         } catch (NoSuchElementException e) {
+            // 사용자 ID를 찾을 수 없거나 비밀번호 이력이 없는 경우
             log.warn("비밀번호 변경 실패 (NoSuchElementException): userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
         } catch (IllegalArgumentException e) {
+            // 이전 비밀번호 불일치, 새 비밀번호 유효성 검사 실패 등 비즈니스 로직 오류
             log.warn("비밀번호 변경 실패 (IllegalArgumentException): userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
+            // 그 외 예상치 못한 서버 오류
             log.error("비밀번호 변경 중 서버 오류: userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "비밀번호 변경 중 서버 오류가 발생했습니다."));
         }
