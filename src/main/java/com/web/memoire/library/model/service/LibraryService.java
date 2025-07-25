@@ -44,6 +44,8 @@ public class LibraryService {
     private final WebClient webClient;
     @Autowired
     private LibReportRepository libReportRepository;
+    @Autowired
+    private Like like;
 
     // 모든 태그 가져오기
     public List<Tag> getAllTags() {
@@ -63,13 +65,41 @@ public class LibraryService {
 
     // 비로그인 유저에게 public Collection Return
     public List<CollView> getAllPublicCollectionView() {
+        // 공개된 컬렉션 리스트 가져오기
         List<CollectionEntity> publicCollections = libCollectionRepository.findByVisibility(1);
+
+        // totalScore에 따라 정렬
+        List<CollectionEntity> sortedColls = sortCollsByTotalScore(publicCollections);
+
+        // CollView 리스트 생성
         List<CollView> collViews = new ArrayList<>();
-        for (CollectionEntity collection : publicCollections) {
-            CollView cv = makeCollectionView(collection.getId(), null);
-            collViews.add(cv);
+
+        // 정렬된 CollectionEntity 리스트를 순차적으로 CollView로 변환
+        for (CollectionEntity coll : sortedColls) {
+            collViews.add(makeCollectionView(coll.getCollectionid(), null));
         }
+
+        log.info("Total coll views: " + collViews.size());
         return collViews;
+    }
+
+    // CollectionEntity 리스트를 totalScore 기준으로 정렬
+    private List<CollectionEntity> sortCollsByTotalScore(List<CollectionEntity> collections) {
+        // 정렬 작업
+        collections.sort((coll1, coll2) -> {
+            int totalScore1 = calculateTotalScore(coll1);
+            int totalScore2 = calculateTotalScore(coll2);
+            return Integer.compare(totalScore2, totalScore1); // 내림차순 정렬
+        });
+        return collections;
+    }
+
+    // CollectionEntity의 totalScore 계산
+    public int calculateTotalScore(CollectionEntity coll) {
+        int likeCount = libLikeRepository.countByCollectionid(coll.getCollectionid());
+        int bookmarkCount = libBookmarkRepository.countByCollectionid(coll.getCollectionid());
+        int readCount = coll.getReadCount();
+        return likeCount + bookmarkCount + readCount;
     }
 
 
@@ -79,6 +109,11 @@ public class LibraryService {
 
         //대상 컬렉션: visibility 가 public이거나 follower 대상인 경우
         List<CollectionEntity> publicCollections = libCollectionRepository.findByVisibilityIn(Arrays.asList("1", "2"));
+
+
+        List<CollectionEntity> filteredCollections = new ArrayList<>();
+
+        //filteredCollections 만듦
         for (CollectionEntity collection : publicCollections) {
             Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
             Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
@@ -96,7 +131,7 @@ public class LibraryService {
             if (collection.getVisibility()==2) {
                 // 팔로우 상태이면 추가
                 if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
-                    collViews.add(makeCollectionView(collection.getId(), userId));
+                    filteredCollections.add(collection);
                 } else {
                     // 팔로우하지 않으면 접근 불가
                     log.info("user: " + userId + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
@@ -104,13 +139,15 @@ public class LibraryService {
             }
             // 4. 이외의 전체 공개 컬렉션 추가
             else if (collection.getVisibility()==1) {
-                collViews.add(makeCollectionView(collection.getId(), userId));
+                filteredCollections.add(collection);
             }
+        } //filteredCollections만듦
+        List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredCollections);
+        for (CollectionEntity coll : sortedColls) {
+            collViews.add(makeCollectionView(coll.getCollectionid(), userId));
         }
         return collViews;
     }
-
-
 
     @Transactional
     public void addLike(String userid, int collectionId) {
@@ -435,20 +472,6 @@ public class LibraryService {
     }
 
 
-    public List <CollView> searchCollections(String query, String userid) {
-        // 컬렉션 이름에 키워드 포함한 것 리턴해, 한 컬렉션마다 CollView로 전환(makeCollectionView(collid, userid) 사용)
-
-        // 컬렉션 이름에 query가 포함된 것들을 가져오기
-        List<CollectionEntity> collections = libCollectionRepository.findByCollectionTitleContaining(query);
-
-        List<CollView> collViews = new ArrayList<>();
-        for (CollectionEntity collection : collections) {
-            CollView cv = makeCollectionView(collection.getId(), userid);
-            collViews.add(cv);
-        }
-
-        return collViews;
-    }
 
     public List<FollowRequest> getFollowRequests(String userid) {
         log.info("LibraryService에서 팔로우 목록 조회 시작");
@@ -848,7 +871,8 @@ public class LibraryService {
 
         List <CollView> collViews = new ArrayList<>();
 
-        //접근권한에 따라 리턴해야 함
+        //접근권한에 따라 리턴해야 함 => 가능한 것만 filteredColls로 만듦
+        List <CollectionEntity> filteredColls = new ArrayList<>();
         for (CollectionEntity collection : colls) {
             Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
             Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
@@ -868,7 +892,7 @@ public class LibraryService {
             if (collection.getVisibility()==2) {
                 // 팔로우 상태이면 추가
                 if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
-                    collViews.add(makeCollectionView(collection.getId(), userId));
+                    filteredColls.add(collection);
                 } else {
                     // 팔로우하지 않으면 접근 불가
                     log.info("3.메롱~");
@@ -877,27 +901,35 @@ public class LibraryService {
             }
             // 4. 이외의 전체 공개 컬렉션 추가
             else if (collection.getVisibility()==1) {
-                collViews.add(makeCollectionView(collection.getId(), userId));
+                filteredColls.add(collection);
             }
         }
-        log.info("리턴할 내용: {}", collViews.toString());
+        // sort
+        List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredColls);
+        for (CollectionEntity coll : sortedColls) {
+            collViews.add(makeCollectionView(coll.getCollectionid(), coll.getAuthorid()));
+        }
         return collViews;
-
     }
 
     public Object getTopicColls4Anon(String selectedTag) {
         List<CollectionEntity> colls= findCollsWithTag(selectedTag);
-
         List <CollView> collViews = new ArrayList<>();
+
+        List <CollectionEntity> filteredColls = new ArrayList<>();
         for (CollectionEntity coll : colls) {
             if (coll.getVisibility() == 1) {
                 log.info("공개 컬렉션 뷰 만들기");
-                collViews.add(makeCollectionView(coll.getId(), null));
+                filteredColls.add(coll);
             }
             // 그 외의 경우 접근 불가
             else {
                 log.info("접근 불가 컬렉션");
             }
+        }
+        List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredColls);
+        for (CollectionEntity coll : sortedColls) {
+            collViews.add(makeCollectionView(coll.getCollectionid(), null));
         }
         return collViews;
     }

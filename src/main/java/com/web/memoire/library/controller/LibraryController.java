@@ -57,11 +57,11 @@ public class LibraryController {
     public ResponseEntity<?> getAllColls(@PathVariable String selectedTag) {
         log.info("LibraryController.getAllColls...");
         log.info("비로그인 유저 전체 컬렉션 조회");
-        //Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         //비로그인 유저가 '전체' 선택한 경우
         if (selectedTag.equals("전체")) {
             try {
+                log.info("잘 들어옴ㅡㅡ");
                 return ResponseEntity.ok(libraryService.getAllPublicCollectionView());//(userid));//("user001"));
             } catch (Exception e) {
                 log.error("Error while fetching colls", e);
@@ -460,6 +460,4 @@ public class LibraryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/follower 에러");
         }
     }
-
-
 }
