@@ -6,7 +6,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TtsPreviewRequest {
+public class TtsConfigRequest {
     private String script;
     private String speech;
     private String gender;

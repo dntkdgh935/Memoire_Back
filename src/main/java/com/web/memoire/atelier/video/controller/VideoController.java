@@ -51,8 +51,8 @@ public class VideoController {
 
 
     @PostMapping("/generate-tts")
-    public ResponseEntity<String> generateTTS(@RequestBody TtsPreviewRequest requestDto) {
-        String ttsUrl = videopythonApiService.generateTTS(requestDto);
+    public ResponseEntity<String> generateTTS(@RequestBody TtsConfigRequest dto) {
+        String ttsUrl = videopythonApiService.generateTTS(dto);
         return ResponseEntity.ok(ttsUrl);
     }
 

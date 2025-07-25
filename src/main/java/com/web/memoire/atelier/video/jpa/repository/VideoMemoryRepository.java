@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface VideoMemoryRepository extends JpaRepository<MemoryEntity, String> {
-    List<MemoryEntity> findByCollectionidOrderByCreatedDateDesc(int collectionId);
+    List<MemoryEntity> findByCollectionidAndMemoryTypeOrderByCreatedDateDesc(int collectionId, String memoryType);
 
     @Query("""
       SELECT COALESCE(MAX(m.memoryOrder), 0)

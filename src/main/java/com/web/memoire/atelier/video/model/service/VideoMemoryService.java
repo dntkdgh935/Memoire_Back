@@ -21,7 +21,7 @@ public class VideoMemoryService {
     private final VideoMemoryRepository memoryRepository;
 
     public List<Memory> getMemoriesByCollectionId(int collectionId) {
-        List<MemoryEntity> entities = memoryRepository.findByCollectionidOrderByCreatedDateDesc(collectionId);
+        List<MemoryEntity> entities = memoryRepository.findByCollectionidAndMemoryTypeOrderByCreatedDateDesc(collectionId, "image");
         List<Memory> dtos = new ArrayList<>();
         for (MemoryEntity e : entities) {
             dtos.add(e.toDto());
@@ -49,7 +49,7 @@ public class VideoMemoryService {
                 .title(result.getTitle())
                 .content(null)
                 .filename(fileName)
-                .filepath("/upload_files/memory_video")
+                .filepath("/upload_files/memory_video/"+fileName)
                 .createdDate(dt)
                 .memoryOrder(nextOrder)
                 .build();
@@ -72,7 +72,7 @@ public class VideoMemoryService {
 
         entity.setMemoryType("video");
         entity.setFilename(fileName);
-        entity.setFilepath("/upload_files/memory_video");
+        entity.setFilepath("/upload_files/memory_video/"+fileName);
         entity.setCreatedDate(dt);
 
 
