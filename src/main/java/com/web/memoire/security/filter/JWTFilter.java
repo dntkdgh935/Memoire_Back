@@ -37,7 +37,7 @@ public class JWTFilter extends OncePerRequestFilter {
     );
     // ✅ 인증이 필요 없는 특정 문자열로 시작하는 경로 목록
     private static final List<String> PERMIT_ALL_PATHS_START_WITH = Arrays.asList(
-            "/js/", "/css/", "/public/", "/api/", "/upload_files/", "/auth/", "/chat/" // /auth/ 경로도 추가 (SecurityConfig 참고)
+            "/js/", "/css/", "/public/", /*"/api/",*/ "/upload_files/", "/auth/", "/chat/" // /auth/ 경로도 추가 (SecurityConfig 참고)
     );
 
 

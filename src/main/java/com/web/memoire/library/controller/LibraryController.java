@@ -2,12 +2,8 @@ package com.web.memoire.library.controller;
 
 
 import com.web.memoire.common.dto.CollView;
-import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.dto.FollowRequest;
-import com.web.memoire.common.dto.Relationship;
-import com.web.memoire.common.entity.CollectionEntity;
 import com.web.memoire.library.model.service.LibraryService;
-import com.web.memoire.user.model.dto.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
@@ -394,7 +389,7 @@ public class LibraryController {
         log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
         try {
-            return ResponseEntity.ok(libraryService.getTopNRec4LoginUser(userid, pageable));
+            return ResponseEntity.ok(libraryService.getRecPage4LoginUser(userid, pageable));
         }
         catch (Exception e) {
             log.error("Error while fetching recommendations", e);

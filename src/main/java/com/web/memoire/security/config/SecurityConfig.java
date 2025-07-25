@@ -113,7 +113,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/user/face-login").permitAll()
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
                                 "/css/**", "/js/**").permitAll()
-                        .requestMatchers("/api/**").permitAll()
+//                        .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/upload_files/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/*.jpg").permitAll()
