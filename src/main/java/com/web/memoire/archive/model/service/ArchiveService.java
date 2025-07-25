@@ -2,6 +2,7 @@ package com.web.memoire.archive.model.service;
 
 import com.web.memoire.archive.jpa.repository.*;
 import com.web.memoire.common.dto.*;
+import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.user.jpa.entity.UserEntity;
 import com.web.memoire.user.jpa.repository.UserRepository;
@@ -19,10 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -297,11 +295,27 @@ public class ArchiveService {
     }
 
     public Relationship findRelationshipById(String userid, String targetid) {
-        return archiveRelationshipRepository.findRelationshipById(userid, targetid).toDto();
+        return archiveRelationshipRepository.findRelationshipById(userid, targetid) != null ? archiveRelationshipRepository.findRelationshipById(userid, targetid).toDto() : null;
     }
 
     public Relationship findRelationshipByUserIdAndTargetId(String userid, String targetid) {
         return archiveRelationshipRepository.findRelationshipByTargetId(userid, targetid).toDto();
+    }
+
+    @Transactional
+    public int deleteRelationship(String userid, String targetid) {
+        try {
+            archiveRelationshipRepository.deleteById(new RelationshipId(userid, targetid));
+            return 1;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    @Transactional
+    public int insertRelationship(String userid, String targetid) {
+        RelationshipEntity entity = archiveRelationshipRepository.save(new RelationshipEntity(userid, targetid, new Date(), "0"));
+        return entity != null ? 1 : 0;
     }
 
     // ArchiveReportRepository

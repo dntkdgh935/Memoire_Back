@@ -141,7 +141,7 @@ public class ArchiveController {
                 else if (coll.getVisibility() == 2) {
                     if (archiveService.findRelationshipById(userid, coll.getAuthorid()) == null) {
                         // do not add
-                    } else if (archiveService.findRelationshipById(userid, coll.getAuthorid()).getStatus().equals("1") && !archiveService.findRelationshipByUserIdAndTargetId(userid, coll.getAuthorid()).getStatus().equals("2")) {
+                    } else if (archiveService.findRelationshipById(userid, coll.getAuthorid()).getStatus().equals("1")) {
                         // ok
                         c.add(coll);
                     } else {
@@ -513,6 +513,51 @@ public class ArchiveController {
         } catch (Exception e) {
             log.error("error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/tags/search 에러");
+        }
+    }
+
+    @GetMapping("/blocked")
+    public ResponseEntity<?> findAllBlocked(@RequestParam String userid) {
+        log.info("ArchiveController.findAllBlocked...");
+        try {
+            List<Relationship> list = archiveService.findAllUserBlock(userid);
+            for (Relationship rel : list) {
+                rel.setUserid(archiveService.findUserById(rel.getTargetid()).getNickname());
+            }
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/blocked 에러");
+        }
+    }
+
+    @PostMapping("/unblock")
+    public ResponseEntity<?> unblockUser(@RequestParam String userid, @RequestParam String blockedUserId) {
+        log.info("ArchiveController.unblockUser...");
+        try {
+            if (archiveService.deleteRelationship(userid, blockedUserId) > 0) {
+                return ResponseEntity.ok("차단 해제 성공");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/unblock 에러");
+            }
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/unblock 에러");
+        }
+    }
+
+    @PostMapping("/followRequest")
+    public ResponseEntity<?> followUser(@RequestParam String userid, @RequestParam String targetid) {
+        log.info("ArchiveController.followUser...");
+        try {
+            if (archiveService.insertRelationship(userid, targetid) > 0) {
+                return ResponseEntity.ok("팔로우 요청 성공");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/followRequest 에러");
+            }
+        } catch (Exception e) {
+            log.error("error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("/followRequest 에러");
         }
     }
 
