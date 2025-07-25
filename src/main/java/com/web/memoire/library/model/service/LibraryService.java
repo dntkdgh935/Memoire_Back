@@ -746,6 +746,7 @@ public class LibraryService {
         for (Integer id : orderedIds) {
             if (collViewMap.containsKey(id)) {
                 result.add(collViewMap.get(id));
+                log.info(collViewMap.get(id).getCollectionTitle() + " 북마크 됨? "+ collViewMap.get(id).isUserbookmark());
             }
         }
         return result;

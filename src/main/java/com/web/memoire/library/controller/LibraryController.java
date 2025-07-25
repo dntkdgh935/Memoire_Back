@@ -154,7 +154,7 @@ public class LibraryController {
         log.info("👍 좋아요 요청 - user: {}, collection: {}, isLiked: {}", userid, collectionId, isLiked);
 
         try {
-            if (isLiked) {
+            if (!isLiked) {
                 libraryService.addLike(userid, collectionId);
             } else {
                 libraryService.removeLike(userid, collectionId);
@@ -176,7 +176,7 @@ public class LibraryController {
         log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", userid, collectionId, isBookmarked);
 
         try {
-            if (isBookmarked) {
+            if (!isBookmarked) {
                 libraryService.addBM(userid, collectionId);
             } else {
                 libraryService.removeBM(userid, collectionId);
