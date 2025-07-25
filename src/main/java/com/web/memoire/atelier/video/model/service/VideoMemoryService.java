@@ -62,13 +62,16 @@ public class VideoMemoryService {
         MemoryEntity entity = memoryRepository.findById(memoryId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 메모리 ID: " + memoryId));
 
+        String videoUrl = result.getVideoUrl();
+        String fileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
+
         Date now = new Date();
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
         String dateStr = fmt.format(now);
         Date dt = fmt.parse(dateStr);
 
         entity.setMemoryType("video");
-        entity.setFilename(result.getFileName());
+        entity.setFilename(fileName);
         entity.setFilepath("/upload_files/memory_video");
         entity.setCreatedDate(dt);
 

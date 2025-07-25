@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,20 +48,53 @@ public class VideoPythonApiService {
         if(request.getScript() == null || request.getScript().isBlank()) {
             throw new TtsSyncException("TTS 텍스트를 입력해주세요.");
         }
+        if (request.getGender() == null) {
+            throw new TtsSyncException("음성 성별(voiceGender)을 선택해주세요.");
+        }
         log.info("request : {}", request);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
         try {
-            HttpEntity<TtsPreviewRequest> entity = new HttpEntity<>(request, headers);
-            return restTemplate.postForObject(
+            HttpHeaders jsonHeaders = new HttpHeaders();
+            jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> configPayload = Map.of(
+                    "script",      request.getScript(),
+                    "voiceGender", request.getGender()
+            );
+            HttpEntity<Map<String, Object>> configEntity =
+                    new HttpEntity<>(configPayload, jsonHeaders);
+
+            TtsConfigResponse cfg = restTemplate.postForObject(
+                    pythonBaseUrl + "/atelier/tts/config",
+                    configEntity,
+                    TtsConfigResponse.class
+            );
+            if (cfg == null) {
+                throw new TtsSyncException("TTS 설정 분석 실패: 빈 응답");
+            }
+
+            TtsGenerateRequest genReq = new TtsGenerateRequest();
+            genReq.setSpeech(request.getScript());
+            genReq.setVoiceId(cfg.getVoiceId());
+            genReq.setModelId(cfg.getModelId());
+            genReq.setPitch(cfg.getPitch());
+            genReq.setRate(cfg.getRate());
+
+            HttpEntity<TtsGenerateRequest> genEntity =
+                    new HttpEntity<>(genReq, jsonHeaders);
+
+            String audioUrl = restTemplate.postForObject(
                     pythonBaseUrl + "/atelier/tts/generate",
-                    entity,
+                    genEntity,
                     String.class
             );
-        } catch (Exception ex){
-            throw new TtsSyncException("음성 생성 중 오류 발생: "+ ex.getMessage());
+            if (audioUrl == null) {
+                throw new TtsSyncException("TTS 생성 실패: 빈 URL");
+            }
+            return audioUrl;
+
+        } catch (RestClientException ex) {
+            throw new TtsSyncException("음성 생성 중 오류 발생: " + ex.getMessage(), ex);
         }
     }
 
