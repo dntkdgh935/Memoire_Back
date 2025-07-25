@@ -22,7 +22,7 @@ public class ImTImMemoryService {
 
 
     public List<Memory> getMemoriesByCollectionId(int collectionId) {
-        List<MemoryEntity> entities = imtimmemoryRepository.findByCollectionidOrderByCreatedDateDesc(collectionId);
+        List<MemoryEntity> entities = imtimmemoryRepository.findByCollectionidAndMemoryTypeOrderByCreatedDateDesc(collectionId, "image");
         List<Memory> dtos = new ArrayList<>();
         for (MemoryEntity e : entities) {
             dtos.add(e.toDto());

@@ -41,7 +41,7 @@ public class VideoPythonApiService {
         return pythonBaseUrl == null || pythonBaseUrl.isBlank();
     }
 
-    public String generateTTS(TtsPreviewRequest request) {
+    public String generateTTS(TtsConfigRequest request) {
         if (isDisabled()) {
             return null;
         }
@@ -65,23 +65,26 @@ public class VideoPythonApiService {
                     new HttpEntity<>(configPayload, jsonHeaders);
 
             TtsConfigResponse cfg = restTemplate.postForObject(
-                    pythonBaseUrl + "/atelier/tts/config",
+                    pythonBaseUrl + "/atelier/openai/generate-tts-config",
                     configEntity,
                     TtsConfigResponse.class
             );
             if (cfg == null) {
                 throw new TtsSyncException("TTS 설정 분석 실패: 빈 응답");
             }
+            log.info("cfg : {}", cfg);
+            log.info("speech : {}", request.getSpeech());
 
-            TtsGenerateRequest genReq = new TtsGenerateRequest();
-            genReq.setSpeech(request.getScript());
-            genReq.setVoiceId(cfg.getVoiceId());
-            genReq.setModelId(cfg.getModelId());
-            genReq.setPitch(cfg.getPitch());
-            genReq.setRate(cfg.getRate());
+            Map<String,Object> genPayload = Map.of(
+                    "speech",    request.getSpeech(),
+                    "voice_id",  cfg.getVoiceId(),
+                    "model_id",  cfg.getModelId(),
+                    "stability",     cfg.getStability(),
+                    "similarity_boost", cfg.getSimilarity_boost()
+            );
 
-            HttpEntity<TtsGenerateRequest> genEntity =
-                    new HttpEntity<>(genReq, jsonHeaders);
+            HttpEntity<Map<String,Object>> genEntity =
+                    new HttpEntity<>(genPayload, jsonHeaders);
 
             String audioUrl = restTemplate.postForObject(
                     pythonBaseUrl + "/atelier/tts/generate",
@@ -91,6 +94,7 @@ public class VideoPythonApiService {
             if (audioUrl == null) {
                 throw new TtsSyncException("TTS 생성 실패: 빈 URL");
             }
+            log.info("audioUrl : {}", audioUrl);
             return audioUrl;
 
         } catch (RestClientException ex) {
@@ -105,11 +109,9 @@ public class VideoPythonApiService {
         String rawVideoUrl;
 
         if (Boolean.TRUE.equals(req.getLipSyncEnabled())) {
-            String imageAssetId = uploadImageAsset(req.getImageUrl());
-            String audioAssetId = uploadAudioAsset(req.getTtsUrl());
             rawVideoUrl = restTemplate.postForObject(
                     pythonBaseUrl + "/atelier/runway/generate-lip-sync-video",
-                    Map.of("image_asset_id", imageAssetId, "audio_asset_id", audioAssetId),
+                    Map.of("image_url", req.getImageUrl(), "tts_url", req.getTtsUrl()),
                     String.class
             );
         } else {
@@ -141,8 +143,19 @@ public class VideoPythonApiService {
                     Map.class
             );
 
-            rawVideoUrl = (String) videoRes.getBody().get("video_url");
-            log.info("rawVideoUrl is {}", rawVideoUrl);
+            String baseVideoUrl  = (String) videoRes.getBody().get("video_url");
+            log.info("baseVideoUrl is {}", baseVideoUrl);
+
+
+            if (req.getTtsUrl() != null) {
+                rawVideoUrl = restTemplate.postForObject(
+                        pythonBaseUrl + "/atelier/ffmpeg/generate",
+                        Map.of("video_url", baseVideoUrl, "tts_url", req.getTtsUrl()),
+                        String.class
+                );
+            } else {
+                rawVideoUrl = baseVideoUrl;
+            }
         }
         return VideoResultDto.builder()
                 .videoUrl(rawVideoUrl)
@@ -166,21 +179,5 @@ public class VideoPythonApiService {
                 .videoUrl(finalUrl)
                 .build();
     }
-
-    private String uploadImageAsset(String imageUrl) {
-        return restTemplate.postForObject(
-                pythonBaseUrl + "/runway/upload-image-asset",
-                Map.of("image_url", imageUrl),
-                String.class
-        );
-    }
-    private String uploadAudioAsset(String ttsUrl) {
-        return restTemplate.postForObject(
-                pythonBaseUrl + "/runway/upload-audio-asset",
-                Map.of("audio_bytes_uri", ttsUrl),
-                String.class
-        );
-    }
-
 }
 
