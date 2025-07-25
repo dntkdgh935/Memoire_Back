@@ -116,11 +116,10 @@ public class ChatController {
     }
 
     @PostMapping("/admin/new")
-    public ResponseEntity<?> createAdminChatroom(@RequestParam String user) {
+    public ResponseEntity<?> createAdminChatroom(@RequestParam List<String> user) {
         log.info("ChatController.createAdminChatroom...");
         String chatroomid = "admin-" + UUID.randomUUID().toString();
-        ArrayList<String> users = new ArrayList<>();
-        users.add(user);
+        ArrayList<String> users = new ArrayList<>(user);
         if (chatService.insertChatUsersPrivate(chatroomid, users) > 0) {
             return ResponseEntity.ok(chatroomid);
         }
