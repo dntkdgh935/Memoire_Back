@@ -9,4 +9,5 @@ import lombok.*;
 public class TtsPreviewRequest {
     private String script;
     private String speech;
+    private String gender;
 }
