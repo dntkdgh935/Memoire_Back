@@ -21,6 +21,7 @@ public class PwdService {
 
     private final PwdRepository pwdRepository;
     private final BCryptPasswordEncoder bcryptPasswordEncoder;
+    private static final int PASSWORD_HISTORY_LIMIT = 3;
 
     /**
      * 비밀번호 이력 엔티티를 저장합니다.
@@ -65,7 +66,7 @@ public class PwdService {
     public void changeUserPassword(String userId, String prevPlainPassword, String newPlainPassword) {
         // 1. 해당 사용자의 최신 비밀번호 이력 조회
         PwdEntity latestPwdEntity = pwdRepository.findLatestByUserId(userId)
-                .orElseThrow(() -> new NoSuchElementException("해당 사용자(" + userId + ")의 비밀번호 이력을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoSuchElementException("소셜로그인 유저는 비밀번호 변경을 할 수 없습니다."));
 
         String currentEncodedPassword = latestPwdEntity.getCurrPwd(); // 현재 암호화된 비밀번호
 
@@ -74,18 +75,29 @@ public class PwdService {
             throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
         }
 
-        // 3. 새 비밀번호 암호화
+        // 3. 새 비밀번호가 현재 비밀번호와 동일한지 확인
+        if (bcryptPasswordEncoder.matches(newPlainPassword, currentEncodedPassword)) {
+            throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 동일할 수 없습니다.");
+        }
+
+        // 4. 새 비밀번호가 최근 사용한 비밀번호와 중복되는지 확인
+        // (현재 사용 중인 비밀번호를 제외하고 이력 검사)
+        checkNewPasswordAgainstHistory(userId, newPlainPassword, currentEncodedPassword);
+
+        // 5. 새 비밀번호 암호화
         String newEncodedPassword = bcryptPasswordEncoder.encode(newPlainPassword);
 
-        // 4. 새로운 비밀번호 이력 엔티티 생성 및 저장
+        // 6. 새로운 비밀번호 이력 엔티티 생성
         PwdEntity newPwdHistory = PwdEntity.builder()
                 .userId(userId)
-                .chPwd(new Date()) // 변경 시간 기록
+                .chPwd(new Date())
                 .prevPwd(currentEncodedPassword) // 현재 비밀번호가 이전 비밀번호가 됨
                 .currPwd(newEncodedPassword) // 새롭게 암호화된 비밀번호
                 .build();
 
-        pwdRepository.save(newPwdHistory);
+        // 7. 비밀번호 이력 저장
+        savePasswordHistory(newPwdHistory);
+        log.info("비밀번호 변경 성공: userId={}", userId);
     }
 
     @Transactional
@@ -116,5 +128,37 @@ public class PwdService {
 
         pwdRepository.save(newPwdHistory);
         log.info("비밀번호 재설정 성공: userId={}", userId);
+    }
+    /**
+     * 새 비밀번호가 최근 사용한 비밀번호와 중복되는지 확인하는 헬퍼 메서드
+     * @param userId 사용자 ID
+     * @param newPlainPassword 새로 설정하려는 평문 비밀번호
+     * @param currentEncodedPassword 현재 사용 중인 암호화된 비밀번호 (중복 검사에서 제외할 목적)
+     * @throws IllegalArgumentException 중복된 비밀번호인 경우
+     */
+    private void checkNewPasswordAgainstHistory(String userId, String newPlainPassword, String currentEncodedPassword) {
+        // 최근 PASSWORD_HISTORY_LIMIT 개의 비밀번호 이력 조회
+        List<PwdEntity> recentPasswords = pwdRepository.findTopRecordsByUserIdOrderByChPwdDesc(userId, PASSWORD_HISTORY_LIMIT);
+
+        for (PwdEntity pwdEntity : recentPasswords) {
+            // 현재 DB에 저장된 비밀번호 (currPwd)와 새 비밀번호를 비교
+            // 단, 현재 변경하려는 비밀번호가 (파라미터로 넘어온) '현재 사용 중인 비밀번호'와 동일하다면 이 이력은 건너김
+            // '새 비밀번호는 현재 비밀번호와 동일할 수 없다'는 체크는 이미 `changeUserPassword` 및 `resetPassword` 상단에서 이루어졌기 때문
+            if (currentEncodedPassword != null && bcryptPasswordEncoder.matches(newPlainPassword, currentEncodedPassword)) {
+                // 새 비밀번호가 현재 사용중인 비밀번호와 동일한 경우. 이 케이스는 이 메서드 외부에서 처리되므로 여기서는 무시.
+                continue;
+            }
+
+            // `pwdEntity.getCurrPwd()`: 과거에 '현재 비밀번호'였던 값들
+            if (pwdEntity.getCurrPwd() != null && bcryptPasswordEncoder.matches(newPlainPassword, pwdEntity.getCurrPwd())) {
+                throw new IllegalArgumentException("새 비밀번호는 최근 " + PASSWORD_HISTORY_LIMIT + "개 이내에 사용했던 비밀번호와 동일할 수 없습니다.");
+            }
+
+            // `pwdEntity.getPrevPwd()`: 과거에 '이전 비밀번호'였던 값들 (선택적으로 검사, 보통 currPwd만으로도 충분)
+            // 필요하다면 이 부분의 주석을 해제하여 이전 비밀번호 필드도 검사에 포함할 수 있습니다.
+            // if (pwdEntity.getPrevPwd() != null && bcryptPasswordEncoder.matches(newPlainPassword, pwdEntity.getPrevPwd())) {
+            //     throw new IllegalArgumentException("새 비밀번호는 최근 " + PASSWORD_HISTORY_LIMIT + "개 이내에 사용했던 비밀번호와 동일할 수 없습니다.");
+            // }
+        }
     }
 }

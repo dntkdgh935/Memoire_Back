@@ -18,10 +18,6 @@ public interface UserRepository
 
     Optional<UserEntity> findByNameAndPhoneAndLoginIdIsNotNull(String name, String phone);
 
-    User findUserByLoginIdAndPhone(@NotNull String loginId, String phone);
-
-    Optional<UserEntity> findPasswordByUserId(@NotNull String password);
-
 
     Optional<UserEntity> findByLoginIdAndPhone(@NotNull String loginId, String phone);
 
