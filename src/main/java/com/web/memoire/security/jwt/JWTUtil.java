@@ -45,6 +45,7 @@ public class JWTUtil {
                 .claim("role", user.getRole() != null && user.getRole().equals("ADMIN") ? "ADMIN" : "USER") // 사용자 권한
                 .claim("autoLoginFlag", user.getAutoLoginFlag()) // ✅ autoLoginFlag 클레임 추가
                 .claim("nickname", user.getNickname()) // ✅ nickname 클레임 추가
+                .claim("loginType", user.getLoginType())
                 // 필요하다면 phone, birthday 등 다른 필드도 여기에 추가할 수 있습니다.
                 // .claim("phone", user.getPhone())
                 // .claim("birthday", user.getBirthday())

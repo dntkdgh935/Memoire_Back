@@ -305,4 +305,16 @@ public class UserService {
 
         log.info("UserService에서 비밀번호 재설정 요청 처리 완료: userId={}", userId);
     }
+    @Transactional
+    public void updateUserRoleToExit(String userId) {
+        UserEntity userEntity = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("역할을 변경할 사용자를 찾을 수 없습니다: " + userId));
+
+        // 사용자의 역할을 "EXIT"로 변경
+        userEntity.setRole("EXIT");
+        userRepository.save(userEntity);
+
+
+    }
+
 }

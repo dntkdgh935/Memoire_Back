@@ -66,7 +66,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // 3. 최종적으로 UserEntity를 찾지 못했다면 예외 발생
         if (userEntity == null) {
             log.warn("사용자를 찾을 수 없습니다: {}", identifier);
-            throw new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + identifier);
+            throw new UsernameNotFoundException("아이디 또는 비밀번호를 찾을 수 없습니다.");
         }
 
         // 4. 비밀번호 조회 (TB_PWD_HISTORY에서 최신 비밀번호 가져오기)

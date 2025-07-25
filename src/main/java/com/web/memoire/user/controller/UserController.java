@@ -321,37 +321,42 @@ public class UserController {
         }
     }
 
+    /**
+     * 비밀번호 변경 (사용자가 현재 비밀번호를 알고 있을 때 사용)
+     * - 로그인된 사용자가 마이페이지 등에서 비밀번호를 변경하는 시나리오에 적합합니다.
+     * - 요청 시 userId, prevPwd (현재 비밀번호), currPwd (새 비밀번호)가 필요합니다.
+     */
     @PatchMapping("/update/password")
     public ResponseEntity<?> updatePassword(@RequestBody Pwd pwdRequest) {
         log.info("비밀번호 변경 요청: userId={}", pwdRequest.getUserId());
 
-        // 필수 요청 정보 누락 검사
+        // 필수 요청 정보 누락 검사: userId, prevPwd, currPwd 모두 필요
         if (pwdRequest.getUserId() == null || pwdRequest.getUserId().trim().isEmpty() ||
                 pwdRequest.getPrevPwd() == null || pwdRequest.getPrevPwd().isEmpty() ||
                 pwdRequest.getCurrPwd() == null || pwdRequest.getCurrPwd().isEmpty()) {
             log.warn("비밀번호 변경 실패: 필수 정보 누락 (userId={})", pwdRequest.getUserId());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "필수 정보가 누락되었습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "필수 정보가 누락되었습니다. (사용자 ID, 현재 비밀번호, 새 비밀번호)"));
         }
 
         try {
             // PwdService를 통해 비밀번호 변경 로직 수행
-            // 이 서비스 메서드 내에서 이전 비밀번호 확인, 새 비밀번호 암호화 및 이력 저장까지 처리합니다.
+            // 이 서비스 메서드 내에서 이전 비밀번호 확인, 새 비밀번호 암호화 및 이력 저장, 비밀번호 중복 확인까지 처리합니다.
             pwdService.changeUserPassword(pwdRequest.getUserId(), pwdRequest.getPrevPwd(), pwdRequest.getCurrPwd());
 
             log.info("비밀번호 변경 성공: userId={}", pwdRequest.getUserId());
             return ResponseEntity.ok().body(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
 
         } catch (NoSuchElementException e) {
-            // 사용자 ID를 찾을 수 없거나 비밀번호 이력이 없는 경우
+            // 사용자 ID를 찾을 수 없거나 소셜 로그인 유저 등 비밀번호 변경 불가 상황
             log.warn("비밀번호 변경 실패 (NoSuchElementException): userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
         } catch (IllegalArgumentException e) {
-            // 이전 비밀번호 불일치, 새 비밀번호 유효성 검사 실패 등 비즈니스 로직 오류
+            // 이전 비밀번호 불일치, 새 비밀번호 유효성 검사 실패, 과거 비밀번호 재사용 등 비즈니스 로직 오류
             log.warn("비밀번호 변경 실패 (IllegalArgumentException): userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             // 그 외 예상치 못한 서버 오류
-            log.error("비밀번호 변경 중 서버 오류: userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage());
+            log.error("비밀번호 변경 중 서버 오류: userId={}, 오류: {}", pwdRequest.getUserId(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "비밀번호 변경 중 서버 오류가 발생했습니다."));
         }
     }
@@ -487,6 +492,23 @@ public class UserController {
         } catch (Exception e) {
             log.error("얼굴 로그인 처리 중 예기치 않은 오류: 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "얼굴 로그인 처리 중 오류가 발생했습니다."));
+        }
+    }
+    @PatchMapping("/exit") // PATCH 매핑으로 변경
+    public ResponseEntity<?> exitUser(@AuthenticationPrincipal UserDetails userDetails) {
+        String userId = userDetails.getUsername();
+        log.info("회원 역할 'EXIT'로 변경 요청: userId={}", userId);
+
+        try {
+            userService.updateUserRoleToExit(userId); // 새로운 서비스 메서드 호출
+            log.info("회원 역할 'EXIT'로 변경 성공: userId={}", userId);
+            return ResponseEntity.ok().body(Map.of("message", "회원 탈퇴(역할 변경)가 성공적으로 처리되었습니다."));
+        } catch (NoSuchElementException e) {
+            log.warn("회원 역할 'EXIT' 변경 실패: 사용자를 찾을 수 없음 (userId={}), 오류: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "역할을 변경할 사용자 정보를 찾을 수 없습니다."));
+        } catch (Exception e) {
+            log.error("회원 역할 'EXIT' 변경 중 서버 오류: userId={}, 오류: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "회원 역할 변경 중 오류가 발생했습니다."));
         }
     }
 
