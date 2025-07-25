@@ -2,12 +2,8 @@ package com.web.memoire.library.controller;
 
 
 import com.web.memoire.common.dto.CollView;
-import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.dto.FollowRequest;
-import com.web.memoire.common.dto.Relationship;
-import com.web.memoire.common.entity.CollectionEntity;
 import com.web.memoire.library.model.service.LibraryService;
-import com.web.memoire.user.model.dto.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
@@ -53,7 +48,7 @@ public class LibraryController {
 
     // 비로그인시 전체 public collection 리턴
     // TODO:
-    @GetMapping("/discover/{selectedTag}")
+    @GetMapping("/discover/guest/{selectedTag}")
     public ResponseEntity<?> getAllColls(@PathVariable String selectedTag) {
         log.info("LibraryController.getAllColls...");
         log.info("비로그인 유저 전체 컬렉션 조회");
@@ -137,7 +132,7 @@ public class LibraryController {
         }
     }
 
-    @GetMapping("/collection/{collectionId}")
+    @GetMapping("/collection/guest/{collectionId}")
     public ResponseEntity<?> getCollectionDetail4Anon(@PathVariable int collectionId) {
 
         log.info("LibraryController.getCollectionDetail...");
@@ -159,7 +154,7 @@ public class LibraryController {
         log.info("👍 좋아요 요청 - user: {}, collection: {}, isLiked: {}", userid, collectionId, isLiked);
 
         try {
-            if (isLiked) {
+            if (!isLiked) {
                 libraryService.addLike(userid, collectionId);
             } else {
                 libraryService.removeLike(userid, collectionId);
@@ -181,7 +176,7 @@ public class LibraryController {
         log.info("👍북마크 요청 - user: {}, collection: {}, isBookmarked: {}", userid, collectionId, isBookmarked);
 
         try {
-            if (isBookmarked) {
+            if (!isBookmarked) {
                 libraryService.addBM(userid, collectionId);
             } else {
                 libraryService.removeBM(userid, collectionId);
@@ -390,26 +385,11 @@ public class LibraryController {
     // TODO: 로그인추천 30개씩 리턴
     @GetMapping("/recommend/{userid}")
     public ResponseEntity<?> topNRec4LoginUser (@PathVariable String userid,
-                                                @PageableDefault(size = 5) Pageable pageable) {
+                                                @PageableDefault(size = 10) Pageable pageable) {
         log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
         try {
-            return ResponseEntity.ok(libraryService.getTopNRec4LoginUser(userid, pageable));
-        }
-        catch (Exception e) {
-            log.error("Error while fetching recommendations", e);
-            return ResponseEntity.status(500).body("추천 요청 실패");
-        }
-    }
-
-    // TODO: 비로그인 추천 30개씩 리턴.. 비로그인은 그냥 좋아요+북마크 순서대로?
-    @GetMapping("/recommend/guest")
-    public ResponseEntity<?> topNRec4AnonUser () {
-        log.info("LibraryController.getRecommendations for ANON user");
-
-        try {
-            //TODO: getAllPublicCollectionView에 정렬 로직 추가하기
-            return ResponseEntity.ok(libraryService.getAllPublicCollectionView());
+            return ResponseEntity.ok(libraryService.getRecPage4LoginUser(userid, pageable));
         }
         catch (Exception e) {
             log.error("Error while fetching recommendations", e);

@@ -1,11 +1,9 @@
 package com.web.memoire.library.model.service;
 
 import com.web.memoire.common.dto.*;
-import com.web.memoire.common.dto.Collection;
 import com.web.memoire.common.entity.*;
 import com.web.memoire.library.jpa.repository.*;
 import com.web.memoire.user.jpa.entity.UserEntity;
-import com.web.memoire.user.model.dto.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +12,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,7 +19,6 @@ import reactor.core.publisher.Mono;
 
 import java.nio.file.AccessDeniedException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -109,40 +105,16 @@ public class LibraryService {
 
         //대상 컬렉션: visibility 가 public이거나 follower 대상인 경우
         List<CollectionEntity> publicCollections = libCollectionRepository.findByVisibilityIn(Arrays.asList("1", "2"));
-
-
-        List<CollectionEntity> filteredCollections = new ArrayList<>();
+        List<CollectionEntity> filteredColls = new ArrayList<>();
 
         //filteredCollections 만듦
-        for (CollectionEntity collection : publicCollections) {
-            Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
-
-            // 1. 자신의 컬렉션은 보이지 않게 (authorid == userId인 경우 제외)
-            if (collection.getAuthorid().equals(userId)) {
-                continue; // 자신의 컬렉션은 제외
+        for (CollectionEntity coll : publicCollections) {
+            int collid = coll.getCollectionid();
+            if (!coll.getAuthorid().equals(userId) && canUserAccessCollection(collid, userId)) {
+                filteredColls.add(coll);
             }
-            // 2. 서로가 차단된 경우 보이지 않게
-            if ((userToOtherRel.isPresent() && userToOtherRel.get().getStatus().equals("2") )
-                    || (OtherToUserRel.isPresent() && OtherToUserRel.get().getStatus().equals("2"))) {
-                continue;
-            }
-            // 2. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
-            if (collection.getVisibility()==2) {
-                // 팔로우 상태이면 추가
-                if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
-                    filteredCollections.add(collection);
-                } else {
-                    // 팔로우하지 않으면 접근 불가
-                    log.info("user: " + userId + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
-                }
-            }
-            // 4. 이외의 전체 공개 컬렉션 추가
-            else if (collection.getVisibility()==1) {
-                filteredCollections.add(collection);
-            }
-        } //filteredCollections만듦
-        List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredCollections);
+        }
+        List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredColls);
         for (CollectionEntity coll : sortedColls) {
             collViews.add(makeCollectionView(coll.getCollectionid(), userId));
         }
@@ -458,16 +430,12 @@ public class LibraryService {
             List<CollectionEntity> collections = libCollectionRepository.findByAuthoridOrderByCreatedDateDesc(followingRel.getTargetid());
             allCollections.addAll(collections);
         }
-
-        // 3. 정렬 로직 (TODO: 외부 시스템 연결)
-
-        // 4. collView로 만들기
         List<CollView> collViews = new ArrayList<>();
-        for (CollectionEntity collection : allCollections) {
-            CollView cv = makeCollectionView(collection.getId(), userid);
-            collViews.add(cv);
+        for (CollectionEntity coll : allCollections) {
+            if (canUserAccessCollection(coll.getCollectionid(), userid)) {
+                collViews.add(makeCollectionView(coll.getCollectionid(), userid));
+            }
         }
-        // 5. 리턴
         return collViews;
     }
 
@@ -778,6 +746,7 @@ public class LibraryService {
         for (Integer id : orderedIds) {
             if (collViewMap.containsKey(id)) {
                 result.add(collViewMap.get(id));
+                log.info(collViewMap.get(id).getCollectionTitle() + " 북마크 됨? "+ collViewMap.get(id).isUserbookmark());
             }
         }
         return result;
@@ -873,35 +842,10 @@ public class LibraryService {
 
         //접근권한에 따라 리턴해야 함 => 가능한 것만 filteredColls로 만듦
         List <CollectionEntity> filteredColls = new ArrayList<>();
-        for (CollectionEntity collection : colls) {
-            Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
-
-            // 1. 자신의 컬렉션은 보이지 않게 (authorid == userId인 경우 제외)
-            if (collection.getAuthorid().equals(userId)) {
-                log.info("1.메롱~");
-                continue; // 자신의 컬렉션은 제외
-            }
-            // 2. 서로가 차단된 경우 보이지 않게
-            if ((userToOtherRel.isPresent() && userToOtherRel.get().getStatus().equals("2") )
-                    || (OtherToUserRel.isPresent() && OtherToUserRel.get().getStatus().equals("2"))) {
-                log.info("2.메롱~");
-                continue;
-            }
-            // 3. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
-            if (collection.getVisibility()==2) {
-                // 팔로우 상태이면 추가
-                if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
-                    filteredColls.add(collection);
-                } else {
-                    // 팔로우하지 않으면 접근 불가
-                    log.info("3.메롱~");
-                    log.info("user: " + userId + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
-                }
-            }
-            // 4. 이외의 전체 공개 컬렉션 추가
-            else if (collection.getVisibility()==1) {
-                filteredColls.add(collection);
+        for (CollectionEntity coll : colls) {
+            int collid = coll.getCollectionid();
+            if (!coll.getAuthorid().equals(userId) && canUserAccessCollection(collid, userId)) {
+                filteredColls.add(coll);
             }
         }
         // sort
@@ -940,7 +884,7 @@ public class LibraryService {
     30(topN)개씩 무한번 요청해 아래에 붙일 수 있음
     단 프론트가 너무 무거워지면 페이지 새로고침하기? 또는 다른 전략?
     * */
-    public Page<CollView> getTopNRec4LoginUser(String userid, Pageable pageable) {
+    public Page<CollView> getRecPage4LoginUser(String userid, Pageable pageable) {
         List <CollView> recColls = new ArrayList<>();
 
         // 유저와 상호작용한 이력이 있는 컬렉션 불러오기
@@ -951,6 +895,7 @@ public class LibraryService {
         List <CollView> interactedColls = userScores.stream()
                 .map(score -> {
                     CollectionEntity coll = libCollectionRepository.findByCollectionid(score.getCollectionid());
+
                     if (coll == null) return null;
 
                     int likeCount = libLikeRepository.countByCollectionid(coll.getCollectionid());
@@ -962,6 +907,7 @@ public class LibraryService {
                     return view == null ? null : new AbstractMap.SimpleEntry<>(view, totalScore); // 💡 CollView와 점수 한 쌍
                 })
                 .filter(Objects::nonNull)
+                .filter(entry -> canUserAccessCollection(entry.getKey().getCollectionid(), userid))
                 .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())) // 💡 totalScore 기준 내림차순
                 .map(Map.Entry::getKey) // 💡 CollView만 추출
                 .toList();
@@ -987,6 +933,7 @@ public class LibraryService {
                     CollView view = makeCollectionView(coll.getCollectionid(), userid);
                     return view == null ? null : new AbstractMap.SimpleEntry<>(view, totalScore);
                 })
+                .filter(entry -> canUserAccessCollection(entry.getKey().getCollectionid(), userid))
                 .filter(Objects::nonNull)
                 .sorted((e1, e2) -> Integer.compare(e2.getValue(), e1.getValue())) // 💡 totalScore 기준 내림차순
                 .map(Map.Entry::getKey) // 💡 CollView만 추출
@@ -1036,4 +983,44 @@ public class LibraryService {
         }
         return usersWhoBookmarked;
     }
+
+    public boolean canUserAccessCollection(int collectionId, String userId) {
+        CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
+        Optional<UserEntity> user = libUserRepository.findByUserId(userId);
+        if (collection == null) {
+            return false; // 컬렉션이 존재하지 않음
+        }
+        if (user.get().getRole()=="bad" || user.get().getRole()=="exit" ) {
+            return false;
+        }
+        // 작성자 본인은 무조건 접근 가능
+        if (userId.equals(collection.getAuthorid())) {
+            return true;
+        }
+
+        // 공개(1)일 경우
+        if (collection.getVisibility() == 1) {
+            Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
+            Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
+
+            // 차단 상태라면 접근 불가
+            if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus())) ||
+                    (relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+                return false;
+            }
+
+            // 차단이 아니라면 접근 가능
+            return true;
+        }
+
+        // 팔로워만(2)일 경우
+        if (collection.getVisibility() == 2) {
+            Optional<RelationshipEntity> relationship = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
+            return relationship.isPresent() && "1".equals(relationship.get().getStatus());
+        }
+
+        // 작성자만(3)인 경우는 이미 본인 여부 확인됨
+        return false; // 그 외는 접근 불가
+    }
+
 }

@@ -22,5 +22,6 @@ public interface LibUserRepository extends JpaRepository<UserEntity, String> {
     List<UserEntity> findByNicknameContaining(String query);
 
 
+
 //    String findUserNameByUserId(String userId);
 }

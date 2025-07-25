@@ -33,11 +33,12 @@ public class JWTFilter extends OncePerRequestFilter {
             "/user/social", "/user/socialSignUp","/user/check-phone",
             "/user/social/complete-signup",
             "/user/face-login", // 이중 슬래시 제거
-            "/oauth2/authorization/", "/oauth2/callback/success"
+            "/oauth2/authorization/", "/oauth2/callback/success", "/api/library/top5tags"
     );
     // ✅ 인증이 필요 없는 특정 문자열로 시작하는 경로 목록
     private static final List<String> PERMIT_ALL_PATHS_START_WITH = Arrays.asList(
-            "/js/", "/css/", "/public/", "/api/", "/upload_files/", "/auth/", "/chat/" // /auth/ 경로도 추가 (SecurityConfig 참고)
+            "/js/", "/css/", "/public/", /*"/api/",*/ "/upload_files/", "/auth/", "/chat/", "/api/library/discover/guest", "/api/library/collection/guest"
+            , "/api/library/collection/memories"// /auth/ 경로도 추가 (SecurityConfig 참고)
     );
 
 

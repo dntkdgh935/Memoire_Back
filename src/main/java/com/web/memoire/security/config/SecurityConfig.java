@@ -113,12 +113,15 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/user/face-login").permitAll()
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
                                 "/css/**", "/js/**").permitAll()
-                        .requestMatchers("/api/**").permitAll()
+                       .requestMatchers("/discover/guest/**").permitAll()
+                        .requestMatchers("/**/guest/**").permitAll()
+                        .requestMatchers("/api/library/collection/memories").permitAll()
                         .requestMatchers("/upload_files/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/*.jpg").permitAll()
                         .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social", "/user/socialSignUp", "/user/social/complete-signup",
                                 "user/check-phone").permitAll()
+                        .requestMatchers("/**/library/top5tags").permitAll()
                         .requestMatchers("/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
