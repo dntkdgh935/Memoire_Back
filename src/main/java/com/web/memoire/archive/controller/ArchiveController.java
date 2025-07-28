@@ -55,7 +55,6 @@ public class ArchiveController {
                 user.setName(null);
                 user.setBirthday(null);
                 user.setPhone(null);
-                user.setRole(null);
                 user.setAutoLoginFlag(null);
                 user.setRegistrationDate(null);
                 user.setSanctionCount(null);
@@ -81,7 +80,6 @@ public class ArchiveController {
                 user.setName(null);
                 user.setBirthday(null);
                 user.setPhone(null);
-                user.setRole(null);
                 user.setAutoLoginFlag(null);
                 user.setRegistrationDate(null);
                 user.setSanctionCount(null);
