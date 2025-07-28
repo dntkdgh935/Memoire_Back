@@ -48,7 +48,7 @@ public class LibraryController {
         log.info("비로그인 유저 전체 컬렉션 조회");
 
         //비로그인 유저가 '전체' 선택한 경우
-        if (selectedTag.equals("전체")) {
+        if (selectedTag.equals("전체") || selectedTag.equals("추천")) {
             try {
                 log.info("잘 들어옴ㅡㅡ");
                 return ResponseEntity.ok(libraryService.getAll4Anon(pageable));
