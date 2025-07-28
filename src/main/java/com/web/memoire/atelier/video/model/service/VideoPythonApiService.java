@@ -110,11 +110,13 @@ public class VideoPythonApiService {
         log.info("request : {}", req);
 
         if (Boolean.TRUE.equals(req.getLipSyncEnabled())) {
-            rawVideoUrl = restTemplate.postForObject(
+            SyncGenerationResponse res = restTemplate.postForObject(
                     pythonBaseUrl + "/atelier/runway/lipsync",
                     Map.of("image_url", req.getImageUrl(), "audio_url", req.getTtsUrl()),
-                    String.class
+                    SyncGenerationResponse.class
             );
+            rawVideoUrl = res.getVideo_url();
+            log.info("rawVideoUrl is {}", rawVideoUrl);
         } else {
             String imageUrl = req.getImageUrl();
             String fileName = UUID.randomUUID().toString() + ".png";
@@ -157,6 +159,7 @@ public class VideoPythonApiService {
                         FfmpegGenerationResponse.class
                 );
                 rawVideoUrl = res.getVideo_url();
+                log.info("rawVideoUrl is {}", rawVideoUrl);
             } else {
                 rawVideoUrl = baseVideoUrl;
             }
