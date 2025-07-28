@@ -219,73 +219,79 @@ public class UserService {
      * @return 인증된 사용자 ID (없으면 null)
      * @throws IOException 이미지 처리 또는 FastAPI 통신 중 오류 발생 시
      */
-    public String authenticateUserByFace(byte[] currentFaceImageData) throws IOException {
+    public String authenticateUserByFace(String loginId, byte[] currentFaceImageData) throws IOException { // ✅ loginId 매개변수 추가
         // 1. 현재 이미지에서 임베딩 추출
         List<Float> currentEmbedding = faceRecognitionService.getFaceEmbedding(currentFaceImageData);
 
         if (currentEmbedding.isEmpty()) {
-            // 현재 이미지에서 얼굴을 찾지 못함 (얼굴이 없거나 명확하지 않음)
             log.warn("authenticateUserByFace: 현재 이미지에서 얼굴 임베딩을 추출할 수 없습니다.");
             return null;
         }
 
-        // 2. DB에서 모든 사용자들의 얼굴 임베딩과 ID를 FaceIdEntity로부터 가져옴
-        // faceEmbedding이 null이 아닌 FaceIdEntity만 가져옵니다.
-        List<FaceIdEntity> allFaceIdsWithEmbedding = faceIdRepository.findByFaceEmbeddingIsNotNull();
+        // ✅ 2. 입력받은 loginId로 UserEntity를 찾아 userId를 얻습니다.
+        UserEntity userEntity = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> {
+                    log.warn("authenticateUserByFace: 로그인 ID '{}' 에 해당하는 사용자를 찾을 수 없습니다.", loginId);
+                    // 특정 로그인 ID에 사용자가 없으면 바로 인증 실패 처리
+                    return new NoSuchElementException("입력한 로그인 ID에 해당하는 사용자를 찾을 수 없습니다.");
+                });
+        String userIdToAuthenticate = userEntity.getUserId(); // 해당 로그인 ID의 userId
 
-        if (allFaceIdsWithEmbedding.isEmpty()) {
-            // 등록된 얼굴 임베딩이 없는 경우
-            log.warn("authenticateUserByFace: 등록된 얼굴 임베딩 데이터가 없습니다.");
+        // ✅ 3. 얻은 userId로 해당 사용자의 얼굴 임베딩만 가져옵니다.
+        Optional<FaceIdEntity> userFaceIdOptional = faceIdRepository.findByUserId(userIdToAuthenticate).stream().findFirst();
+
+        if (userFaceIdOptional.isEmpty()) {
+            log.warn("authenticateUserByFace: 사용자 ID '{}' (로그인 ID: '{}') 에 등록된 얼굴 임베딩 데이터가 없습니다.", userIdToAuthenticate, loginId);
             return null;
         }
 
-        List<List<Float>> knownEmbeddings = allFaceIdsWithEmbedding.stream()
-                .map(FaceIdEntity::getFaceEmbedding)
-                .map(json -> {
-                    try {
-                        return objectMapper.readValue(json, new TypeReference<List<Float>>() {});
-                    } catch (JsonProcessingException e) {
-                        log.error("저장된 임베딩 JSON 파싱 오류: {}", e.getMessage());
-                        return null; // 파싱 실패 시 null 반환
-                    }
-                })
-                .filter(embedding -> embedding != null && !embedding.isEmpty()) // 유효한(파싱 성공한) 임베딩만 필터링
-                .collect(Collectors.toList());
+        FaceIdEntity userFaceIdEntity = userFaceIdOptional.get();
+        String storedEmbeddingJson = userFaceIdEntity.getFaceEmbedding();
 
-        List<String> knownUserIds = allFaceIdsWithEmbedding.stream()
-                .filter(faceId -> { // 임베딩이 유효한 FaceIdEntity만 필터링
-                    try {
-                        return faceId.getFaceEmbedding() != null && !objectMapper.readValue(faceId.getFaceEmbedding(), new TypeReference<List<Float>>() {}).isEmpty();
-                    } catch (JsonProcessingException e) {
-                        log.error("저장된 임베딩 JSON 파싱 오류 (userId 필터링): {}", e.getMessage());
-                        return false;
-                    }
-                })
-                .map(FaceIdEntity::getUserId)
-                .collect(Collectors.toList());
-
-        // 임베딩 리스트와 ID 리스트의 길이가 일치하는지 확인 (중요)
-        if (knownEmbeddings.size() != knownUserIds.size() || knownEmbeddings.isEmpty()) {
-            log.warn("authenticateUserByFace: 유효한 등록된 임베딩 데이터가 부족하거나 임베딩-ID 매핑이 일치하지 않습니다.");
+        if (storedEmbeddingJson == null || storedEmbeddingJson.isEmpty()) {
+            log.warn("authenticateUserByFace: 사용자 ID '{}' 의 임베딩 데이터가 비어 있습니다.", userIdToAuthenticate);
             return null;
         }
+
+        List<Float> storedEmbedding;
+        try {
+            storedEmbedding = objectMapper.readValue(storedEmbeddingJson, new TypeReference<List<Float>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("저장된 임베딩 JSON 파싱 오류 (userId '{}', loginId '{}'): {}", userIdToAuthenticate, loginId, e.getMessage());
+            return null;
+        }
+
+        if (storedEmbedding.isEmpty()) {
+            log.warn("authenticateUserByFace: 사용자 ID '{}' 의 저장된 임베딩이 유효하지 않습니다 (비어있음).", userIdToAuthenticate);
+            return null;
+        }
+
+        // FastAPI에 임베딩 비교 요청을 위해 knownEmbeddings와 knownUserIds를 리스트 형태로 구성 (단일 요소)
+        List<List<Float>> knownEmbeddings = Collections.singletonList(storedEmbedding);
+        List<String> knownUserIds = Collections.singletonList(userIdToAuthenticate); // FastAPI는 userId로 반환할 것이므로 userId 사용
 
         log.info("FastAPI로 전송될 knownEmbeddings 개수: {}", knownEmbeddings.size());
         log.info("FastAPI로 전송될 knownUserIds 개수: {}", knownUserIds.size());
         log.info("FastAPI로 전송될 knownUserIds 목록: {}", knownUserIds);
 
-        // 3. FastAPI에 임베딩 비교 요청
+
+        // 4. FastAPI에 임베딩 비교 요청
         Map<String, Object> comparisonResult = faceRecognitionService.compareEmbeddings(currentEmbedding, knownEmbeddings, knownUserIds);
 
         log.info("FastAPI 비교 결과: {}", comparisonResult);
 
         // 결과에서 "match_found"와 "matched_user_id" 추출
         Boolean matchFound = (Boolean) comparisonResult.get("match_found");
-        if (matchFound != null && matchFound) {
-            return (String) comparisonResult.get("matched_user_id");
+        String matchedUserIdFromFastAPI = (String) comparisonResult.get("matched_user_id");
+
+        // ✅ 최종 검증: matchFound가 true이고, FastAPI에서 매칭된 userId가 우리가 찾은 userIdToAuthenticate와 일치하는지 확인
+        if (matchFound != null && matchFound && userIdToAuthenticate.equals(matchedUserIdFromFastAPI)) {
+            log.info("authenticateUserByFace: 얼굴 인식 성공. 매칭된 userId: {} (로그인 ID: {})", matchedUserIdFromFastAPI, loginId);
+            // 인증 성공 시에는 해당 사용자의 userId를 반환
+            return userEntity.getLoginId(); // ✅ 컨트롤러로 loginId를 반환하도록 변경
         } else {
-            log.info("authenticateUserByFace: 얼굴 인식에 실패했거나 일치하는 사용자가 없습니다. (distance: {})", comparisonResult.get("distance"));
-            return null; // 일치하는 사용자 없음
+            log.info("authenticateUserByFace: 얼굴 인식에 실패했거나, 입력한 로그인 ID '{}' 와 일치하는 얼굴이 아닙니다. (FastAPI 매칭 결과 userId: {})", loginId, matchedUserIdFromFastAPI);
+            return null; // 일치하는 사용자 없음 또는 입력 loginId와 불일치
         }
     }
 

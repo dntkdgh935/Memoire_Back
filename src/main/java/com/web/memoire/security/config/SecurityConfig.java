@@ -120,7 +120,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/*.jpg").permitAll()
                         .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social", "/user/socialSignUp", "/user/social/complete-signup",
-                                "user/check-phone").permitAll()
+                                "user/check-phone","/api/verification/generate-code","/api/verification/verify-code").permitAll()
                         .requestMatchers("/**/library/top5tags").permitAll()
                         .requestMatchers("/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
