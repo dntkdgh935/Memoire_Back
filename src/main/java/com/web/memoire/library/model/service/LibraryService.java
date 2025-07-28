@@ -637,9 +637,24 @@ public class LibraryService {
         List<UserCardView> userCardViews = new ArrayList<>();
         for (UserEntity user : users) {
             UserCardView userCardView = makeUserView(user.getUserId(), loginUserid);
-            userCardViews.add(userCardView);
+            if (canUserSeeUser(loginUserid, user.getUserId())) {
+                userCardViews.add(userCardView);
+            }
         }
         return userCardViews;
+    }
+
+    private boolean canUserSeeUser(String userId, String targetId){
+        //둘 중 하나가 차단한 경우 볼 수 없음.
+        Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, targetId);
+        Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(targetId, userId);
+
+        // 차단 상태라면 접근 불가
+        if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus())) ||
+                (relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+            return false;
+        }
+        return true;
     }
 
     private UserCardView makeUserView(String targetId, String loginUserid) {
