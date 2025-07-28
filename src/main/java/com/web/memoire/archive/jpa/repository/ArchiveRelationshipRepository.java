@@ -17,7 +17,7 @@ public interface ArchiveRelationshipRepository extends JpaRepository<Relationshi
     List<RelationshipEntity> findAllUserFollowing(@Param("userid") String userid);
 
     // 유저의 팔로잉 개수 조회
-    @Query(value = "SELECT count(r) FROM RelationshipEntity r WHERE r.userid = :userid AND r.status = '1'")
+    @Query(value = "SELECT count(r) FROM RelationshipEntity r JOIN UserEntity u ON r.targetid = u.userId WHERE r.userid = :userid AND r.status = '1' and u.role != 'BAD'")
     int countAllFollowingByUserId(@Param("userid") String userid);
 
     // 유저의 팔로워 조회
@@ -25,7 +25,7 @@ public interface ArchiveRelationshipRepository extends JpaRepository<Relationshi
     List<RelationshipEntity> findAllUserFollower(@Param("userid") String userid);
 
     // 유저의 팔로워 개수 조회
-    @Query(value = "SELECT count(r) FROM RelationshipEntity r WHERE r.targetid = :userid AND r.status = '1'")
+    @Query(value = "SELECT count(r) FROM RelationshipEntity r JOIN UserEntity u ON r.userid = u.userId WHERE r.targetid = :userid AND r.status = '1' and u.role != 'BAD'")
     int countAllFollowerByUserId(@Param("userid") String userid);
 
     // 유저가 보낸 요청 조회
