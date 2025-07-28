@@ -440,48 +440,54 @@ public class UserController {
      * 클라이언트로부터 받은 이미지 파일을 FastAPI로 전송하여 임베딩을 추출하고,
      * 추출된 임베딩을 DB의 저장된 임베딩들과 비교하여 사용자를 식별합니다.
      * @param file 현재 웹캠에서 캡처한 이미지 (MultipartFile)
-     * @param response HttpServletResponse (JWT 토큰 발급용)
      * @return 인증 성공 시 사용자 정보 및 토큰, 실패 시 오류 메시지
      */
     @PostMapping("/face-login")
-    public ResponseEntity<?> loginByFace(@RequestParam("file") MultipartFile file, HttpServletResponse response) {
-        log.info("얼굴 로그인 요청: fileName={}", file.getOriginalFilename());
+    public ResponseEntity<?> loginByFace(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam("loginId") String loginId // ✅ userId 대신 loginId로 변경
+            // HttpServletResponse response // 필요 없으면 제거해도 됩니다.
+    ) {
+        log.info("얼굴 로그인 요청: loginId={}, fileName={}", loginId, file.getOriginalFilename()); // ✅ 로그도 loginId로 변경
         if (file.isEmpty()) {
             log.warn("얼굴 로그인 실패: 파일 없음");
             return ResponseEntity.badRequest().body(Map.of("message", "이미지 파일이 없습니다."));
         }
         try {
             byte[] imageData = file.getBytes();
-            String authenticatedUserId = userService.authenticateUserByFace(imageData);
+            // loginId와 얼굴 이미지를 함께 서비스 레이어로 전달합니다.
+            String authenticatedLoginId = userService.authenticateUserByFace(loginId, imageData); // ✅ loginId도 함께 전달
 
-            if (authenticatedUserId != null) {
+            if (authenticatedLoginId != null) {
                 // 인증 성공: JWT 토큰 발급 및 사용자 정보 반환
-                User userDto = userService.findUserByUserId(authenticatedUserId);
+                User userDto = userService.selectUser(authenticatedLoginId); // ✅ selectUser로 loginId를 통해 User DTO 조회
                 if (userDto == null) {
-                    log.warn("얼굴 로그인 성공 후 사용자 정보 찾기 실패: userId={}", authenticatedUserId);
+                    log.warn("얼굴 로그인 성공 후 사용자 정보 찾기 실패: loginId={}", authenticatedLoginId); // ✅ 로그도 loginId로 변경
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "인증된 사용자 정보를 찾을 수 없습니다."));
                 }
 
                 String accessToken = jwtUtil.generateToken(userDto, "access");
                 String refreshToken = jwtUtil.generateToken(userDto, "refresh");
 
-                tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken));
+                tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken)); // Refresh Token은 UserId 기반으로 저장
 
                 Map<String, Object> responseBody = new HashMap<>();
                 responseBody.put("accessToken", accessToken);
                 responseBody.put("refreshToken", refreshToken);
-                responseBody.put("userId", userDto.getUserId());
+                responseBody.put("userId", userDto.getUserId()); // Front-end AuthContext에서 UserId 필요
+                responseBody.put("loginId", userDto.getLoginId()); // ✅ loginId도 응답 바디에 추가 (프론트엔드에서 사용 가능)
                 responseBody.put("name", userDto.getName());
                 responseBody.put("role", userDto.getRole());
                 responseBody.put("autoLoginFlag", userDto.getAutoLoginFlag());
                 responseBody.put("nickname", userDto.getNickname());
+                // userDto.getLoginType() 도 포함시켜주는 것이 좋습니다. (JWT에 이미 있으니 필요하다면 여기서 직접 추가)
 
-                log.info("얼굴 로그인 성공: userId={}", userDto.getUserId());
+                log.info("얼굴 로그인 성공: loginId={}", userDto.getLoginId()); // ✅ 로그도 loginId로 변경
                 return ResponseEntity.ok(responseBody);
             } else {
                 // 인증 실패
-                log.info("얼굴 로그인 실패: 일치하는 사용자 없음");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "얼굴 인식에 실패했거나 일치하는 사용자가 없습니다."));
+                log.info("얼굴 로그인 실패: 일치하는 사용자 없음 또는 얼굴 인식 불일치");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "얼굴 인식에 실패했거나 입력한 로그인 ID와 일치하는 얼굴이 아닙니다."));
             }
         } catch (IllegalArgumentException e) {
             log.error("얼굴 임베딩 추출 오류 (로그인 시도): 오류: {}", e.getMessage());
