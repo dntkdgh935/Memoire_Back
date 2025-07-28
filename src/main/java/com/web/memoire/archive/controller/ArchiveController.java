@@ -51,6 +51,7 @@ public class ArchiveController {
             ArrayList<User> userList = new ArrayList<>();
             for (Relationship rel : archiveService.findAllUserFollower(userid)) {
                 User user = archiveService.findUserById(rel.getUserid());
+                if (user.getRole().equals("BAD")) continue;
                 // 상대방 개인정보 처리
                 user.setName(null);
                 user.setBirthday(null);
@@ -76,6 +77,7 @@ public class ArchiveController {
             ArrayList<User> userList = new ArrayList<>();
             for (Relationship rel : archiveService.findAllUserFollowing(userid)) {
                 User user = archiveService.findUserById(rel.getTargetid());
+                if (user.getRole().equals("BAD")) continue;
                 // 상대방 개인정보 처리
                 user.setName(null);
                 user.setBirthday(null);

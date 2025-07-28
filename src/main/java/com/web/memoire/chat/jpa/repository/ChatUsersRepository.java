@@ -12,7 +12,6 @@ import java.util.List;
 @Repository
 public interface ChatUsersRepository extends JpaRepository<ChatUsersEntity, ChatUsersId> {
 
-    // TODO: 유저가 속해있는 전체 채팅방들 최신 대화 순서대로 조회
     @Query(value = "SELECT c FROM ChatUsersEntity c WHERE c.userid = :userid")
     List<ChatUsersEntity> findAllByUserId(@Param("userid") String userid);
 
