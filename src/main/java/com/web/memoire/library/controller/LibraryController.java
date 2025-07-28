@@ -70,47 +70,6 @@ public class LibraryController {
         return null;
     }
 
-    // 로그인 유저에게 selectedTag(전체, 팔로잉, 기타)에 대한 추천 진행
-    @GetMapping("/discover/{selectedTag}/{userid}")
-    public ResponseEntity<?> getRecColls4LoginUser(@PathVariable String selectedTag, @PathVariable String userid) {
-        log.info("LibraryController.getAllColls...4 로그인 유저!!");
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        log.info("\uD83C\uDFF0 현재 로그인 유저: "+auth.toString());
-
-        if (selectedTag.equals("전체")) {
-            try {
-                return ResponseEntity.ok(libraryService.getAllColls4LoginUser(userid));
-            } catch (Exception e) {
-                log.error("Error while fetching colls", e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
-            }
-        }
-        else if (selectedTag.equals("팔로잉")) {
-            try{
-                return ResponseEntity.ok(libraryService.getFollowingColls4LoginUser(userid));
-            }catch (Exception e) {
-                log.error("Error while fetching 팔로잉 중인 colls", e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
-            }
-        }
-        // 기타 태그 선택시
-        else if (selectedTag.length()>0 &&(selectedTag instanceof String))
-        {
-            log.info("선택된 태그: "+selectedTag);
-            try{
-                return ResponseEntity.ok(libraryService.getTopicColls4LoginUser(userid, selectedTag));
-//                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("미개발 단계");
-            }catch (Exception e) {
-                log.error("Error while fetching 팔로잉 중인 colls", e);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
-            }
-        }
-        // 태그가 없거나 옵션에 없는 경우(오류)
-        else{
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("태그 선택 오류");
-        }
-    }
-
     // LibCollDetailView.js용 (컬렉션 상세 페이지)=========================================================
     // 컬렉션 아이디로 컬렉션 정보 가져옴
     // TODO: 프론트쪽 요청 바꾸기
@@ -375,14 +334,43 @@ public class LibraryController {
         }
     }
 
-
-    @GetMapping("/recommend/{userid}")
-    public ResponseEntity<?> topNRec4LoginUser (@PathVariable String userid,
+    @GetMapping("/discover/loginUser/{selectedTag}/{userid}")
+    public ResponseEntity<?> topNRec4LoginUser (@PathVariable String selectedTag, @PathVariable String userid,
                                                 @PageableDefault(size = 10) Pageable pageable) {
         log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
         try {
-            return ResponseEntity.ok(libraryService.getRecPage4LoginUser(userid, pageable));
+            if (selectedTag.equals("추천") || selectedTag.equals("전체")) {
+                try {
+                    return ResponseEntity.ok(libraryService.getAllColls4LoginUser(userid, pageable));
+                } catch (Exception e) {
+                    log.error("Error while fetching colls", e);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
+                }
+            }
+            else if (selectedTag.equals("팔로잉")) {
+                try{
+                    return ResponseEntity.ok(libraryService.getFollowingColls4LoginUser(userid, pageable));
+                }catch (Exception e) {
+                    log.error("Error while fetching 팔로잉 중인 colls", e);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
+                }
+            }
+            // 기타 태그 선택시
+            else if (selectedTag.length()>0 &&(selectedTag instanceof String))
+            {
+                log.info("선택된 태그: "+selectedTag);
+                try{
+                    return ResponseEntity.ok(libraryService.getTopicColls4LoginUser(userid, selectedTag, pageable));
+                }catch (Exception e) {
+                    log.error("Error while fetching 팔로잉 중인 colls", e);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("팔로잉 컬렉션 조회 실패");
+                }
+            }
+            // 태그가 없거나 옵션에 없는 경우(오류)
+            else{
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("태그 선택 오류");
+            }
         }
         catch (Exception e) {
             log.error("Error while fetching recommendations", e);
