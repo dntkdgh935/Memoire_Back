@@ -64,14 +64,6 @@ public class VideoController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/complete-video")
-    public VideoResultDto completeVideo(@RequestBody FfmpegGenerationRequest req) {
-        return videopythonApiService.completeVideo(req);
-    }
-
-
-
-
     @PostMapping("/{collectionId}")
     public ResponseEntity<Memory> createMemory(
             @PathVariable int collectionId,

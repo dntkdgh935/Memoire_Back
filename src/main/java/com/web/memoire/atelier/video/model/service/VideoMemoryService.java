@@ -33,7 +33,6 @@ public class VideoMemoryService {
     public void createMemory(int CollectionId, VideoResultDto result) throws ParseException {
         int nextOrder = memoryRepository.findMaxMemoryOrderByCollectionid(CollectionId) + 1;
 
-        // 파일명 추출 (URL에서 마지막 경로)
         String videoUrl = result.getVideoUrl();
         String fileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
 
@@ -49,7 +48,7 @@ public class VideoMemoryService {
                 .title(result.getTitle())
                 .content(null)
                 .filename(fileName)
-                .filepath("/upload_files/memory_video/"+fileName)
+                .filepath("/upload_files/memory_video/" + fileName)
                 .createdDate(dt)
                 .memoryOrder(nextOrder)
                 .build();
@@ -72,7 +71,7 @@ public class VideoMemoryService {
 
         entity.setMemoryType("video");
         entity.setFilename(fileName);
-        entity.setFilepath("/upload_files/memory_video/"+fileName);
+        entity.setFilepath("/upload_files/memory_video/" + fileName);
         entity.setCreatedDate(dt);
 
 
