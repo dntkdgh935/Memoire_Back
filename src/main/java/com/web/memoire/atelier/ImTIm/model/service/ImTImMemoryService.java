@@ -47,7 +47,7 @@ public class ImTImMemoryService {
                 .title(dto.getTitle())
                 .content(null)
                 .filename(fileName)
-                .filepath("/upload_files/memory_img")
+                .filepath("/upload_files/memory_img/" + fileName)
                 .createdDate(dt)
                 .memoryOrder(nextOrder)
                 .build();
@@ -59,12 +59,17 @@ public class ImTImMemoryService {
     public void updateExisting(int memoryId, ImTImResultDto dto) throws ParseException {
         MemoryEntity m = imtimmemoryRepository.findById(memoryId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 메모리 ID: " + memoryId));
+
+        String fileName = dto.getImageUrl().substring(dto.getImageUrl().lastIndexOf('/') + 1);
+
+
         Date now = new Date();
         SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd");
         String dateStr = fmt.format(now);
         Date dt = fmt.parse(dateStr);
 
-        m.setFilename(dto.getFilename());
+        m.setFilename(fileName);
+        m.setFilepath("/upload_files/memory_img/" + fileName);
         m.setCreatedDate(dt);
 
         imtimmemoryRepository.save(m);

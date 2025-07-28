@@ -22,6 +22,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.LinkedMultiValueMap;
 
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -103,15 +104,22 @@ public class ImTImPythonApiService {
             String generatedUrl = fastResp.get("generated_image_url");
 
             byte[] imageBytes;
+            Path path;
+
             if (generatedUrl.startsWith("http://") || generatedUrl.startsWith("https://")) {
-                // 진짜 HTTP URL 이면 RestTemplate 으로 다운로드
                 imageBytes = restTemplate.getForObject(generatedUrl, byte[].class);
             } else {
-                // 로컬 파일 경로면 Java NIO 로 직접 읽기
-                Path path = Paths.get(generatedUrl);
-                if (!Files.exists(path)) {
-                    throw new ImageGenerationException("다운로드할 파일이 없습니다: " + generatedUrl);
+                if (generatedUrl.startsWith("/upload_files/")) {
+                    // "/upload_files/memory_img/styled_0.png" → "C:/upload_files/memory_img/styled_0.png"
+                    path = Paths.get("C:", generatedUrl.replace("/", File.separator));
+                } else {
+                    path = Paths.get(generatedUrl);
                 }
+
+                if (!Files.exists(path)) {
+                    throw new ImageGenerationException("다운로드할 파일이 없습니다: " + path.toString());
+                }
+
                 imageBytes = Files.readAllBytes(path);
             }
 

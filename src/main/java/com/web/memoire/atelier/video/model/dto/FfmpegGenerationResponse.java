@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class FfmpegGenerationResponse {
-    private String processedVideoUrl;
+    private String video_url;
 }

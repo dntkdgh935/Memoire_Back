@@ -107,11 +107,12 @@ public class VideoPythonApiService {
             return null;
         }
         String rawVideoUrl;
+        log.info("request : {}", req);
 
         if (Boolean.TRUE.equals(req.getLipSyncEnabled())) {
             rawVideoUrl = restTemplate.postForObject(
-                    pythonBaseUrl + "/atelier/runway/generate-lip-sync-video",
-                    Map.of("image_url", req.getImageUrl(), "tts_url", req.getTtsUrl()),
+                    pythonBaseUrl + "/atelier/runway/lipsync",
+                    Map.of("image_url", req.getImageUrl(), "audio_url", req.getTtsUrl()),
                     String.class
             );
         } else {
@@ -133,7 +134,8 @@ public class VideoPythonApiService {
             Map<String, Object> body = new HashMap<>();
             body.put("image_url", springImagePath);
             body.put("prompt",    req.getVideoPrompt());
-            body.put("tts_url",   req.getLipSyncEnabled() ? req.getTtsUrl() : null);
+            body.put("tts_url",   req.getTtsUrl());
+            log.info("body : {}", body);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, jsonHeaders);
 
@@ -148,35 +150,19 @@ public class VideoPythonApiService {
 
 
             if (req.getTtsUrl() != null) {
-                rawVideoUrl = restTemplate.postForObject(
+                log.info("ttsUrl is {}", req.getTtsUrl());
+                FfmpegGenerationResponse res = restTemplate.postForObject(
                         pythonBaseUrl + "/atelier/ffmpeg/generate",
                         Map.of("video_url", baseVideoUrl, "tts_url", req.getTtsUrl()),
-                        String.class
+                        FfmpegGenerationResponse.class
                 );
+                rawVideoUrl = res.getVideo_url();
             } else {
                 rawVideoUrl = baseVideoUrl;
             }
         }
         return VideoResultDto.builder()
                 .videoUrl(rawVideoUrl)
-                .build();
-    }
-
-    public VideoResultDto completeVideo(FfmpegGenerationRequest req) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<FfmpegGenerationRequest> mediaEntity = new HttpEntity<>(req, headers);
-        FfmpegGenerationResponse resp = restTemplate.postForObject(
-                pythonBaseUrl + "/atelier/ffmpeg/generate",
-                mediaEntity,
-                FfmpegGenerationResponse.class
-        );
-        String finalUrl = resp.getProcessedVideoUrl();
-        log.info("finalVideoUrl = {}", finalUrl);
-
-        return VideoResultDto.builder()
-                .videoUrl(finalUrl)
                 .build();
     }
 }
