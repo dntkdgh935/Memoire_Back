@@ -107,7 +107,7 @@ public class LibraryService {
 
 
     // ✅ public(visibility=1) collection 모두 불러오기
-    public List<CollView> getAllColls4LoginUser(String userId) {
+    public Page<CollView> getAllColls4LoginUser(String userId, Pageable pageable) {
         List<CollView> collViews = new ArrayList<>();
 
         //대상 컬렉션: visibility 가 public이거나 follower 대상인 경우
@@ -117,15 +117,24 @@ public class LibraryService {
         //filteredCollections 만듦
         for (CollectionEntity coll : publicCollections) {
             int collid = coll.getCollectionid();
-            if (!coll.getAuthorid().equals(userId) && canUserAccessCollection(collid, userId)) {
+            if (canUserAccessCollection(collid, userId)) {
                 filteredColls.add(coll);
             }
         }
         List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredColls);
         for (CollectionEntity coll : sortedColls) {
-            collViews.add(makeCollectionView(coll.getCollectionid(), userId));
+            if (canUserAccessCollection(coll.getId(), userId)) {
+                collViews.add(makeCollectionView(coll.getCollectionid(), userId));
+            }
         }
-        return collViews;
+        //페이징 처리
+        int start = (int) pageable.getOffset(); // page * size
+        int end = Math.min(start + pageable.getPageSize(), collViews.size());
+        if (start > end) {
+            return new PageImpl<>(List.of(), pageable, collViews.size());
+        }
+        List<CollView> pagedResult = collViews.subList(start, end);
+        return new PageImpl<>(pagedResult, pageable, collViews.size());
     }
 
     @Transactional
@@ -291,8 +300,6 @@ public class LibraryService {
             }
         }
 
-
-
         //유저가 자신의 컬렉션은 그냥 접근 가능
         if (userId.equals(collection.getAuthorid())) {
             return makeCollectionView(collectionId, userId);
@@ -428,9 +435,10 @@ public class LibraryService {
     }
 
     // user가 팔로잉중인 유저들의 컬렉션들을 최신순으로 불러옴
-    public Object getFollowingColls4LoginUser(String userid) {
+    public Page<CollView> getFollowingColls4LoginUser(String userid, Pageable pageable) {
         // 1. 팔로잉중인 유저 목록 불러오기
         List<RelationshipEntity> followingRels = libRelationshipRepository.findAllUserFollowing(userid);
+
         // 2. 유저별로 컬렉션 불러와서 합치기
         List<CollectionEntity> allCollections = new ArrayList<>();
         for (RelationshipEntity followingRel : followingRels) {
@@ -443,7 +451,14 @@ public class LibraryService {
                 collViews.add(makeCollectionView(coll.getCollectionid(), userid));
             }
         }
-        return collViews;
+        //페이징 처리
+        int start = (int) pageable.getOffset(); // page * size
+        int end = Math.min(start + pageable.getPageSize(), collViews.size());
+        if (start > end) {
+            return new PageImpl<>(List.of(), pageable, collViews.size());
+        }
+        List<CollView> pagedResult = collViews.subList(start, end);
+        return new PageImpl<>(pagedResult, pageable, collViews.size());
     }
 
 
@@ -622,9 +637,24 @@ public class LibraryService {
         List<UserCardView> userCardViews = new ArrayList<>();
         for (UserEntity user : users) {
             UserCardView userCardView = makeUserView(user.getUserId(), loginUserid);
-            userCardViews.add(userCardView);
+            if (canUserSeeUser(loginUserid, user.getUserId())) {
+                userCardViews.add(userCardView);
+            }
         }
         return userCardViews;
+    }
+
+    private boolean canUserSeeUser(String userId, String targetId){
+        //둘 중 하나가 차단한 경우 볼 수 없음.
+        Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, targetId);
+        Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(targetId, userId);
+
+        // 차단 상태라면 접근 불가
+        if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus())) ||
+                (relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+            return false;
+        }
+        return true;
     }
 
     private UserCardView makeUserView(String targetId, String loginUserid) {
@@ -846,7 +876,7 @@ public class LibraryService {
 
     }
 
-    public Object getTopicColls4LoginUser(String userId, String selectedTag) {
+    public Object getTopicColls4LoginUser(String userId, String selectedTag, Pageable pageable) {
         List<CollectionEntity> colls= findCollsWithTag(selectedTag);
         log.info(selectedTag+ "태그 달린 컬렉션 개수: "+colls.size());
         log.info(colls.toString());
@@ -857,16 +887,26 @@ public class LibraryService {
         List <CollectionEntity> filteredColls = new ArrayList<>();
         for (CollectionEntity coll : colls) {
             int collid = coll.getCollectionid();
-            if (!coll.getAuthorid().equals(userId) && canUserAccessCollection(collid, userId)) {
+            if (canUserAccessCollection(collid, userId)) {
                 filteredColls.add(coll);
             }
         }
         // sort
         List<CollectionEntity> sortedColls = sortCollsByTotalScore(filteredColls);
         for (CollectionEntity coll : sortedColls) {
-            collViews.add(makeCollectionView(coll.getCollectionid(), coll.getAuthorid()));
+            if (canUserAccessCollection(coll.getId(), userId)) {
+                collViews.add(makeCollectionView(coll.getCollectionid(), userId));
+            }
         }
-        return collViews;
+        //페이징 처리
+        int start = (int) pageable.getOffset(); // page * size
+        int end = Math.min(start + pageable.getPageSize(), collViews.size());
+        if (start > end) {
+            return new PageImpl<>(List.of(), pageable, collViews.size());
+        }
+        List<CollView> pagedResult = collViews.subList(start, end);
+        return new PageImpl<>(pagedResult, pageable, collViews.size());
+
     }
 
     public Page<CollView>  getTopicColls4Anon(String selectedTag, Pageable pageable) {
