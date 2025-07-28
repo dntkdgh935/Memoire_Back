@@ -60,7 +60,7 @@ public class LibraryService {
     }
 
     // 비로그인 유저에게 public Collection Return
-    public List<CollView> getAllPublicCollectionView() {
+    public Page<CollView> getAll4Anon(Pageable pageable) {
         // 공개된 컬렉션 리스트 가져오기
         List<CollectionEntity> publicCollections = libCollectionRepository.findByVisibility(1);
 
@@ -75,8 +75,15 @@ public class LibraryService {
             collViews.add(makeCollectionView(coll.getCollectionid(), null));
         }
 
-        log.info("Total coll views: " + collViews.size());
-        return collViews;
+        //페이징 처리
+        int start = (int) pageable.getOffset(); // page * size
+        int end = Math.min(start + pageable.getPageSize(), collViews.size());
+        if (start > end) {
+            return new PageImpl<>(List.of(), pageable, collViews.size());
+        }
+        List<CollView> pagedResult = collViews.subList(start, end);
+        return new PageImpl<>(pagedResult, pageable, collViews.size());
+
     }
 
     // CollectionEntity 리스트를 totalScore 기준으로 정렬
@@ -717,8 +724,10 @@ public class LibraryService {
     }
 
     // List<String>으로 바꿔야 함
-    public List<CollView> hello(String query, String loginUserid) {
+    public List<CollView> searchColl(String query, String loginUserid) {
         String fastApiUrl = "http://localhost:8000/library/search";
+
+        // TODO: 비공개/ 유저에 따른 처리 추가
 
         //1. 쿼리에 대한 응답 리스트 fastAPI에 받아오기
         Mono<List<Integer>> responseMono = webClient.post()
@@ -735,10 +744,14 @@ public class LibraryService {
         // 2. 해당 ID로 모든 컬렉션 조회
         List<CollectionEntity> collections = libCollectionRepository.findAllById(orderedIds);
 
+
         // 3. Map<Integer, CollectionEntity> 으로 수동 변환
         Map<Integer, CollView> collViewMap = new HashMap<>();
-        for (CollectionEntity collection : collections) {
-            collViewMap.put(collection.getId(),makeCollectionView(collection.getId(), loginUserid));
+        for (CollectionEntity coll : collections) {
+            //유저가 접근 가능한 것들만 결과에 붙임
+            if (canUserAccessCollection(coll.getCollectionid(), loginUserid)){
+                collViewMap.put(coll.getId(), makeCollectionView(coll.getId(), loginUserid));
+            }
         }
 
         // 4. 순서를 유지하여 List<CollectionEntity> 구성
@@ -856,7 +869,7 @@ public class LibraryService {
         return collViews;
     }
 
-    public Object getTopicColls4Anon(String selectedTag) {
+    public Page<CollView>  getTopicColls4Anon(String selectedTag, Pageable pageable) {
         List<CollectionEntity> colls= findCollsWithTag(selectedTag);
         List <CollView> collViews = new ArrayList<>();
 
@@ -875,7 +888,16 @@ public class LibraryService {
         for (CollectionEntity coll : sortedColls) {
             collViews.add(makeCollectionView(coll.getCollectionid(), null));
         }
-        return collViews;
+        //return collViews;
+
+        //페이징 처리
+        int start = (int) pageable.getOffset(); // page * size
+        int end = Math.min(start + pageable.getPageSize(), collViews.size());
+        if (start > end) {
+            return new PageImpl<>(List.of(), pageable, collViews.size());
+        }
+        List<CollView> pagedResult = collViews.subList(start, end);
+        return new PageImpl<>(pagedResult, pageable, collViews.size());
     }
 
 
