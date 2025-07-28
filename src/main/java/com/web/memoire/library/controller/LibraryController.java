@@ -29,10 +29,6 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
-
-    //TODO: WebClient 추가하기(추천용)
-//    private final WebClient webClient;
-
     //ArhciveMain.js용=========================================================
     @GetMapping("/top5tags")
     public ResponseEntity<?> getTopTags() {
@@ -45,11 +41,9 @@ public class LibraryController {
         }
     }
 
-
-    // 비로그인시 전체 public collection 리턴
-    // TODO:
     @GetMapping("/discover/guest/{selectedTag}")
-    public ResponseEntity<?> getAllColls(@PathVariable String selectedTag) {
+    public ResponseEntity<?> getPage4Anon(@PathVariable String selectedTag,
+                                         @PageableDefault(size = 5) Pageable pageable) {
         log.info("LibraryController.getAllColls...");
         log.info("비로그인 유저 전체 컬렉션 조회");
 
@@ -57,7 +51,7 @@ public class LibraryController {
         if (selectedTag.equals("전체")) {
             try {
                 log.info("잘 들어옴ㅡㅡ");
-                return ResponseEntity.ok(libraryService.getAllPublicCollectionView());//(userid));//("user001"));
+                return ResponseEntity.ok(libraryService.getAll4Anon(pageable));
             } catch (Exception e) {
                 log.error("Error while fetching colls", e);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
@@ -66,7 +60,7 @@ public class LibraryController {
         //비로그인 유저가 다른 태그 선택한 경우
         else if (selectedTag.length()>0 &&(selectedTag instanceof String)){
             try{
-                return ResponseEntity.ok(libraryService.getTopicColls4Anon(selectedTag));
+                return ResponseEntity.ok(libraryService.getTopicColls4Anon(selectedTag, pageable));
             }
             catch (Exception e){
                 log.error("Error while fetching colls", e);
@@ -281,7 +275,7 @@ public class LibraryController {
         log.info("📨 검색어 요청: {}", query);
 
         try {
-            List<CollView> result = libraryService.hello(query, userid);
+            List<CollView> result = libraryService.searchColl(query, userid);
             log.info("🟢 FastAPI 응답 결과: {}", result);
 
             // ✅ JSON 배열 그대로 클라이언트에 반환
@@ -381,8 +375,7 @@ public class LibraryController {
         }
     }
 
-    // TODO: 추후 "전체" 대체
-    // TODO: 로그인추천 30개씩 리턴
+
     @GetMapping("/recommend/{userid}")
     public ResponseEntity<?> topNRec4LoginUser (@PathVariable String userid,
                                                 @PageableDefault(size = 10) Pageable pageable) {
