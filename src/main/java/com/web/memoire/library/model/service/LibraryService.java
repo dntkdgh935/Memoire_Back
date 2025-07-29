@@ -1005,12 +1005,19 @@ public class LibraryService {
     public boolean canUserAccessCollection(int collectionId, String userId) {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
         Optional<UserEntity> user = libUserRepository.findByUserId(userId);
+        Optional<UserEntity> author = libUserRepository.findByUserId(collection.getAuthorid());
         if (collection == null) {
             return false; // 컬렉션이 존재하지 않음
         }
-        if (user.get().getRole()=="bad" || user.get().getRole()=="exit" ) {
+        //차단된 유저는 접근 불가
+        if (user.get().getRole().equals("BAD") || user.get().getRole().equals("EXIT") ) {
             return false;
         }
+        //차단된 유저의 컬렉션은 접근 불가
+        if (author.get().getRole().equals("BAD") || author.get().getRole().equals("EXIT") ) {
+            return false;
+        }
+
         // 작성자 본인은 무조건 접근 가능
         if (userId.equals(collection.getAuthorid())) {
             return true;
