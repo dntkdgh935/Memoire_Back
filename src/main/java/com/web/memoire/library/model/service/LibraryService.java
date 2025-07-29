@@ -72,6 +72,13 @@ public class LibraryService {
 
         // 정렬된 CollectionEntity 리스트를 순차적으로 CollView로 변환
         for (CollectionEntity coll : sortedColls) {
+            UserEntity author = libUserRepository.findByUserId(coll.getAuthorid()).isPresent() ?libUserRepository.findByUserId(coll.getAuthorid()).get():null;
+            if (author == null){
+                continue;
+            }
+            if (author.getRole().equals("BAD") || author.getRole().equals("EXIT")) {
+                continue;
+            }
             collViews.add(makeCollectionView(coll.getCollectionid(), null));
         }
 
