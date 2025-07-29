@@ -1017,7 +1017,7 @@ public class LibraryService {
         if (author.get().getRole().equals("BAD") || author.get().getRole().equals("EXIT") ) {
             return false;
         }
-        
+
         // 작성자 본인은 무조건 접근 가능
         if (userId.equals(collection.getAuthorid())) {
             return true;

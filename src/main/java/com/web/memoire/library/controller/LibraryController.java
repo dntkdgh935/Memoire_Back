@@ -340,9 +340,11 @@ public class LibraryController {
         log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
         try {
+
             if (selectedTag.equals("추천") || selectedTag.equals("전체")) {
                 try {
-                    return ResponseEntity.ok(libraryService.getAllColls4LoginUser(userid, pageable));
+                    log.info("rec rec");
+                    return ResponseEntity.ok(libraryService.getRecPage4LoginUser(userid, pageable));
                 } catch (Exception e) {
                     log.error("Error while fetching colls", e);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("전체 컬렉션 조회 실패");
