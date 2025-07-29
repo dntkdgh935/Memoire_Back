@@ -266,7 +266,7 @@ public class LibraryService {
     public CollView getCollectionDetail(int collectionId, String userId) throws Exception {
         CollectionEntity collection = libCollectionRepository.findByCollectionid(collectionId);
         log.info("getCollectionDetail 서비스 작동중");
-        // 컬렉션이 존재하지 않으면 예외 처리
+        // 컬렉션 count ++
         if (collection == null) {
             throw new IllegalArgumentException("컬렉션을 찾을 수 없습니다.");
         }
@@ -278,7 +278,6 @@ public class LibraryService {
         log.info(String.valueOf(userId.length()));
         log.info("접근 시도 유저:"+userId.getClass()); // 결과:
 
-        log.info("why me?");
         UserCollScoreEntity userColl = libUserCollScoreRepository.findByUserAndCollection(userId, collectionId);
         if (userColl == null) {
             //없으면 새로 만듦
@@ -299,47 +298,12 @@ public class LibraryService {
                 userColl.setScore(10);
             }
         }
-
-        //유저가 자신의 컬렉션은 그냥 접근 가능
-        if (userId.equals(collection.getAuthorid())) {
+        if (canUserAccessCollection(collectionId, collection.getAuthorid())){
             return makeCollectionView(collectionId, userId);
         }
-        // 공개 범위가 1 (공개)일 때
-        if (collection.getVisibility() == 1) {
-            // userId가 차단(2)된 경우 접근 불가
-            Optional<RelationshipEntity> relationship1 = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
-            if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus()))
-                    || (relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
-                log.info("user: " + userId + ", author: " + collection.getAuthorid());
-                throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
-            } else {
-                // 그 외의 경우 접근 가능
-                log.info("공개 컬렉션 뷰 만들기");
-                return makeCollectionView(collectionId, userId);
-            }
+        else{
+            throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
         }
-
-        // 공개 범위가 2 (팔로워만)일 때
-        else if (collection.getVisibility() == 2) {
-            Optional<RelationshipEntity> relationship = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            if (relationship.isPresent() && "1".equals(relationship.get().getStatus())) {
-                return makeCollectionView(collectionId, userId);
-            } else {
-                throw new Exception("이 컬렉션에 접근할 권한이 없습니다."); // 접근 권한 없음
-            }
-        }
-
-        // 공개 범위가 3 (작성자만)일 때
-        else if (collection.getVisibility() == 3 && collection.getAuthorid().equals(userId)) {
-            return makeCollectionView(collectionId, userId);// 작성자 본인이라면 실행
-        }
-
-        // 그 외의 경우 접근 불가
-        else {
-            throw new Exception("이 컬렉션에 접근할 권한이 없습니다.");
-        }
-
     }
 
 
@@ -595,17 +559,20 @@ public class LibraryService {
         List<CollView> collViews = new ArrayList<>();
         log.info("서비스 - 로그인 유저: "+userid+"방문 대상:"+ownerid);
         Optional<RelationshipEntity> userToOtherRel = libRelationshipRepository.findByUseridAndTargetid(userid, ownerid);
-        Optional<RelationshipEntity> OtherToUserRel = libRelationshipRepository.findByUseridAndTargetid(ownerid, userid);
-        if (userToOtherRel.isPresent()) {
-            log.info("관계1: " + userToOtherRel.get().getStatus());
+        Optional<RelationshipEntity> otherToUserRel = libRelationshipRepository.findByUseridAndTargetid(ownerid, userid);
+
+        String status1 = userToOtherRel.map(RelationshipEntity::getStatus).orElse(null);
+        String status2 = otherToUserRel.map(RelationshipEntity::getStatus).orElse(null);
+
+        if (status1 != null) {
+            log.info("관계1: " + status1);
         }
-        if (OtherToUserRel.isPresent()) {
-            log.info("관계2: " + OtherToUserRel.get().getStatus());
+        if (status2 != null) {
+            log.info("관계2: " + status2);
         }
-        // 서로를 차단한 경우 오류 리턴
-        if ((userToOtherRel.isPresent() && userToOtherRel.get().getStatus().equals("2"))||
-                (OtherToUserRel.isPresent() && userToOtherRel.get().getStatus().equals("2"))) {
-            // 예외 던지기
+
+        // 차단 상태면 접근 불가
+        if ("2".equals(status1) || "2".equals(status2)) {
             log.error("차단 관계가 있습니다.");
             throw new AccessDeniedException("You are blocked by this user.");
         }
@@ -614,18 +581,7 @@ public class LibraryService {
         List<CollectionEntity> userCollections = libCollectionRepository.findByAuthoridAndVisibilityIn(ownerid, Arrays.asList("1", "2"));
 
         for (CollectionEntity collection : userCollections) {
-            // 1. 팔로워 대상인데 팔로잉 안하는 경우 보이지 않게 (팔로워 대상인데 관계 없는 경우.. ㅋ)
-            if (collection.getVisibility()==2) {
-                // 팔로우 상태이면 추가
-                if (userToOtherRel.isPresent() && "1".equals(userToOtherRel.get().getStatus())) {
-                    collViews.add(makeCollectionView(collection.getId(), userid));
-                } else {
-                    // 팔로우하지 않으면 접근 불가
-                    log.info("user: " + userid + ", author: " + collection.getAuthorid() + " 팔로우하지 않음.");
-                }
-            }
-            // 2. 전체 공개이면 보임
-            else if (collection.getVisibility()==1) {
+            if (canUserAccessCollection(collection.getCollectionid(), userid)) {
                 collViews.add(makeCollectionView(collection.getId(), userid));
             }
         }
@@ -1066,11 +1022,11 @@ public class LibraryService {
             Optional<RelationshipEntity> relationship2 = libRelationshipRepository.findByUseridAndTargetid(collection.getAuthorid(), userId);
 
             // 차단 상태라면 접근 불가
-            if ((relationship1.isPresent() && "2".equals(relationship1.get().getStatus())) ||
-                    (relationship2.isPresent() && "2".equals(relationship2.get().getStatus()))) {
+            String status1 = relationship1.map(RelationshipEntity::getStatus).orElse(null);
+            String status2 = relationship2.map(RelationshipEntity::getStatus).orElse(null);
+            if ("2".equals(status1) || "2".equals(status2)) {
                 return false;
             }
-
             // 차단이 아니라면 접근 가능
             return true;
         }
@@ -1078,7 +1034,8 @@ public class LibraryService {
         // 팔로워만(2)일 경우
         if (collection.getVisibility() == 2) {
             Optional<RelationshipEntity> relationship = libRelationshipRepository.findByUseridAndTargetid(userId, collection.getAuthorid());
-            return relationship.isPresent() && "1".equals(relationship.get().getStatus());
+            String status = relationship.map(RelationshipEntity::getStatus).orElse(null);
+            return "1".equals(status); // 팔로우 상태일 때만 true
         }
 
         // 작성자만(3)인 경우는 이미 본인 여부 확인됨
