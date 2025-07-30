@@ -348,7 +348,7 @@ public class LibraryController {
     }
 
     @GetMapping("/discover/loginUser/{selectedTag}/{userid}")
-    public ResponseEntity<?> topNRec4LoginUser (@PathVariable String selectedTag, @PathVariable String userid,
+    public ResponseEntity<?> getPage4LoginUser (@PathVariable String selectedTag, @PathVariable String userid,
                                                 @PageableDefault(size = 30) Pageable pageable) {
         log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
