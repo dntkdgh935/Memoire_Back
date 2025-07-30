@@ -43,12 +43,12 @@ public class LibraryController {
 
     @GetMapping("/discover/guest/{selectedTag}")
     public ResponseEntity<?> getPage4Anon(@PathVariable String selectedTag,
-                                         @PageableDefault(size = 5) Pageable pageable) {
+                                         @PageableDefault(size = 30) Pageable pageable) {
         log.info("LibraryController.getAllColls...");
         log.info("비로그인 유저 전체 컬렉션 조회");
 
         //비로그인 유저가 '전체' 선택한 경우
-        if (selectedTag.equals("전체") || selectedTag.equals("추천")) {
+        if (selectedTag.equals("전체") || selectedTag.equals("탐색")) {
             try {
                 log.info("잘 들어옴ㅡㅡ");
                 return ResponseEntity.ok(libraryService.getAll4Anon(pageable));
@@ -336,12 +336,12 @@ public class LibraryController {
 
     @GetMapping("/discover/loginUser/{selectedTag}/{userid}")
     public ResponseEntity<?> topNRec4LoginUser (@PathVariable String selectedTag, @PathVariable String userid,
-                                                @PageableDefault(size = 10) Pageable pageable) {
+                                                @PageableDefault(size = 30) Pageable pageable) {
         log.info("LibraryController.getRecommendations... for userId: {}, page:{}", userid, pageable);
 
         try {
 
-            if (selectedTag.equals("추천") || selectedTag.equals("전체")) {
+            if (selectedTag.equals("탐색") || selectedTag.equals("전체")) {
                 try {
                     log.info("rec rec");
                     return ResponseEntity.ok(libraryService.getRecPage4LoginUser(userid, pageable));
