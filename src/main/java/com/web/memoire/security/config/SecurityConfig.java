@@ -114,6 +114,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
                                 "/css/**", "/js/**").permitAll()
                        .requestMatchers("/discover/guest/**").permitAll()
+                        .requestMatchers("/memory/**").permitAll()
                         .requestMatchers("/**/guest/**").permitAll()
                         .requestMatchers("/api/library/collection/memories").permitAll()
                         .requestMatchers("/upload_files/**").permitAll()
