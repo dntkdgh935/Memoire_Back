@@ -109,7 +109,6 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/atelier/**").permitAll()
-                        // ✅ /user/face-login 경로를 명시적으로 permitAll로 설정
                         .requestMatchers("/user/face-login").permitAll()
                         .requestMatchers("/", "/**", "/favicon.ico", "/manifest.json", "/public/**", "/auth/**",
                                 "/css/**", "/js/**").permitAll()
@@ -120,8 +119,10 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/upload_files/**").permitAll()
                         .requestMatchers("/*.png").permitAll()
                         .requestMatchers("/*.jpg").permitAll()
-                        .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social", "/user/socialSignUp", "/user/social/complete-signup",
-                                "user/check-phone","/api/verification/generate-code","/api/verification/verify-code").permitAll()
+                        .requestMatchers("/login", "/reissue", "/user/signup","/user/idcheck", "/user/social",
+                                "/user/socialSignUp", "/user/social/complete-signup",
+                                "user/check-phone","/api/verification/generate-code",
+                                "/api/verification/verify-code").permitAll()
                         .requestMatchers("/**/library/top5tags").permitAll()
                         .requestMatchers("/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -133,7 +134,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .addLogoutHandler(customLogoutHandler)
-                        .logoutSuccessHandler((request, response, authentication) -> {
+                        .logoutSuccessHandler((request, response,
+                                               authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
                             response.getWriter().write("로그아웃 성공");
                         })
@@ -152,11 +154,14 @@ public class SecurityConfig implements WebMvcConfigurer {
                                 .userService(customOAuth2UserService)
                         )
                         .successHandler(customAuthenticationSuccessHandler)
-                        .failureHandler((request, response, exception) -> {
-                            log.error("OAuth2 Login Failed: {}", exception.getMessage(), exception);
+                        .failureHandler((request, response,
+                                         exception) -> {
+                            log.error("OAuth2 Login Failed: {}",
+                                    exception.getMessage(), exception);
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json; charset=utf-8");
-                            response.getWriter().write("{\"error\":\"소셜 로그인 실패: " + exception.getMessage() + "\"}");
+                            response.getWriter().write("{\"error\":\"소셜 로그인 실패: "
+                                    + exception.getMessage() + "\"}");
                         })
                 );
 

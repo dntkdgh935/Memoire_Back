@@ -45,7 +45,8 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Override
     @Transactional
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
         OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
         OAuth2User oAuth2User = oauthToken.getPrincipal();
         Map<String, Object> attributes = oAuth2User.getAttributes();
@@ -109,7 +110,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         log.error("[CustomAuthenticationSuccessHandler] CRITICAL ERROR: SocialUserEntity found, but UserEntity not found for userId: {}. Data inconsistency.", socialUser.getUserId());
                         return new ServletException("연결된 사용자 정보를 찾을 수 없습니다. (비정상 상태 - SocialUserEntity 존재)");
                     });
-            // ✅ needsSignupCompletion 판단 기준 변경: phone 또는 birthday가 null이면 추가 정보 입력 필요
+            // needsSignupCompletion 판단 기준 변경: phone 또는 birthday가 null이면 추가 정보 입력 필요
             needsSignupCompletion = userEntity.getPhone() == null || userEntity.getBirthday() == null;
             log.info("[CustomAuthenticationSuccessHandler] Existing social user found. userId={}, needsSignupCompletion={}", userEntity.getUserId(), needsSignupCompletion);
 
@@ -120,18 +121,17 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String newUserId = UUID.randomUUID().toString();
             userEntity = UserEntity.builder()
                     .userId(newUserId)
-                    .loginId(null) // loginId는 null로 유지 (소셜 전용 계정)
-                    // .password(null) // password 필드 제거됨
+                    .loginId(null)
                     .name(name)
                     .nickname(nickname)
-                    .phone(null) // 초기에는 phone null
-                    .birthday(null) // 초기에는 birthday null
+                    .phone(null)
+                    .birthday(null)
                     .role("USER")
                     .autoLoginFlag("N")
-                    .loginType("social") // ✅ 소셜 로그인 사용자로 명시
-                    .registrationDate(new Date()) // 가입일자 추가
-                    .sanctionCount(0) // 제재 횟수 기본값 추가
-                    .statusMessage(null) // 상태 메시지 기본값 추가
+                    .loginType("social")
+                    .registrationDate(new Date())
+                    .sanctionCount(0)
+                    .statusMessage(null)
                     .build();
             userRepository.save(userEntity);
             userRepository.flush();
@@ -167,7 +167,6 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // 기존 사용자 또는 회원가입 완료된 사용자 (JWT 발급)
         User userDto = userEntity.toDto(); // 최종 UserEntity를 DTO로 변환
 
-        // password 필드가 UserDto에서 제거되었으므로 관련 로깅 수정
         log.info("[CustomAuthenticationSuccessHandler] Final UserDto for appUserId: {}. LoginId={}",
                 userDto.getUserId(), userDto.getLoginId());
 

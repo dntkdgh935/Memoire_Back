@@ -43,12 +43,9 @@ public class JWTUtil {
                 .claim("category", category) // 토큰의 카테고리 (access/refresh)
                 .claim("name", user.getName()) // 사용자 이름
                 .claim("role", user.getRole() != null && user.getRole().equals("ADMIN") ? "ADMIN" : "USER") // 사용자 권한
-                .claim("autoLoginFlag", user.getAutoLoginFlag()) // ✅ autoLoginFlag 클레임 추가
-                .claim("nickname", user.getNickname()) // ✅ nickname 클레임 추가
+                .claim("autoLoginFlag", user.getAutoLoginFlag())
+                .claim("nickname", user.getNickname())
                 .claim("loginType", user.getLoginType())
-                // 필요하다면 phone, birthday 등 다른 필드도 여기에 추가할 수 있습니다.
-                // .claim("phone", user.getPhone())
-                // .claim("birthday", user.getBirthday())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // 현재 시간 + 만료 시간
                 .signWith(SignatureAlgorithm.HS512, secretKey.getBytes()) // HS512 알고리즘과 비밀 키로 서명 (비밀 키를 바이트 배열로 변환)
                 .compact(); // JWT 생성
@@ -89,7 +86,6 @@ public class JWTUtil {
      * @return 토큰이 만료되었으면 true, 아니면 false
      */
     public boolean isTokenExpired(String token) {
-        // getClaimsFromToken 내부에서 ExpiredJwtException을 처리하므로, 여기서는 바로 만료 시간을 비교합니다.
         return getClaimsFromToken(token).getExpiration().before(new Date());
     }
 

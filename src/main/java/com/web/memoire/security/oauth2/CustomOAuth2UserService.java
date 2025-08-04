@@ -89,7 +89,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         attributes.put("nickname", userEntity.getNickname());
 
         log.info("[CustomOAuth2UserService] Returning OAuth2User with appUserId: {}, needsSignupCompletion: {}", userEntity.getUserId(), needsSignupCompletion);
-        // UserEntity에 password 필드가 없으므로 관련 로깅 제거
         log.info("[CustomOAuth2UserService] UserEntity details: loginId={}", userEntity.getLoginId());
 
 
@@ -118,16 +117,15 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
             UserEntity newUser = UserEntity.builder()
                     .userId(newUserId)
-                    .loginId(null) // 초기 소셜 로그인 사용자는 loginId가 없을 수 있음
-                    // .password(null) // password 필드 제거됨
+                    .loginId(null)
                     .name(name)
                     .nickname(nickname)
                     .role("USER")
                     .autoLoginFlag("N")
-                    .loginType("social") // ✅ 소셜 로그인 사용자로 명시
-                    .registrationDate(new Date()) // 가입일자 추가
-                    .sanctionCount(0) // 제재 횟수 기본값 추가
-                    .statusMessage(null) // 상태 메시지 기본값 추가
+                    .loginType("social")
+                    .registrationDate(new Date())
+                    .sanctionCount(0)
+                    .statusMessage(null)
                     .build();
             userRepository.save(newUser);
             userRepository.flush(); // 변경 사항을 즉시 DB에 반영
@@ -142,8 +140,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             socialUserRepository.flush(); // 변경 사항을 즉시 DB에 반영
 
             log.info("[CustomOAuth2UserService] NEW USER CREATED (initial save): userId={}, socialId={}, socialType={}",
-                    newUserId, socialId, socialType); // ✅ 저장된 socialId, socialType 확인
-            // password 관련 로깅 제거
+                    newUserId, socialId, socialType);
             log.info("[CustomOAuth2UserService] New UserEntity details: loginId={}", newUser.getLoginId());
             return newUser;
         }

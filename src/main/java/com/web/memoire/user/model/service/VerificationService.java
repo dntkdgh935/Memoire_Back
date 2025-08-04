@@ -78,7 +78,6 @@ public class VerificationService {
         // IMAP 서비스에서 이미 전화번호 일치 여부를 검증하므로, 여기서는 반환 값 확인만 합니다.
         String imapVerificationResult;
         try {
-            // ✅ 변경: phoneNumber를 두 번째 인자로 전달
             imapVerificationResult = imapVerificationService.verifyCodeViaEmail(code, phoneNumber);
         } catch (Exception e) {
             log.error("[IMAP Verification Failed] Phone: {}, Code: {}, IMAP Error: {}", phoneNumber, code, e.getMessage());

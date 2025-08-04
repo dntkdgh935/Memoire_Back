@@ -30,11 +30,7 @@ public class GeneratePassword {
                 .mapToObj(i -> allChars.charAt(random.nextInt(allChars.length())))
                 .collect(Collectors.toList());
 
-        // 생성된 비밀번호가 최소한 각 문자 유형(대문자, 소문자, 숫자, 특수문자)을 하나씩 포함하도록 강제할 수 있습니다.
-        // 현재는 단순히 모든 문자 유형에서 랜덤하게 선택하여 생성합니다.
-        // 더 강력한 복잡성 요구사항이 있다면 이 부분을 수정해야 합니다.
-
-        Collections.shuffle(passwordChars, random); // 문자 순서를 섞어 예측 불가능하게 만듦
+        Collections.shuffle(passwordChars, random);
 
         return passwordChars.stream()
                 .map(String::valueOf)
