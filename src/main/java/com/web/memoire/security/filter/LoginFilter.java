@@ -164,11 +164,6 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         response.setContentType("application/json; charset=utf-8");
 
         String errorMessage;
-        // failed.getMessage()는 CustomUserDetailsService에서 던진 메시지("아이디 또는 비밀번호가 일치하지 않습니다.")를 포함합니다.
-        // 또는 Spring Security 내부에서 발생하는 BadCredentialsException 등의 메시지를 포함할 수 있습니다.
-        // 여기서는 이미 CustomAuthenticationFailureHandler가 등록되어 있기 때문에
-        // 이 unsuccessfulAuthentication 메서드가 호출되지 않을 수도 있습니다.
-        // 하지만 만약 호출된다면, 표준적인 메시지를 반환하도록 합니다.
         if (failed instanceof UsernameNotFoundException || failed.getMessage().contains("Bad credentials")) {
             errorMessage = "아이디 또는 비밀번호가 일치하지 않습니다.";
         } else {

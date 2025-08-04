@@ -93,7 +93,7 @@ public class ReIssueController {
             // 새로운 Access Token 발급 (Refresh Token이 유효하면 항상 발급)
             String newAccessToken = jwtUtil.generateToken(user, "access");
             response.setHeader("Authorization", "Bearer " + newAccessToken);
-            response.setHeader("Access-Control-Expose-Headers", "Authorization, RefreshToken"); // RefreshToken 헤더도 노출하도록 추가
+            response.setHeader("Access-Control-Expose-Headers", "Authorization, RefreshToken");
 
             // 6. ExtendLogin 요청이 있고, Refresh Token 갱신이 필요한 경우
             if ("true".equalsIgnoreCase(extendLogin)) {
@@ -102,7 +102,6 @@ public class ReIssueController {
                 String newRefreshToken = jwtUtil.generateToken(user, "refresh");
 
                 // DB에 기록된 Refresh Token 값 수정 (기존 토큰 삭제 후 새 토큰 저장)
-                // 현재 TokenService의 updateRefreshToken 로직에 따라 유연하게 변경
                 // 예를 들어, oldRefreshToken을 찾아서 newRefreshToken으로 업데이트하는 방식
                 String id = tokenService.selectId(userIdFromRefresh, refreshToken); // 기존 RefreshToken으로 ID 조회
                 if (id != null) {
@@ -131,7 +130,6 @@ public class ReIssueController {
             return ResponseEntity.ok(responseBody);
 
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            // Refresh Token이 만료되었을 때 getUsername에서 발생 가능
             log.error("Expired JWT during reissue: {}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "만료된 토큰입니다. 다시 로그인해주세요."));

@@ -107,9 +107,6 @@ public class UserService {
         pwdService.changeUserPassword(userId, prevRawPassword, newRawPassword);
 
         log.info("UserService에서 비밀번호 변경 요청 처리 완료: userId={}", userId);
-        // UserEntity 자체에는 비밀번호 필드가 없으므로, UserEntity를 업데이트하거나 반환할 필요가 없습니다.
-        // 만약 UserEntity의 다른 필드(예: 마지막 비밀번호 변경일)를 업데이트해야 한다면 여기서 추가합니다.
-        // 예: userEntity.setLastPasswordChangeDate(new Date()); userRepository.save(userEntity);
     }
 
     @Transactional
@@ -189,9 +186,7 @@ public class UserService {
         }
 
         // 3. FaceIdEntity를 찾아 업데이트하거나 새로 생성하여 저장
-        // 한 사용자당 하나의 얼굴 임베딩만 등록한다고 가정하고, userId로 조회
-        // 여러 얼굴을 등록하려면 FaceIdEntity의 ID 전략 변경 및 List<FaceIdEntity> 관리 필요
-        // findByUserId는 List를 반환하므로, stream().findFirst()를 사용하여 Optional<FaceIdEntity>를 얻습니다.
+        // 한 사용자당 하나의 얼굴 임베딩만 등록한다고 가정하고, loginId로 조회
         Optional<FaceIdEntity> existingFaceId = faceIdRepository.findByUserId(userId).stream().findFirst();
 
         FaceIdEntity faceIdEntity;
@@ -202,11 +197,10 @@ public class UserService {
             // (facePath는 DB에서 제거되었으므로 여기서는 업데이트하지 않습니다.)
         } else {
             faceIdEntity = FaceIdEntity.builder()
-                    .faceId(UUID.randomUUID().toString()) // 새로운 FaceId 생성
+                    .faceId(UUID.randomUUID().toString())
                     .userId(userId)
                     .faceEmbedding(embeddingJson)
-                    // description 등 다른 필드 초기화 (필요하다면)
-                    .description("User face embedding") // 기본 설명 추가 예시
+                    .description("User face embedding")
                     .build();
         }
         faceIdRepository.save(faceIdEntity);
@@ -284,14 +278,13 @@ public class UserService {
         Boolean matchFound = (Boolean) comparisonResult.get("match_found");
         String matchedUserIdFromFastAPI = (String) comparisonResult.get("matched_user_id");
 
-        // ✅ 최종 검증: matchFound가 true이고, FastAPI에서 매칭된 userId가 우리가 찾은 userIdToAuthenticate와 일치하는지 확인
         if (matchFound != null && matchFound && userIdToAuthenticate.equals(matchedUserIdFromFastAPI)) {
             log.info("authenticateUserByFace: 얼굴 인식 성공. 매칭된 userId: {} (로그인 ID: {})", matchedUserIdFromFastAPI, loginId);
             // 인증 성공 시에는 해당 사용자의 userId를 반환
-            return userEntity.getLoginId(); // ✅ 컨트롤러로 loginId를 반환하도록 변경
+            return userEntity.getLoginId();
         } else {
             log.info("authenticateUserByFace: 얼굴 인식에 실패했거나, 입력한 로그인 ID '{}' 와 일치하는 얼굴이 아닙니다. (FastAPI 매칭 결과 userId: {})", loginId, matchedUserIdFromFastAPI);
-            return null; // 일치하는 사용자 없음 또는 입력 loginId와 불일치
+            return null;
         }
     }
 

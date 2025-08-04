@@ -58,8 +58,6 @@ public class CustomOAuth2User extends DefaultOAuth2User {
 
     @Override
     public String getName() {
-        // 이 메서드는 Principal.getName()을 반환합니다.
-        // 여기서는 우리 서비스의 userId를 반환하도록 오버라이드합니다.
         return this.userId;
     }
 

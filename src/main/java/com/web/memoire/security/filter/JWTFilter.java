@@ -27,19 +27,19 @@ public class JWTFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
-    // ✅ 인증이 필요 없는 정확한 경로 목록 (수정: user//face-login -> user/face-login)
+    // 인증이 필요 없는 정확한 경로 목록 (수정: user//face-login -> user/face-login)
     private static final List<String> PERMIT_ALL_PATHS_EXACT = Arrays.asList(
             "/", "/login", "/reissue", "/user/signup", "/user/idcheck","/user/findid","/user/findpwd", "/favicon.ico", "/manifest.json",
             "/user/social", "/user/socialSignUp","/user/check-phone","/api/verification/generate-code","/api/verification/verify-code",
             "/user/social/complete-signup",
-            "/user/face-login", // 이중 슬래시 제거
+            "/user/face-login",
             "/oauth2/authorization/", "/oauth2/callback/success", "/api/library/top5tags"
     );
-    // ✅ 인증이 필요 없는 특정 문자열로 시작하는 경로 목록
+    //  인증이 필요 없는 특정 문자열로 시작하는 경로 목록
     private static final List<String> PERMIT_ALL_PATHS_START_WITH = Arrays.asList(
             "/js/", "/css/", "/public/", /*"/api/",*/ "/upload_files/", "/auth/", "/chat/", "/api/library/discover/guest", "/api/library/collection/guest",
             "/api/library/memory/"
-            , "/api/library/collection/memories"// /auth/ 경로도 추가 (SecurityConfig 참고)
+            , "/api/library/collection/memories"
     );
 
 
@@ -96,8 +96,8 @@ public class JWTFilter extends OncePerRequestFilter {
         String refreshTokenHeader = request.getHeader("RefreshToken");
 
         // AccessToken 또는 RefreshToken이 없는 경우 (인증이 필요한 요청인데 토큰이 없음)
-        // 이 조건은 AccessToken 또는 RefreshToken 중 하나라도 없거나 형식이 틀리면 401을 반환합니다.
-        // AuthProvider.secureApiRequest가 항상 두 토큰을 보내므로, 이 검사가 유효합니다.
+        // 이 조건은 AccessToken 또는 RefreshToken 중 하나라도 없거나 형식이 틀리면 401을 반환
+        // AuthProvider.secureApiRequest가 항상 두 토큰을 보내므로, 이 검사가 유효
         if (accessTokenHeader == null || !accessTokenHeader.startsWith("Bearer ") ||
                 refreshTokenHeader == null || !refreshTokenHeader.startsWith("Bearer ")) {
             log.warn("인증 토큰이 없거나 형식이 올바르지 않습니다. URI: {}", requestURI);

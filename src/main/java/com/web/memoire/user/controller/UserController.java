@@ -82,26 +82,23 @@ public class UserController {
 
         // 2. userId 생성 및 기본값 설정
         String newUserId = UUID.randomUUID().toString();
-        // request DTO에 userId를 설정하여 Pwd DTO 생성 시 사용
         request.setUserId(newUserId);
 
         // 3. 비밀번호 암호화 및 Pwd DTO 생성
         String encodedPassword = bcryptPasswordEncoder.encode(request.getPassword());
         Pwd pwd = Pwd.builder()
-                .userId(newUserId) // 새로 생성된 userId 사용
+                .userId(newUserId)
                 .currPwd(encodedPassword)
-                // prevPwd는 회원가입 시에는 없으므로 설정하지 않음
                 .build();
 
         // 4. User DTO 생성 (비밀번호 필드 제외)
-        // User DTO는 UserEntity와 동일하게 비밀번호 필드가 없습니다.
         User user = User.builder()
                 .userId(newUserId)
                 .name(request.getName())
                 .birthday(request.getBirthday())
                 .role(request.getRole() != null ? request.getRole() : "USER") // 역할 설정 (기본값 USER)
                 .autoLoginFlag(request.getAutoLoginFlag() != null ? request.getAutoLoginFlag() : "N") // 기본값 N
-                .registrationDate(new Date()) // 현재 시간으로 설정
+                .registrationDate(new Date())
                 .loginId(request.getLoginId())
                 .nickname(request.getNickname())
                 .phone(request.getPhone())
@@ -115,7 +112,7 @@ public class UserController {
             // 5. 사용자 정보 저장
             userService.insertUser(user);
             // 6. 비밀번호 이력 저장
-            pwdService.savePasswordHistory(pwd.toEntity()); // PwdService의 savePasswordHistory 메서드를 호출합니다.
+            pwdService.savePasswordHistory(pwd.toEntity());
 
             log.info("회원가입 성공: loginId={}", user.getLoginId());
             return ResponseEntity.status(HttpStatus.OK).build();
@@ -456,33 +453,31 @@ public class UserController {
         try {
             byte[] imageData = file.getBytes();
             // loginId와 얼굴 이미지를 함께 서비스 레이어로 전달합니다.
-            String authenticatedLoginId = userService.authenticateUserByFace(loginId, imageData); // ✅ loginId도 함께 전달
+            String authenticatedLoginId = userService.authenticateUserByFace(loginId, imageData);
 
             if (authenticatedLoginId != null) {
                 // 인증 성공: JWT 토큰 발급 및 사용자 정보 반환
-                User userDto = userService.selectUser(authenticatedLoginId); // ✅ selectUser로 loginId를 통해 User DTO 조회
+                User userDto = userService.selectUser(authenticatedLoginId);
                 if (userDto == null) {
-                    log.warn("얼굴 로그인 성공 후 사용자 정보 찾기 실패: loginId={}", authenticatedLoginId); // ✅ 로그도 loginId로 변경
+                    log.warn("얼굴 로그인 성공 후 사용자 정보 찾기 실패: loginId={}", authenticatedLoginId);
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "인증된 사용자 정보를 찾을 수 없습니다."));
                 }
 
                 String accessToken = jwtUtil.generateToken(userDto, "access");
                 String refreshToken = jwtUtil.generateToken(userDto, "refresh");
 
-                tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken)); // Refresh Token은 UserId 기반으로 저장
-
+                tokenService.saveRefreshToken(new Token(userDto.getUserId(), refreshToken));
                 Map<String, Object> responseBody = new HashMap<>();
                 responseBody.put("accessToken", accessToken);
                 responseBody.put("refreshToken", refreshToken);
-                responseBody.put("userId", userDto.getUserId()); // Front-end AuthContext에서 UserId 필요
-                responseBody.put("loginId", userDto.getLoginId()); // ✅ loginId도 응답 바디에 추가 (프론트엔드에서 사용 가능)
+                responseBody.put("userId", userDto.getUserId());
+                responseBody.put("loginId", userDto.getLoginId());
                 responseBody.put("name", userDto.getName());
                 responseBody.put("role", userDto.getRole());
                 responseBody.put("autoLoginFlag", userDto.getAutoLoginFlag());
                 responseBody.put("nickname", userDto.getNickname());
-                // userDto.getLoginType() 도 포함시켜주는 것이 좋습니다. (JWT에 이미 있으니 필요하다면 여기서 직접 추가)
 
-                log.info("얼굴 로그인 성공: loginId={}", userDto.getLoginId()); // ✅ 로그도 loginId로 변경
+                log.info("얼굴 로그인 성공: loginId={}", userDto.getLoginId());
                 return ResponseEntity.ok(responseBody);
             } else {
                 // 인증 실패
@@ -500,13 +495,13 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "얼굴 로그인 처리 중 오류가 발생했습니다."));
         }
     }
-    @PatchMapping("/exit") // PATCH 매핑으로 변경
+    @PatchMapping("/exit")
     public ResponseEntity<?> exitUser(@AuthenticationPrincipal UserDetails userDetails) {
         String userId = userDetails.getUsername();
         log.info("회원 역할 'EXIT'로 변경 요청: userId={}", userId);
 
         try {
-            userService.updateUserRoleToExit(userId); // 새로운 서비스 메서드 호출
+            userService.updateUserRoleToExit(userId);
             log.info("회원 역할 'EXIT'로 변경 성공: userId={}", userId);
             return ResponseEntity.ok().body(Map.of("message", "회원 탈퇴(역할 변경)가 성공적으로 처리되었습니다."));
         } catch (NoSuchElementException e) {

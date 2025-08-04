@@ -28,27 +28,24 @@ public class VerificationController {
      */
     @PostMapping("/generate-code")
     public ResponseEntity<PhoneVerification> generateCode(@RequestBody PhoneVerification request) {
-        String phoneNumber = request.getPhone(); // phone 필드 사용
+        String phoneNumber = request.getPhone();
         if (phoneNumber == null || !phoneNumber.matches("^01[016789][0-9]{7,8}$")) {
             return ResponseEntity.badRequest().body(PhoneVerification.builder()
                     .phone(phoneNumber)
-                    .verificationCode(null) // 코드 없음
-                    .expirationTimestamp(null) // 타임스탬프 없음
-                    // message 필드가 없으므로, 필요하다면 PhoneVerification DTO에 추가하거나 에러 핸들링
+                    .verificationCode(null)
+                    .expirationTimestamp(null)
                     .build());
         }
 
         try {
             String generatedCode = verificationService.generateVerificationCode(phoneNumber);
-            // 성공 응답: phone과 생성된 코드만 포함
             return ResponseEntity.ok(PhoneVerification.builder()
                     .phone(phoneNumber)
                     .verificationCode(generatedCode)
-                    .expirationTimestamp(null) // 클라이언트에게는 이 정보를 보내지 않음
+                    .expirationTimestamp(null)
                     .build());
         } catch (Exception e) {
             log.error("Error generating verification code for phone {}: {}", phoneNumber, e.getMessage());
-            // 실패 응답: phone만 포함하고 코드 및 타임스탬프는 null
             return ResponseEntity.internalServerError().body(PhoneVerification.builder()
                     .phone(phoneNumber)
                     .verificationCode(null)
@@ -64,8 +61,8 @@ public class VerificationController {
      */
     @PostMapping("/verify-code")
     public ResponseEntity<PhoneVerification> verifyCode(@RequestBody PhoneVerification request) {
-        String phoneNumber = request.getPhone(); // phone 필드 사용
-        String code = request.getVerificationCode(); // verificationCode 필드 사용
+        String phoneNumber = request.getPhone();
+        String code = request.getVerificationCode();
 
         if (phoneNumber == null || !phoneNumber.matches("^01[016789][0-9]{7,8}$") || code == null || code.isEmpty()) {
             return ResponseEntity.badRequest().body(PhoneVerification.builder()
@@ -80,8 +77,8 @@ public class VerificationController {
             if (verified) {
                 // 성공 응답: phone만 포함 (verifiedPhoneNumber 역할)
                 return ResponseEntity.ok(PhoneVerification.builder()
-                        .phone(phoneNumber) // 인증된 전화번호
-                        .verificationCode("success") // 성공 메시지 역할
+                        .phone(phoneNumber)
+                        .verificationCode("success")
                         .expirationTimestamp(null)
                         .build());
             } else {
@@ -98,13 +95,13 @@ public class VerificationController {
             if (e.getMessage().contains("IMAP verification failed")) {
                 return ResponseEntity.status(200).body(PhoneVerification.builder()
                         .phone(phoneNumber)
-                        .verificationCode("wait") // 'wait' 메시지 역할
+                        .verificationCode("wait")
                         .expirationTimestamp(null)
                         .build());
             }
             return ResponseEntity.internalServerError().body(PhoneVerification.builder()
                     .phone(phoneNumber)
-                    .verificationCode("error") // 일반 에러 메시지 역할
+                    .verificationCode("error")
                     .expirationTimestamp(null)
                     .build());
         } catch (Exception e) {
